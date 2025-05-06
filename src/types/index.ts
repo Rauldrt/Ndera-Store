@@ -3,8 +3,8 @@ import type { Timestamp } from 'firebase/firestore';
 export interface Catalog {
   id: string;
   name: string;
-  description: string;
-  createdAt: Timestamp;
+  description: string; // Keep description optional as per form schema
+  createdAt: Timestamp; // Use Firestore Timestamp
 }
 
 export interface Item {
@@ -14,5 +14,5 @@ export interface Item {
   description: string;
   imageUrl?: string; // Optional image URL
   tags: string[];
-  createdAt: Timestamp;
+  createdAt: Timestamp; // Use Firestore Timestamp
 }

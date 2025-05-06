@@ -3,9 +3,9 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, addDoc, serverTimestamp, query, where, orderBy, getDocs, doc, deleteDoc, updateDoc, getDoc } from "firebase/firestore"; // Added getDoc
+import { collection, addDoc, serverTimestamp, query, where, orderBy, getDocs, doc, deleteDoc, updateDoc, getDoc, Timestamp } from "firebase/firestore"; // Import Timestamp
 import { db } from "@/lib/firebase";
-import type { Catalog, Item } from "@/types"; // Added Catalog type
+import type { Catalog, Item } from "@/types";
 import { ItemForm, type ItemFormValues } from '@/components/item/item-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,11 +23,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CatalogItemsProps {
   catalogId: string;
 }
+
+// Define the type for item data from Firestore
+interface ItemWithTimestamp extends Omit<Item, 'createdAt'> {
+    createdAt: Timestamp | null; // Firestore timestamp or null if pending
+}
+
 
 export function CatalogItems({ catalogId }: CatalogItemsProps) {
   const [showItemForm, setShowItemForm] = useState(false);
@@ -49,21 +55,33 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
           orderBy("createdAt", "desc")
       );
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Item[];
+       // Map Firestore docs to Item type
+      return querySnapshot.docs.map(doc => {
+         const data = doc.data() as Omit<Item, 'id'>; // Cast data
+         return {
+             id: doc.id,
+             ...data,
+             // createdAt will be a Firestore Timestamp
+         } as Item; // Assert final type
+      });
     },
     enabled: !!catalogId, // Only run query if catalogId is available
-    // staleTime: 1000 * 60 * 2, // Refetch every 2 minutes
+    // staleTime: 1000 * 60 * 2, // Optional: refetch configuration
   });
 
-   // Fetch catalog details (optional, if needed for title/description)
-    const { data: catalogDetails, isLoading: isLoadingCatalogDetails } = useQuery<Catalog | null>({ // Correct type to Catalog
+   // Fetch catalog details (for title/description)
+    const { data: catalogDetails, isLoading: isLoadingCatalogDetails } = useQuery<Catalog | null>({
         queryKey: ['catalog', catalogId],
         queryFn: async () => {
             if (!catalogId) return null;
-            // Removed unnecessary import
             const docRef = doc(db, "catalogs", catalogId);
             const docSnap = await getDoc(docRef);
-            return docSnap.exists() ? ({ id: docSnap.id, ...docSnap.data() } as Catalog) : null; // Cast to Catalog
+            if (docSnap.exists()) {
+                 const data = docSnap.data() as Omit<Catalog, 'id'>; // Cast data
+                 return { id: docSnap.id, ...data } as Catalog; // Assert final type
+            } else {
+                return null;
+            }
         },
         enabled: !!catalogId,
         // staleTime: Infinity, // Catalog details likely don't change often
@@ -72,16 +90,16 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
   // Mutation for adding an item
   const addItemMutation = useMutation({
-    mutationFn: async ({ data, catalogId }: { data: ItemFormValues, catalogId: string }) => {
-       const newItem: Omit<Item, 'id' | 'createdAt'> = {
+    mutationFn: async ({ data, catalogId }: { data: ItemFormValues, catalogId: string }): Promise<string> => {
+       // Prepare item data for Firestore, ensuring tags are an array
+       const newItemData: Omit<Item, 'id' | 'createdAt'> = {
             ...data,
             catalogId: catalogId,
-            // Firestore SDK handles timestamp on server, no need for client-side serverTimestamp() here
-            // createdAt: serverTimestamp() as any,
+            tags: Array.isArray(data.tags) ? data.tags : [], // Ensure tags is always an array
         };
-      const docRef = await addDoc(collection(db, "items"), {
-           ...newItem,
-           createdAt: serverTimestamp(), // Add timestamp during doc creation
+        const docRef = await addDoc(collection(db, "items"), {
+           ...newItemData,
+           createdAt: serverTimestamp(), // Use serverTimestamp for creation
         });
       return docRef.id;
     },
@@ -109,13 +127,15 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     const updateItemMutation = useMutation({
         mutationFn: async ({ id, data, catalogId }: { id: string, data: ItemFormValues, catalogId: string }) => {
             const itemRef = doc(db, "items", id);
-            // Ensure catalogId is not overwritten if it's not in ItemFormValues
-            // Omit catalogId and createdAt from the update data as they shouldn't be changed here
-            const { catalogId: _catalogId, createdAt: _createdAt, ...updateData } = data as ItemFormValues & { catalogId?: string; createdAt?: any };
+            // Prepare update data, ensuring tags is an array and excluding non-updatable fields
+             const updateData: Partial<Omit<Item, 'id' | 'createdAt' | 'catalogId'>> = {
+                ...data,
+                tags: Array.isArray(data.tags) ? data.tags : [], // Ensure tags is array
+            };
             await updateDoc(itemRef, updateData);
         },
-        onSuccess: (_, variables) => { // Use variables to access mutation args
-            queryClient.invalidateQueries({ queryKey: ['items', variables.catalogId] }); // Use catalogId from variables
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['items', variables.catalogId] });
             toast({
                 title: "Item Updated",
                 description: "The item has been saved.",
@@ -163,11 +183,13 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
 
    const handleAddItem = async (data: ItemFormValues, currentCatalogId: string) => {
+        // Pass catalogId explicitly to the mutation
         await addItemMutation.mutateAsync({ data, catalogId: currentCatalogId });
     };
 
    const handleUpdateItem = async (data: ItemFormValues, currentCatalogId: string) => {
         if (editingItem?.id) {
+            // Pass id, data, and catalogId to the mutation
             await updateItemMutation.mutateAsync({ id: editingItem.id, data, catalogId: currentCatalogId });
         }
     };
@@ -191,57 +213,57 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-         <div className="flex-1"> {/* Allow title/description to take space */}
+         <div className="flex-1">
            {isLoadingCatalogDetails ? (
-                <Skeleton className="h-8 w-3/4 mb-1" /> // Skeleton for title
+                <Skeleton className="h-8 w-3/4 mb-1" />
            ) : (
-               <h1 className="text-xl sm:text-2xl font-bold text-primary break-words"> {/* Responsive text size and word break */}
+               <h1 className="text-xl sm:text-2xl font-bold text-primary break-words">
                  {catalogDetails?.name || "Catalog Items"}
                </h1>
            )}
             {isLoadingCatalogDetails ? (
-                <Skeleton className="h-4 w-1/2 mt-1" /> // Skeleton for description
+                <Skeleton className="h-4 w-1/2 mt-1" />
             ) : (
-                catalogDetails?.description && <p className="text-muted-foreground mt-1 text-sm sm:text-base">{catalogDetails.description}</p> // Responsive text size
+                catalogDetails?.description && <p className="text-muted-foreground mt-1 text-sm sm:text-base">{catalogDetails.description}</p>
             )}
         </div>
-        <Button onClick={() => { setEditingItem(null); setShowItemForm(true); }} className="w-full sm:w-auto flex-shrink-0"> {/* Prevent button shrinking too much */}
+        <Button onClick={() => { setEditingItem(null); setShowItemForm(true); }} className="w-full sm:w-auto flex-shrink-0">
           <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
         </Button>
       </div>
 
       {showItemForm && (
-        <div className="max-w-full md:max-w-2xl mx-auto relative"> {/* Responsive max-width */}
+        <div className="max-w-full md:max-w-2xl mx-auto relative">
           <Button variant="ghost" size="sm" onClick={handleCancelForm} className="absolute top-4 right-4 z-10">Cancel</Button>
           <ItemForm
-            catalogId={catalogId}
+            catalogId={catalogId} // Pass catalogId
             onSubmit={editingItem ? handleUpdateItem : handleAddItem}
             initialData={editingItem ?? undefined}
             isLoading={addItemMutation.isPending || updateItemMutation.isPending}
-            key={editingItem?.id || 'new-item'} // Force re-render form when editing different item
+            key={editingItem?.id || 'new-item'} // Force re-render
           />
         </div>
       )}
 
       {isLoadingItems && (
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"> {/* Responsive grid */}
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => (
                  <Card key={i} className="flex flex-col">
                     <CardHeader>
-                        <Skeleton className="aspect-video w-full mb-4" /> {/* Image skeleton */}
-                        <Skeleton className="h-6 w-3/4" /> {/* Title skeleton */}
+                        <Skeleton className="aspect-video w-full mb-4" />
+                        <Skeleton className="h-6 w-3/4" />
                     </CardHeader>
                     <CardContent className="flex-grow">
-                        <Skeleton className="h-4 w-full mb-1" /> {/* Description skeleton */}
-                        <Skeleton className="h-4 w-2/3 mb-3" /> {/* Description skeleton */}
+                        <Skeleton className="h-4 w-full mb-1" />
+                        <Skeleton className="h-4 w-2/3 mb-3" />
                          <div className="flex flex-wrap gap-1">
-                            <Skeleton className="h-5 w-16 rounded-full" /> {/* Tag skeleton */}
-                            <Skeleton className="h-5 w-12 rounded-full" /> {/* Tag skeleton */}
+                            <Skeleton className="h-5 w-16 rounded-full" />
+                            <Skeleton className="h-5 w-12 rounded-full" />
                          </div>
                     </CardContent>
-                     <CardFooter className="flex justify-end gap-2"> {/* Adjusted footer alignment */}
-                         <Skeleton className="h-8 w-16" /> {/* Button skeleton */}
-                         <Skeleton className="h-8 w-16" /> {/* Button skeleton */}
+                     <CardFooter className="flex justify-end gap-2">
+                         <Skeleton className="h-8 w-16" />
+                         <Skeleton className="h-8 w-16" />
                     </CardFooter>
                 </Card>
             ))}
@@ -265,42 +287,50 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       )}
 
       {!isLoadingItems && !itemsError && items && items.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"> {/* Responsive grid and gap */}
-          {items.map((item, index) => ( // Added index
-            <Card key={item.id} className="flex flex-col overflow-hidden"> {/* Added overflow-hidden */}
-               <CardHeader className="p-0"> {/* Remove padding for full-width image */}
-                <div className="aspect-video relative bg-muted overflow-hidden"> {/* Removed rounded-md here, apply to card */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          {items.map((item, index) => (
+            <Card key={item.id} className="flex flex-col overflow-hidden">
+               <CardHeader className="p-0">
+                <div className="aspect-video relative bg-muted overflow-hidden">
                      {item.imageUrl ? (
                         <Image
-                           src={item.imageUrl}
-                           alt={item.name}
+                           // Provide a default empty string if imageUrl is somehow undefined/null after check
+                           src={item.imageUrl || ''}
+                           alt={item.name || 'Item image'} // Provide default alt text
                            fill
-                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" // Adjusted sizes
+                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                            style={{ objectFit: 'cover' }}
-                           priority={index < 3} // Prioritize loading images for the first few items
-                           data-ai-hint="product photo" // Hint for AI image generation if needed
-                           onError={(e) => { e.currentTarget.src = 'https://picsum.photos/400/300?blur=2'; e.currentTarget.srcset = '' }} // Basic fallback
+                           priority={index < 3}
+                           data-ai-hint="product photo"
+                           // Add basic error handling for images
+                           onError={(e) => {
+                              // Fallback to a generic placeholder
+                              e.currentTarget.src = 'https://picsum.photos/400/300?blur=2';
+                              e.currentTarget.srcset = ''; // Clear srcset as well
+                              console.error(`Error loading image: ${item.imageUrl}`);
+                            }}
                          />
                       ) : (
-                         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-gradient-to-br from-muted via-background to-muted"> {/* Placeholder background */}
-                           <ImageOff size={36} /> {/* Slightly smaller icon */}
+                         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-gradient-to-br from-muted via-background to-muted">
+                           <ImageOff size={36} />
                          </div>
                        )}
                  </div>
               </CardHeader>
-              <CardContent className="flex-grow p-4"> {/* Adjusted padding */}
-                 <CardTitle className="text-base sm:text-lg mb-1 line-clamp-1">{item.name}</CardTitle> {/* Responsive title size, clamp */}
-                 <CardDescription className="text-xs sm:text-sm mb-3 line-clamp-3">{item.description}</CardDescription> {/* Responsive description */}
+              <CardContent className="flex-grow p-4">
+                 <CardTitle className="text-base sm:text-lg mb-1 line-clamp-1">{item.name}</CardTitle>
+                 <CardDescription className="text-xs sm:text-sm mb-3 line-clamp-3">{item.description}</CardDescription>
                  <div className="flex flex-wrap gap-1">
-                   {item.tags?.slice(0, 5).map((tag) => ( // Limit tags displayed initially
+                   {/* Ensure tags exist and is an array before mapping */}
+                   {Array.isArray(item.tags) && item.tags.slice(0, 5).map((tag) => (
                      <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
                    ))}
-                   {item.tags?.length > 5 && ( // Show indicator if more tags exist
+                   {Array.isArray(item.tags) && item.tags.length > 5 && (
                        <Badge variant="outline" className="text-xs">...</Badge>
                    )}
                  </div>
               </CardContent>
-              <CardFooter className="flex justify-end gap-2 p-4 border-t"> {/* Add border, adjust padding */}
+              <CardFooter className="flex justify-end gap-2 p-4 border-t">
                  <Button variant="outline" size="sm" onClick={() => handleEditItem(item)}>
                   <Edit className="mr-1 h-3 w-3" /> Edit
                 </Button>
@@ -333,6 +363,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                 disabled={deleteItemMutation.isPending}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
+                 {deleteItemMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 {deleteItemMutation.isPending ? "Deleting..." : "Delete"}
             </AlertDialogAction>
             </AlertDialogFooter>
