@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -15,11 +16,11 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, LayoutGrid, Trash2, AlertTriangle } from "lucide-react";
+import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2 } from "lucide-react"; // Added Edit and Loader2
 import { CatalogForm } from "@/components/catalog/catalog-form";
 import type { Catalog } from "@/types";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc, getDocs } from "firebase/firestore"; // Added getDocs
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertDialog,
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { CatalogItems } from '@/components/catalog/catalog-items';
+import { Skeleton } from '@/components/ui/skeleton'; // Added Skeleton
 
 export default function Home() {
   const [showCatalogForm, setShowCatalogForm] = useState(false);
@@ -53,7 +55,7 @@ export default function Home() {
         // For simplicity, this example might not fetch real-time updates correctly without onSnapshot.
         // Consider using a library like @tanstack-query-firebase/react for better integration.
         // This is a simplified fetch for demonstration.
-        const { getDocs } = await import("firebase/firestore");
+        // Removed unnecessary import inside queryFn
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Catalog[];
     },
@@ -77,6 +79,7 @@ export default function Home() {
         variant: "default", // Use accent color (green)
       });
       setShowCatalogForm(false);
+      setEditingCatalog(null); // Clear editing state
       setSelectedCatalogId(newId); // Select the newly created catalog
     },
     onError: (error) => {
@@ -91,7 +94,7 @@ export default function Home() {
 
   // Mutation for updating a catalog
   const updateCatalogMutation = useMutation({
-      mutationFn: async ({ id, data }: { id: string, data: Partial<Catalog> }) => {
+      mutationFn: async ({ id, data }: { id: string, data: Partial<Omit<Catalog, 'id' | 'createdAt'>> }) => { // Ensure data type matches form
           const catalogRef = doc(db, "catalogs", id);
           await updateDoc(catalogRef, data);
       },
@@ -104,6 +107,8 @@ export default function Home() {
               variant: "default",
           });
           setEditingCatalog(null); // Close form/modal
+          setShowCatalogForm(false); // Hide form after update
+          setSelectedCatalogId(variables.id); // Reselect the updated catalog
       },
       onError: (error) => {
           console.error("Error updating catalog: ", error);
@@ -119,10 +124,13 @@ export default function Home() {
   const deleteCatalogMutation = useMutation({
     mutationFn: async (catalogId: string) => {
        // TODO: Also delete all items within this catalog (requires fetching items first or using Cloud Functions)
+       // Consider implementing cascading deletes via Cloud Functions for robustness
       await deleteDoc(doc(db, "catalogs", catalogId));
     },
     onSuccess: (_, deletedId) => {
       queryClient.invalidateQueries({ queryKey: ['catalogs'] });
+      queryClient.removeQueries({ queryKey: ['items', deletedId] }); // Remove items query cache
+      queryClient.removeQueries({ queryKey: ['catalog', deletedId] }); // Remove catalog details query cache
       // If the deleted catalog was selected, reset selection
       if (selectedCatalogId === deletedId) {
         setSelectedCatalogId(null);
@@ -175,26 +183,38 @@ export default function Home() {
       setShowCatalogForm(true); // Show form for editing
   }
 
-  const handleCancelEdit = () => {
+  const handleCancelForm = () => {
        setEditingCatalog(null);
        setShowCatalogForm(false);
+        // If a catalog was selected before opening the form, reselect it
+        // This logic might need adjustment based on desired UX
+        // if (previousSelectedCatalogId) {
+        //     setSelectedCatalogId(previousSelectedCatalogId);
+        // }
    }
 
 
   return (
     <SidebarProvider>
       <Sidebar>
-        <SidebarHeader className="items-center justify-between">
-          <h2 className="text-lg font-semibold text-primary">Catalogify</h2>
-          <SidebarTrigger />
+        <SidebarHeader className="items-center justify-between p-2"> {/* Adjusted padding */}
+          <h2 className="text-lg font-semibold text-primary group-data-[collapsible=icon]:hidden">Catalogify</h2>
+          {/* Ensure trigger is always visible */}
+          <div className="flex items-center gap-1">
+             {/* Add a placeholder or adjust layout if needed when collapsed */}
+             {/* <span className="w-8 h-8 group-data-[collapsible=icon]:block hidden"></span> */}
+            <SidebarTrigger />
+          </div>
         </SidebarHeader>
         <SidebarContent className="p-2">
           <Button
             variant="default" // Use primary color
             className="w-full mb-4"
             onClick={() => { setShowCatalogForm(true); setSelectedCatalogId(null); setEditingCatalog(null); }}
+            title="Create New Catalog" // Add title for collapsed state
           >
-            <PlusCircle className="mr-2 h-4 w-4" /> Create Catalog
+            <PlusCircle className="mr-2 h-4 w-4 group-data-[collapsible=icon]:mr-0" />
+             <span className="group-data-[collapsible=icon]:hidden">Create Catalog</span>
           </Button>
           <SidebarMenu>
             {isLoadingCatalogs && (
@@ -205,49 +225,50 @@ export default function Home() {
                </>
             )}
             {catalogsError && (
-              <SidebarMenuItem className="text-destructive px-2 py-1">
-                <AlertTriangle className="inline-block mr-2 h-4 w-4"/> Error loading catalogs.
+              <SidebarMenuItem className="text-destructive px-2 py-1 text-xs"> {/* Adjusted styling */}
+                <AlertTriangle className="inline-block mr-2 h-4 w-4"/> Error loading.
               </SidebarMenuItem>
             )}
             {catalogs && catalogs.map((catalog) => (
               <SidebarMenuItem key={catalog.id}>
-                <SidebarMenuButton
-                    isActive={selectedCatalogId === catalog.id}
-                    onClick={() => handleSelectCatalog(catalog.id)}
-                    tooltip={catalog.name} // Show full name on hover when collapsed
-                >
-                  <LayoutGrid />
-                  <span>{catalog.name}</span>
-                </SidebarMenuButton>
-                 {/* Actions visible on hover/focus within the item */}
-                 <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity group-data-[collapsible=icon]:hidden">
-                    {/* Edit Button */}
-                     <Button
-                         variant="ghost"
-                         size="icon"
-                         className="h-6 w-6"
-                         onClick={(e) => { e.stopPropagation(); handleEditCatalog(catalog); }}
-                         title={`Edit ${catalog.name}`}
-                     >
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                             <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                         </svg>
-                     </Button>
-                     {/* Delete Button */}
-                     <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-destructive hover:text-destructive"
-                        onClick={(e) => { e.stopPropagation(); openDeleteDialog(catalog.id); }}
-                        title={`Delete ${catalog.name}`}
+                 <div className="relative group/menu-item flex items-center"> {/* Wrap button and actions */}
+                    <SidebarMenuButton
+                        isActive={selectedCatalogId === catalog.id}
+                        onClick={() => handleSelectCatalog(catalog.id)}
+                        tooltip={{ children: catalog.name, side: 'right', align: 'center' }}
+                        className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap pr-12" // Added padding-right for actions
                     >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
+                        <LayoutGrid />
+                        <span>{catalog.name}</span>
+                    </SidebarMenuButton>
+                    {/* Actions always visible for clarity, adjusted position */}
+                     <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex gap-0.5 opacity-0 group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100 transition-opacity group-data-[collapsible=icon]:hidden">
+                        {/* Edit Button */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-foreground" // Adjusted styling
+                            onClick={(e) => { e.stopPropagation(); handleEditCatalog(catalog); }}
+                            title={`Edit ${catalog.name}`}
+                        >
+                           <Edit className="h-4 w-4" />
+                        </Button>
+                        {/* Delete Button */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-destructive hover:text-destructive/90" // Adjusted styling
+                            onClick={(e) => { e.stopPropagation(); openDeleteDialog(catalog.id); }}
+                            title={`Delete ${catalog.name}`}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
                  </div>
               </SidebarMenuItem>
             ))}
-             {catalogs && catalogs.length === 0 && !isLoadingCatalogs && (
-                <p className="px-2 text-sm text-muted-foreground">No catalogs yet. Create one!</p>
+             {catalogs && catalogs.length === 0 && !isLoadingCatalogs && !showCatalogForm && (
+                <p className="px-2 text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">No catalogs yet. Create one!</p>
             )}
           </SidebarMenu>
         </SidebarContent>
@@ -257,12 +278,11 @@ export default function Home() {
       </Sidebar>
 
       <SidebarInset>
-        <main className="flex-1 p-4 md:p-6 lg:p-8">
-          {showCatalogForm && (
-            <div className="mb-6 max-w-2xl mx-auto">
-             <div className="flex justify-end mb-2">
-                  <Button variant="ghost" size="sm" onClick={handleCancelEdit}>Cancel</Button>
-              </div>
+        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto"> {/* Ensure main content is scrollable */}
+          {/* Show form or items based on state */}
+          {showCatalogForm ? (
+             <div className="mb-6 max-w-full md:max-w-2xl mx-auto relative"> {/* Responsive max-width */}
+             <Button variant="ghost" size="sm" onClick={handleCancelForm} className="absolute top-4 right-4 z-10">Cancel</Button>
               <CatalogForm
                  onSubmit={editingCatalog ? handleUpdateCatalog : handleCreateCatalog}
                  initialData={editingCatalog ?? undefined}
@@ -270,29 +290,40 @@ export default function Home() {
                  key={editingCatalog?.id || 'new'} // Re-render form when editing different catalog
               />
             </div>
-          )}
-
-          {selectedCatalogId && !showCatalogForm && (
+          ) : selectedCatalogId ? (
              <CatalogItems catalogId={selectedCatalogId} />
+          ) : (
+            // Welcome / Placeholder messages
+            <>
+              {isLoadingCatalogs && (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <Loader2 className="w-16 h-16 text-muted-foreground mb-4 animate-spin" />
+                  <p className="text-muted-foreground">Loading catalogs...</p>
+                </div>
+              )}
+              {!isLoadingCatalogs && catalogs && catalogs.length > 0 && (
+                 <div className="flex flex-col items-center justify-center h-full text-center">
+                    <LayoutGrid className="w-12 h-12 md:w-16 md:h-16 text-muted-foreground mb-4" /> {/* Responsive icon size */}
+                    <h2 className="text-lg md:text-xl font-semibold text-muted-foreground">Select a catalog</h2>
+                    <p className="text-muted-foreground text-sm md:text-base">Choose a catalog from the sidebar to view its items, or create a new one.</p>
+                </div>
+              )}
+              {!isLoadingCatalogs && catalogs && catalogs.length === 0 && (
+                 <div className="flex flex-col items-center justify-center h-full text-center">
+                    <PlusCircle className="w-12 h-12 md:w-16 md:h-16 text-muted-foreground mb-4" /> {/* Responsive icon size */}
+                    <h2 className="text-lg md:text-xl font-semibold text-muted-foreground">Welcome to Catalogify!</h2>
+                    <p className="text-muted-foreground text-sm md:text-base">Get started by creating your first catalog using the button in the sidebar.</p>
+                </div>
+              )}
+               {!isLoadingCatalogs && catalogsError && (
+                 <div className="flex flex-col items-center justify-center h-full text-center text-destructive">
+                    <AlertTriangle className="w-12 h-12 md:w-16 md:h-16 mb-4" /> {/* Responsive icon size */}
+                    <h2 className="text-lg md:text-xl font-semibold">Error Loading Catalogs</h2>
+                    <p className="text-sm md:text-base">Could not fetch your catalogs. Please check your connection and try again.</p>
+                </div>
+              )}
+            </>
           )}
-
-          {!selectedCatalogId && !showCatalogForm && !isLoadingCatalogs && catalogs && catalogs.length > 0 && (
-             <div className="flex flex-col items-center justify-center h-full text-center">
-                <LayoutGrid className="w-16 h-16 text-muted-foreground mb-4" />
-                <h2 className="text-xl font-semibold text-muted-foreground">Select a catalog</h2>
-                <p className="text-muted-foreground">Choose a catalog from the sidebar to view its items, or create a new one.</p>
-            </div>
-          )}
-
-           {!selectedCatalogId && !showCatalogForm && !isLoadingCatalogs && catalogs && catalogs.length === 0 && (
-             <div className="flex flex-col items-center justify-center h-full text-center">
-                <PlusCircle className="w-16 h-16 text-muted-foreground mb-4" />
-                <h2 className="text-xl font-semibold text-muted-foreground">Welcome to Catalogify!</h2>
-                <p className="text-muted-foreground">Get started by creating your first catalog using the button in the sidebar.</p>
-            </div>
-          )}
-
-
         </main>
       </SidebarInset>
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { SubmitHandler } from "react-hook-form";
@@ -18,7 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Lightbulb } from "lucide-react";
+import { X, Lightbulb, Loader2 } from "lucide-react"; // Added Loader2
 import type { Item } from "@/types";
 import { suggestTags, type SuggestTagsInput, type SuggestTagsOutput } from '@/ai/flows/suggest-tags'; // Import AI flow
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,7 +79,9 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
-      handleAddTag(currentTag);
+      if (currentTag.trim()) { // Only add if tag is not empty
+        handleAddTag(currentTag);
+      }
     }
   };
 
@@ -108,6 +111,11 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
            title: "No New Suggestions",
            description: "AI couldn't find any new relevant tags.",
          });
+       } else if (uniqueSuggestions.length === 0 && result.tags.length === 0) {
+            toast({
+                title: "No Suggestions Found",
+                description: "AI couldn't suggest any tags based on the description.",
+            });
        }
     } catch (error) {
       console.error("Error suggesting tags:", error);
@@ -123,16 +131,21 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   };
 
   const handleSubmit: SubmitHandler<ItemFormValues> = async (data) => {
-     await onSubmit(data, catalogId);
+     // Trim whitespace from tags before submitting
+     const trimmedData = {
+        ...data,
+        tags: data.tags.map(tag => tag.trim()).filter(tag => tag), // Ensure no empty tags
+     };
+     await onSubmit(trimmedData, catalogId);
   };
 
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{initialData?.id ? "Edit Item" : "Add New Item"}</CardTitle>
+      <CardHeader className="p-4 sm:p-6"> {/* Responsive padding */}
+        <CardTitle className="text-lg sm:text-xl">{initialData?.id ? "Edit Item" : "Add New Item"}</CardTitle> {/* Responsive text size */}
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 sm:p-6"> {/* Responsive padding */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
@@ -185,38 +198,45 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               name="tags"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tags</FormLabel>
-                  <div className="flex items-center gap-2">
-                     <FormControl>
+                  <FormLabel>Tags ({tags.length}/10)</FormLabel> {/* Show tag count */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2"> {/* Stack on small screens */}
+                     <FormControl className="flex-grow">
                         <Input
                         placeholder="Add a tag and press Enter or ,"
                         value={currentTag}
                         onChange={(e) => setCurrentTag(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        disabled={tags.length >= 10}
+                        disabled={tags.length >= 10 || isSuggestingTags} // Disable while suggesting
                         />
                     </FormControl>
                     <Button
                         type="button"
                         variant="outline"
-                        size="icon"
+                        size="default" // Consistent button size
+                        className="w-full sm:w-auto" // Full width on small screens
                         onClick={handleSuggestTags}
-                        disabled={isSuggestingTags || !form.getValues("description")}
+                        disabled={isSuggestingTags || !form.watch("description")} // Watch description
                         title="Suggest Tags (requires description)"
                     >
-                        <Lightbulb className={`h-4 w-4 ${isSuggestingTags ? 'animate-pulse' : ''}`} />
+                        {isSuggestingTags ? (
+                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                           <Lightbulb className="mr-2 h-4 w-4" />
+                        )}
+                        Suggest Tags
                    </Button>
                   </div>
                    <FormMessage>{form.formState.errors.tags?.message}</FormMessage>
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-wrap gap-1.5"> {/* Adjusted gap */}
                     {tags.map((tag) => (
-                      <Badge key={tag} variant="secondary">
-                        {tag}
+                      <Badge key={tag} variant="secondary" className="flex items-center gap-1 text-xs sm:text-sm"> {/* Responsive text */}
+                        <span>{tag}</span> {/* Wrap text */}
                         <button
                           type="button"
                           onClick={() => handleRemoveTag(tag)}
-                          className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                          className="rounded-full outline-none ring-offset-background focus:ring-1 focus:ring-ring focus:ring-offset-1" // Adjusted focus ring
                           aria-label={`Remove ${tag}`}
+                           disabled={isLoading || isSuggestingTags} // Disable while loading/suggesting
                         >
                           <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                         </button>
@@ -225,19 +245,19 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                   </div>
                  {/* AI Tag Suggestions */}
                   {isSuggestingTags && (
-                    <div className="mt-2 space-y-1">
-                       <Skeleton className="h-4 w-24" />
+                    <div className="mt-3 space-y-1"> {/* Adjusted margin */}
+                       <Skeleton className="h-4 w-24 mb-2" /> {/* Adjusted margin */}
                        <div className="flex flex-wrap gap-2">
-                         <Skeleton className="h-6 w-16 rounded-full" />
-                         <Skeleton className="h-6 w-20 rounded-full" />
-                         <Skeleton className="h-6 w-12 rounded-full" />
+                         <Skeleton className="h-6 w-16 rounded-md" /> {/* Use md for consistency */}
+                         <Skeleton className="h-6 w-20 rounded-md" />
+                         <Skeleton className="h-6 w-12 rounded-md" />
                        </div>
                     </div>
                    )}
                   {!isSuggestingTags && suggestedTags.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-sm font-medium text-muted-foreground mb-1">Suggestions:</p>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="mt-3"> {/* Adjusted margin */}
+                      <p className="text-sm font-medium text-muted-foreground mb-1.5">Suggestions:</p> {/* Adjusted margin */}
+                      <div className="flex flex-wrap gap-1.5"> {/* Adjusted gap */}
                         {suggestedTags.map((tag) => (
                           <Button
                             key={tag}
@@ -246,7 +266,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                             size="sm"
                             onClick={() => handleAddTag(tag)}
                             className="text-xs h-auto py-0.5 px-2"
-                             disabled={tags.length >= 10}
+                             disabled={tags.length >= 10 || isLoading || isSuggestingTags}
                           >
                             + {tag}
                           </Button>
@@ -258,8 +278,15 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               )}
             />
 
-            <Button type="submit" disabled={isLoading || isSuggestingTags}>
-              {isLoading ? (initialData?.id ? "Saving..." : "Adding...") : (initialData?.id ? "Save Changes" : "Add Item")}
+             <Button type="submit" disabled={isLoading || isSuggestingTags} className="w-full sm:w-auto"> {/* Responsive button width */}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {initialData?.id ? "Saving..." : "Adding..."}
+                </>
+              ) : (
+                initialData?.id ? "Save Changes" : "Add Item"
+              )}
             </Button>
           </form>
         </Form>
