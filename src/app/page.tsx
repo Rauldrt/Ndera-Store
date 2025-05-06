@@ -16,7 +16,7 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2 } from "lucide-react"; // Added Edit and Loader2
+import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus } from "lucide-react"; // Added Edit, Loader2, Plus
 import { CatalogForm } from "@/components/catalog/catalog-form";
 import type { Catalog } from "@/types";
 import { db } from "@/lib/firebase";
@@ -35,6 +35,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { CatalogItems } from '@/components/catalog/catalog-items';
 import { Skeleton } from '@/components/ui/skeleton'; // Added Skeleton
+import { Fab } from '@/components/ui/fab'; // Import FAB
 
 export default function Home() {
   const [showCatalogForm, setShowCatalogForm] = useState(false);
@@ -183,6 +184,12 @@ export default function Home() {
       setShowCatalogForm(true); // Show form for editing
   }
 
+  const handleOpenCreateForm = () => {
+    setShowCatalogForm(true);
+    setSelectedCatalogId(null);
+    setEditingCatalog(null);
+  }
+
   const handleCancelForm = () => {
        setEditingCatalog(null);
        setShowCatalogForm(false);
@@ -210,7 +217,7 @@ export default function Home() {
           <Button
             variant="default" // Use primary color
             className="w-full mb-4"
-            onClick={() => { setShowCatalogForm(true); setSelectedCatalogId(null); setEditingCatalog(null); }}
+            onClick={handleOpenCreateForm}
             title="Create New Catalog" // Add title for collapsed state
           >
             <PlusCircle className="mr-2 h-4 w-4 group-data-[collapsible=icon]:mr-0" />
@@ -325,6 +332,16 @@ export default function Home() {
             </>
           )}
         </main>
+
+        {/* Floating Action Button - only on small screens */}
+        <Fab
+            className="md:hidden fixed bottom-4 right-4 z-30"
+            onClick={handleOpenCreateForm}
+            aria-label="Create New Catalog"
+        >
+            <Plus className="h-6 w-6" />
+        </Fab>
+
       </SidebarInset>
 
         {/* Delete Confirmation Dialog */}
