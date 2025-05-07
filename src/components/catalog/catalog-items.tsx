@@ -91,6 +91,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
   // Mutation for adding an item
   const addItemMutation = useMutation({
     mutationFn: async ({ data, catalogId: currentCatalogId }: { data: ItemFormValues, catalogId: string }): Promise<string> => {
+       console.log('addItemMutation triggered');
        // Prepare item data for Firestore, ensuring tags are an array
        const newItemData: Omit<Item, 'id' | 'createdAt'> = {
             ...data,
@@ -114,6 +115,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       setEditingItem(null);
     },
     onError: (error) => {
+      console.log(error); // Added log
       console.error("Error adding item: ", error);
        toast({
          title: "Error",
@@ -183,6 +185,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
 
    const handleAddItem = async (data: ItemFormValues) => {
+       console.log('handleAddItem called');
         // Pass catalogId explicitly to the mutation
         await addItemMutation.mutateAsync({ data, catalogId });
     };

@@ -19,7 +19,7 @@ import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, Pac
 import { CatalogForm } from "@/components/catalog/catalog-form";
 import type { Catalog } from "@/types";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc, getDocs, Timestamp, writeBatch } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc, getDocs, Timestamp, writeBatch, where } from "firebase/firestore";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertDialog,
@@ -63,6 +63,25 @@ export default function Home() {
         });
     },
   });
+
+    // Fetch catalog details for the mobile header title
+    const { data: catalogDetails, isLoading: isLoadingCatalogDetails } = useQuery<Catalog | null>({
+        queryKey: ['catalog', selectedCatalogId],
+        queryFn: async () => {
+            if (!selectedCatalogId) return null;
+            const docRef = doc(db, "catalogs", selectedCatalogId);
+            const docSnap = await getDocs(docRef); // Use getDocs if it's a collection, getDoc for a single document
+            if (docSnap.exists()) { // For getDoc
+                 const data = docSnap.data() as Omit<Catalog, 'id'>;
+                 return { id: docSnap.id, ...data } as Catalog;
+            } else {
+                // console.warn(`Catalog with ID ${selectedCatalogId} not found for header.`);
+                return null;
+            }
+        },
+        enabled: !!selectedCatalogId, // Only run if a catalog is selected
+    });
+
 
   const addCatalogMutation = useMutation({
     mutationFn: async (newCatalogData: Pick<Catalog, 'name' | 'description'>): Promise<string> => {
@@ -212,7 +231,7 @@ export default function Home() {
                  // Check if selectedCatalogId was an actual ID before clearing it
                  // This ensures we don't re-select if we cancelled creating the *first* catalog
                  const wasViewingCatalog = !!queryClient.getQueryData<Catalog[]>(['catalogs'])?.find(c => c.id === selectedCatalogId);
-                 if (wasViewingCatalog) {
+                 if (wasViewingCatalog || (!selectedCatalogId && catalogs.length > 0)) { // Also select if nothing was selected and catalogs exist
                     setSelectedCatalogId(catalogs[0].id);
                  }
             }
@@ -239,7 +258,7 @@ export default function Home() {
         <SidebarContent className="p-2">
           <Button
             variant="default"
-            className="w-full mb-4"
+            className="w-full mb-4 hidden md:flex" // Hide on mobile, FAB is used instead
             onClick={handleOpenCreateForm}
             title="Create New Catalog"
           >
@@ -305,6 +324,20 @@ export default function Home() {
       </Sidebar>
 
       <SidebarInset>
+        {/* Mobile Header */}
+        <div className="md:hidden flex items-center justify-between p-4 border-b bg-background sticky top-0 z-20">
+          <h1 className="text-lg font-semibold text-primary truncate">
+            {isLoadingCatalogDetails && selectedCatalogId ? (
+              <Skeleton className="h-6 w-32" />
+            ) : selectedCatalogId && catalogDetails ? (
+              catalogDetails.name
+            ) : (
+              "Catalogify"
+            )}
+          </h1>
+          <SidebarTrigger />
+        </div>
+
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
           {showCatalogForm ? (
              <div className="mb-6 max-w-full md:max-w-2xl mx-auto relative">
@@ -337,8 +370,8 @@ export default function Home() {
                  <div className="flex flex-col items-center justify-center h-full text-center">
                     <PackageSearch className="w-12 h-12 md:w-16 md:h-16 text-primary mb-4" /> {/* Changed icon */}
                     <h2 className="text-lg md:text-xl font-semibold text-foreground">Welcome to Catalogify!</h2>
-                    <p className="text-muted-foreground text-sm md:text-base">Get started by creating your first catalog using the button in the sidebar.</p>
-                     <Button onClick={handleOpenCreateForm} className="mt-6">
+                    <p className="text-muted-foreground text-sm md:text-base">Get started by creating your first catalog using the button in the sidebar or the + button below.</p>
+                     <Button onClick={handleOpenCreateForm} className="mt-6 hidden md:inline-flex"> {/* Hide on mobile, FAB is primary */}
                         <PlusCircle className="mr-2 h-4 w-4" /> Create Your First Catalog
                     </Button>
                 </div>
@@ -394,5 +427,3 @@ export default function Home() {
         </AlertDialog>
     </SidebarProvider>
   );
-}
-

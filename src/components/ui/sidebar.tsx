@@ -698,21 +698,31 @@ const SidebarMenuBadge = React.forwardRef<
 ))
 SidebarMenuBadge.displayName = "SidebarMenuBadge"
 
-const SidebarMenuSkeleton = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentProps<"div"> & {
-    showIcon?: boolean
-  }
->(({ className, showIcon = false, ...props }, ref) => {
+interface SidebarMenuSkeletonProps
+  extends Omit<React.ComponentProps<"div">, "ref"> {
+  showIcon?: boolean;
+}
+
+// Extend React.CSSProperties to allow custom properties.
+interface CustomCSSProperties extends React.CSSProperties {
+  "--skeleton-width"?: string;
+}
+const SidebarMenuSkeleton = React.forwardRef<HTMLDivElement, SidebarMenuSkeletonProps>(
+  ({ className, showIcon = false, ...props }, ref) => {
   const { state, isMobile } = useSidebar();
   const isCollapsed = state === "collapsed" && !isMobile;
 
-  // Random width between 50 to 90%.
-  const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
-  }, [])
+  // Generate random width on mount.
+  const [width, setWidth] = React.useState<string | undefined>(undefined);
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setWidth(`${Math.floor(Math.random() * 40) + 50}%`);
+    }
+  }, []);
 
-  return (
+    const skeletonStyle: CustomCSSProperties | undefined = width ? { "--skeleton-width": width } : undefined;
+
+    return (
     <div
       ref={ref}
       data-sidebar="menu-skeleton"
@@ -732,11 +742,7 @@ const SidebarMenuSkeleton = React.forwardRef<
          <Skeleton
            className="h-4 flex-1 max-w-[--skeleton-width]"
            data-sidebar="menu-skeleton-text"
-           style={
-             {
-               "--skeleton-width": width,
-             } as React.CSSProperties
-           }
+          style={skeletonStyle}
          />
        )}
     </div>
