@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -80,6 +79,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                  const data = docSnap.data() as Omit<Catalog, 'id'>; // Cast data
                  return { id: docSnap.id, ...data } as Catalog; // Assert final type
             } else {
+                console.error(`Catalog with ID ${catalogId} not found.`);
                 return null;
             }
         },
@@ -90,11 +90,11 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
   // Mutation for adding an item
   const addItemMutation = useMutation({
-    mutationFn: async ({ data, catalogId }: { data: ItemFormValues, catalogId: string }): Promise<string> => {
+    mutationFn: async ({ data, catalogId: currentCatalogId }: { data: ItemFormValues, catalogId: string }): Promise<string> => {
        // Prepare item data for Firestore, ensuring tags are an array
        const newItemData: Omit<Item, 'id' | 'createdAt'> = {
             ...data,
-            catalogId: catalogId,
+            catalogId: currentCatalogId,
             tags: Array.isArray(data.tags) ? data.tags : [], // Ensure tags is always an array
         };
         const docRef = await addDoc(collection(db, "items"), {
@@ -125,7 +125,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
   // Mutation for updating an item
     const updateItemMutation = useMutation({
-        mutationFn: async ({ id, data, catalogId }: { id: string, data: ItemFormValues, catalogId: string }) => {
+        mutationFn: async ({ id, data, catalogId: currentCatalogId }: { id: string, data: ItemFormValues, catalogId: string }) => {
             const itemRef = doc(db, "items", id);
             // Prepare update data, ensuring tags is an array and excluding non-updatable fields
              const updateData: Partial<Omit<Item, 'id' | 'createdAt' | 'catalogId'>> = {
@@ -182,15 +182,15 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
    });
 
 
-   const handleAddItem = async (data: ItemFormValues, currentCatalogId: string) => {
+   const handleAddItem = async (data: ItemFormValues) => {
         // Pass catalogId explicitly to the mutation
-        await addItemMutation.mutateAsync({ data, catalogId: currentCatalogId });
+        await addItemMutation.mutateAsync({ data, catalogId });
     };
 
-   const handleUpdateItem = async (data: ItemFormValues, currentCatalogId: string) => {
+   const handleUpdateItem = async (data: ItemFormValues) => {
         if (editingItem?.id) {
             // Pass id, data, and catalogId to the mutation
-            await updateItemMutation.mutateAsync({ id: editingItem.id, data, catalogId: currentCatalogId });
+            await updateItemMutation.mutateAsync({ id: editingItem.id, data, catalogId });
         }
     };
 
@@ -250,7 +250,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             {[...Array(3)].map((_, i) => (
                  <Card key={i} className="flex flex-col">
                     <CardHeader>
-                        <Skeleton className="aspect-video w-full mb-4" />
+                        <Skeleton className="aspect-video w-full mb-4" data-ai-hint="placeholder image" />
                         <Skeleton className="h-6 w-3/4" />
                     </CardHeader>
                     <CardContent className="flex-grow">
@@ -289,24 +289,21 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       {!isLoadingItems && !itemsError && items && items.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {items.map((item, index) => (
-            <Card key={item.id} className="flex flex-col overflow-hidden">
+            <Card key={item.id} className="flex flex-col overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 rounded-lg">
                <CardHeader className="p-0">
                 <div className="aspect-video relative bg-muted overflow-hidden">
                      {item.imageUrl ? (
                         <Image
-                           // Provide a default empty string if imageUrl is somehow undefined/null after check
-                           src={item.imageUrl || ''}
-                           alt={item.name || 'Item image'} // Provide default alt text
+                           src={item.imageUrl}
+                           alt={item.name || 'Item image'}
                            fill
                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                            style={{ objectFit: 'cover' }}
-                           priority={index < 3}
+                           priority={index < 3} // Prioritize loading images for items visible above the fold
                            data-ai-hint="product photo"
-                           // Add basic error handling for images
                            onError={(e) => {
-                              // Fallback to a generic placeholder
-                              e.currentTarget.src = 'https://picsum.photos/400/300?blur=2';
-                              e.currentTarget.srcset = ''; // Clear srcset as well
+                              e.currentTarget.src = `https://picsum.photos/seed/${item.id}/400/300?blur=2`; // Consistent placeholder per item
+                              e.currentTarget.srcset = '';
                               console.error(`Error loading image: ${item.imageUrl}`);
                             }}
                          />
@@ -319,9 +316,8 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
               </CardHeader>
               <CardContent className="flex-grow p-4">
                  <CardTitle className="text-base sm:text-lg mb-1 line-clamp-1">{item.name}</CardTitle>
-                 <CardDescription className="text-xs sm:text-sm mb-3 line-clamp-3">{item.description}</CardDescription>
-                 <div className="flex flex-wrap gap-1">
-                   {/* Ensure tags exist and is an array before mapping */}
+                 <CardDescription className="text-xs sm:text-sm mb-3 line-clamp-3 h-12 sm:h-16">{item.description}</CardDescription> {/* Fixed height for description */}
+                 <div className="flex flex-wrap gap-1 mt-auto"> {/* Push tags to bottom if card content grows */}
                    {Array.isArray(item.tags) && item.tags.slice(0, 5).map((tag) => (
                      <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
                    ))}
@@ -372,3 +368,4 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
+

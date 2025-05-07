@@ -1,11 +1,10 @@
-
 "use client";
 
 import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,26 +16,33 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Lightbulb, Loader2 } from "lucide-react"; // Added Loader2
+import { X, Lightbulb, Loader2, Info } from "lucide-react"; 
 import type { Item } from "@/types";
-import { suggestTags, type SuggestTagsInput, type SuggestTagsOutput } from '@/ai/flows/suggest-tags'; // Import AI flow
+import { suggestTags, type SuggestTagsInput, type SuggestTagsOutput } from '@/ai/flows/suggest-tags'; 
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+
 
 const itemFormSchema = z.object({
-  name: z.string().min(1, "Item name is required").max(100, "Name too long"),
-  description: z.string().min(1, "Description is required").max(1000, "Description too long"),
-  imageUrl: z.string().url("Invalid URL format").optional().or(z.literal("")),
-  tags: z.array(z.string().min(1).max(50)).max(10, "Maximum 10 tags allowed"),
+  name: z.string().min(1, "Item name is required").max(100, "Name is too long (max 100 characters)"),
+  description: z.string().min(1, "Description is required").max(1000, "Description is too long (max 1000 characters)"),
+  imageUrl: z.string().url("Invalid URL format. Please enter a valid https:// or http:// URL.").optional().or(z.literal("")),
+  tags: z.array(z.string().min(1, "Tag cannot be empty.").max(50, "Tag is too long (max 50 characters).")).max(10, "Maximum 10 tags allowed."),
 });
 
 export type ItemFormValues = z.infer<typeof itemFormSchema>;
 
 interface ItemFormProps {
   catalogId: string;
-  onSubmit: (data: ItemFormValues, catalogId: string) => Promise<void>; // Make onSubmit async
+  onSubmit: (data: ItemFormValues) => Promise<void>; // Removed catalogId from onSubmit args as it's passed directly
   initialData?: Partial<Item>;
   isLoading?: boolean;
 }
@@ -58,20 +64,21 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   const { toast } = useToast();
 
   const tags = form.watch("tags");
+  const itemDescription = form.watch("description"); // Watch description for enabling suggest button
 
   const handleAddTag = (tagToAdd: string) => {
-    const newTag = tagToAdd.trim();
-    if (newTag && !tags.includes(newTag) && tags.length < 10) {
+    const newTag = tagToAdd.trim().toLowerCase(); // Normalize to lowercase
+    if (newTag && !tags.map(t => t.toLowerCase()).includes(newTag) && tags.length < 10) {
       form.setValue("tags", [...tags, newTag], { shouldValidate: true });
     }
     setCurrentTag("");
-    setSuggestedTags(suggestedTags.filter(t => t !== newTag)); // Remove added tag from suggestions
+    setSuggestedTags(suggestedTags.filter(t => t.toLowerCase() !== newTag)); 
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
     form.setValue(
       "tags",
-      tags.filter((tag) => tag !== tagToRemove),
+      tags.filter((tag) => tag.toLowerCase() !== tagToRemove.toLowerCase()),
       { shouldValidate: true }
     );
   };
@@ -79,49 +86,52 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
-      if (currentTag.trim()) { // Only add if tag is not empty
+      if (currentTag.trim()) { 
         handleAddTag(currentTag);
       }
     }
   };
 
    const handleSuggestTags = async () => {
-    const description = form.getValues("description");
-    if (!description) {
+    const descriptionValue = form.getValues("description");
+    if (!descriptionValue || descriptionValue.trim().length < 10) { // Require minimum length for description
       toast({
-        title: "Description Needed",
-        description: "Please enter an item description to suggest tags.",
+        title: "Description Too Short",
+        description: "Please enter a more detailed item description (at least 10 characters) to suggest tags.",
         variant: "destructive",
       });
       return;
     }
 
     setIsSuggestingTags(true);
-    setSuggestedTags([]); // Clear previous suggestions
+    setSuggestedTags([]); 
 
     try {
-      const input: SuggestTagsInput = { itemDescription: description };
+      const input: SuggestTagsInput = { itemDescription: descriptionValue };
       const result: SuggestTagsOutput = await suggestTags(input);
-      // Filter out tags already added and duplicates from suggestion
-      const newSuggestions = result.tags.filter(tag => !tags.includes(tag));
-      const uniqueSuggestions = Array.from(new Set(newSuggestions));
-       setSuggestedTags(uniqueSuggestions);
+      
+      const currentTagsLower = tags.map(t => t.toLowerCase());
+      const newSuggestions = result.tags.filter(tag => !currentTagsLower.includes(tag.toLowerCase()));
+      const uniqueSuggestions = Array.from(new Set(newSuggestions.map(t => t.toLowerCase()))); // Store unique suggestions as lowercase
+       
+      setSuggestedTags(uniqueSuggestions);
+
       if (uniqueSuggestions.length === 0 && result.tags.length > 0) {
          toast({
            title: "No New Suggestions",
-           description: "AI couldn't find any new relevant tags.",
+           description: "AI couldn't find any new relevant tags. Try refining your description.",
          });
        } else if (uniqueSuggestions.length === 0 && result.tags.length === 0) {
             toast({
                 title: "No Suggestions Found",
-                description: "AI couldn't suggest any tags based on the description.",
+                description: "AI couldn't suggest any tags for this description.",
             });
        }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error suggesting tags:", error);
        toast({
          title: "Suggestion Failed",
-         description: "Could not get AI tag suggestions. Please try again.",
+         description: error.message || "Could not get AI tag suggestions. Please try again.",
          variant: "destructive",
        });
       setSuggestedTags([]);
@@ -130,24 +140,35 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     }
   };
 
-  const handleSubmit: SubmitHandler<ItemFormValues> = async (data) => {
-     // Trim whitespace from tags before submitting
+  const handleSubmitForm: SubmitHandler<ItemFormValues> = async (data) => {
      const trimmedData = {
         ...data,
-        tags: data.tags.map(tag => tag.trim()).filter(tag => tag), // Ensure no empty tags
+        tags: data.tags.map(tag => tag.trim()).filter(tag => tag), 
      };
-     await onSubmit(trimmedData, catalogId);
+     await onSubmit(trimmedData);
   };
+
+   useEffect(() => {
+    // Reset form if initialData changes (e.g., when switching from add to edit)
+    form.reset({
+      name: initialData?.name || "",
+      description: initialData?.description || "",
+      imageUrl: initialData?.imageUrl || "",
+      tags: initialData?.tags || [],
+    });
+  }, [initialData, form.reset, form]);
 
 
   return (
-    <Card>
-      <CardHeader className="p-4 sm:p-6"> {/* Responsive padding */}
-        <CardTitle className="text-lg sm:text-xl">{initialData?.id ? "Edit Item" : "Add New Item"}</CardTitle> {/* Responsive text size */}
+    <TooltipProvider>
+    <Card className="shadow-xl">
+      <CardHeader className="p-4 sm:p-6"> 
+        <CardTitle className="text-lg sm:text-xl">{initialData?.id ? "Edit Item" : "Add New Item"}</CardTitle> 
+        <CardDescription>Fill in the details for your catalog item.</CardDescription>
       </CardHeader>
-      <CardContent className="p-4 sm:p-6"> {/* Responsive padding */}
+      <CardContent className="p-4 sm:p-6"> 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmitForm)} className="space-y-6"> {/* Increased space */}
             <FormField
               control={form.control}
               name="name"
@@ -155,7 +176,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                 <FormItem>
                   <FormLabel>Item Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Laptop, Novel" {...field} />
+                    <Input placeholder="e.g., Vintage Leather Jacket, Organic Coffee Beans" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -169,7 +190,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe the item..."
+                      placeholder="Describe the item, its features, condition, etc."
                       {...field}
                       rows={4}
                     />
@@ -183,40 +204,49 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               name="imageUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Image URL (Optional)</FormLabel>
+                  <FormLabel className="flex items-center">
+                    Image URL (Optional)
+                    <Tooltip delayDuration={100}>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 ml-1.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p>Provide a direct link (URL) to an image of the item. Ensure it starts with http:// or https://.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </FormLabel>
                   <FormControl>
-                    <Input type="url" placeholder="https://example.com/image.jpg" {...field} />
+                    <Input type="url" placeholder="https://picsum.photos/seed/example/400/300" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Tags Input */}
             <FormField
               control={form.control}
               name="tags"
-              render={({ field }) => (
+              render={() => ( // field is not directly used here, manage via form.watch and form.setValue
                 <FormItem>
-                  <FormLabel>Tags ({tags.length}/10)</FormLabel> {/* Show tag count */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2"> {/* Stack on small screens */}
+                  <FormLabel>Tags ({tags.length}/10)</FormLabel> 
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2"> 
                      <FormControl className="flex-grow">
                         <Input
-                        placeholder="Add a tag and press Enter or ,"
+                        placeholder="Type a tag and press Enter or ,"
                         value={currentTag}
                         onChange={(e) => setCurrentTag(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        disabled={tags.length >= 10 || isSuggestingTags} // Disable while suggesting
+                        disabled={tags.length >= 10 || isSuggestingTags || isLoading} 
                         />
                     </FormControl>
                     <Button
                         type="button"
                         variant="outline"
-                        size="default" // Consistent button size
-                        className="w-full sm:w-auto" // Full width on small screens
+                        size="default" 
+                        className="w-full sm:w-auto flex-shrink-0" 
                         onClick={handleSuggestTags}
-                        disabled={isSuggestingTags || !form.watch("description")} // Watch description
-                        title="Suggest Tags (requires description)"
+                        disabled={isSuggestingTags || !itemDescription || itemDescription.trim().length < 10 || isLoading}
+                        title={!itemDescription || itemDescription.trim().length < 10 ? "Enter a description (min 10 chars) to suggest tags" : "Suggest tags based on description"}
                     >
                         {isSuggestingTags ? (
                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -226,38 +256,37 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                         Suggest Tags
                    </Button>
                   </div>
-                   <FormMessage>{form.formState.errors.tags?.message}</FormMessage>
-                  <div className="mt-2 flex flex-wrap gap-1.5"> {/* Adjusted gap */}
+                   <FormMessage>{form.formState.errors.tags?.message || (form.formState.errors.tags as any)?.root?.message}</FormMessage>
+                  <div className="mt-2 flex flex-wrap gap-1.5"> 
                     {tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="flex items-center gap-1 text-xs sm:text-sm"> {/* Responsive text */}
-                        <span>{tag}</span> {/* Wrap text */}
+                      <Badge key={tag} variant="secondary" className="flex items-center gap-1 text-xs sm:text-sm py-1 px-2"> 
+                        <span>{tag}</span> 
                         <button
                           type="button"
                           onClick={() => handleRemoveTag(tag)}
-                          className="rounded-full outline-none ring-offset-background focus:ring-1 focus:ring-ring focus:ring-offset-1" // Adjusted focus ring
+                          className="rounded-full outline-none ring-offset-background focus:ring-1 focus:ring-ring focus:ring-offset-1" 
                           aria-label={`Remove ${tag}`}
-                           disabled={isLoading || isSuggestingTags} // Disable while loading/suggesting
+                           disabled={isLoading || isSuggestingTags} 
                         >
                           <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                         </button>
                       </Badge>
                     ))}
                   </div>
-                 {/* AI Tag Suggestions */}
                   {isSuggestingTags && (
-                    <div className="mt-3 space-y-1"> {/* Adjusted margin */}
-                       <Skeleton className="h-4 w-24 mb-2" /> {/* Adjusted margin */}
+                    <div className="mt-3 space-y-1"> 
+                       <Skeleton className="h-4 w-24 mb-2" /> 
                        <div className="flex flex-wrap gap-2">
-                         <Skeleton className="h-6 w-16 rounded-md" /> {/* Use md for consistency */}
+                         <Skeleton className="h-6 w-16 rounded-md" /> 
                          <Skeleton className="h-6 w-20 rounded-md" />
                          <Skeleton className="h-6 w-12 rounded-md" />
                        </div>
                     </div>
                    )}
                   {!isSuggestingTags && suggestedTags.length > 0 && (
-                    <div className="mt-3"> {/* Adjusted margin */}
-                      <p className="text-sm font-medium text-muted-foreground mb-1.5">Suggestions:</p> {/* Adjusted margin */}
-                      <div className="flex flex-wrap gap-1.5"> {/* Adjusted gap */}
+                    <div className="mt-3"> 
+                      <p className="text-sm font-medium text-muted-foreground mb-1.5">Suggestions:</p> 
+                      <div className="flex flex-wrap gap-1.5"> 
                         {suggestedTags.map((tag) => (
                           <Button
                             key={tag}
@@ -265,7 +294,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                             variant="outline"
                             size="sm"
                             onClick={() => handleAddTag(tag)}
-                            className="text-xs h-auto py-0.5 px-2"
+                            className="text-xs h-auto py-1 px-2 font-normal" // Adjusted styling
                              disabled={tags.length >= 10 || isLoading || isSuggestingTags}
                           >
                             + {tag}
@@ -278,7 +307,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               )}
             />
 
-             <Button type="submit" disabled={isLoading || isSuggestingTags} className="w-full sm:w-auto"> {/* Responsive button width */}
+             <Button type="submit" disabled={isLoading || isSuggestingTags} className="w-full sm:w-auto"> 
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -292,5 +321,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
         </Form>
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 }
+
