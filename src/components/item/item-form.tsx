@@ -162,11 +162,11 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   return (
     <TooltipProvider>
     <Card className="shadow-xl">
-      <CardHeader className="p-4 sm:p-6"> 
-        <CardTitle className="text-lg sm:text-xl">{initialData?.id ? "Edit Item" : "Add New Item"}</CardTitle> 
+      <CardHeader className="p-4 md:p-6">
+        <CardTitle className="text-lg md:text-xl">{initialData?.id ? "Edit Item" : "Add New Item"}</CardTitle>
         <CardDescription>Fill in the details for your catalog item.</CardDescription>
       </CardHeader>
-      <CardContent className="p-4 sm:p-6"> 
+      <CardContent className="p-4 md:p-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmitForm)} className="space-y-6"> {/* Increased space */}
             <FormField
@@ -228,36 +228,38 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               name="tags"
               render={() => ( // field is not directly used here, manage via form.watch and form.setValue
                 <FormItem>
-                  <FormLabel>Tags ({tags.length}/10)</FormLabel> 
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2"> 
-                     <FormControl className="flex-grow">
+                  <FormLabel>Tags ({tags.length}/10)</FormLabel>
+ <div className="flex flex-col md:flex-row items-start md:items-center gap-2 flex-wrap">
+ <FormControl className="flex-grow w-full">
                         <Input
                         placeholder="Type a tag and press Enter or ,"
-                        value={currentTag}
+                        value={currentTag.toLowerCase()} // Display in lowercase
                         onChange={(e) => setCurrentTag(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        disabled={tags.length >= 10 || isSuggestingTags || isLoading} 
+ disabled={tags.length >= 10 || isSuggestingTags || isLoading}
                         />
                     </FormControl>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="default" 
-                        className="w-full sm:w-auto flex-shrink-0" 
-                        onClick={handleSuggestTags}
-                        disabled={isSuggestingTags || !itemDescription || itemDescription.trim().length < 10 || isLoading}
-                        title={!itemDescription || itemDescription.trim().length < 10 ? "Enter a description (min 10 chars) to suggest tags" : "Suggest tags based on description"}
-                    >
-                        {isSuggestingTags ? (
-                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                           <Lightbulb className="mr-2 h-4 w-4" />
-                        )}
-                        Suggest Tags
-                   </Button>
+                    <FormControl>
+                      <Button
+                          type="button"
+                          variant="outline"
+                          size="default"
+                          className="w-full md:w-auto flex-shrink-0" 
+                          onClick={handleSuggestTags}
+                          disabled={isSuggestingTags || !itemDescription || itemDescription.trim().length < 10 || isLoading}
+                          title={!itemDescription || itemDescription.trim().length < 10 ? "Enter a description (min 10 chars) to suggest tags" : "Suggest tags based on description"}
+                      >
+                          {isSuggestingTags ? (
+                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                             <Lightbulb className="mr-2 h-4 w-4" />
+                          )}
+                          Suggest Tags
+                     </Button>
+                    </FormControl>
                   </div>
                    <FormMessage>{form.formState.errors.tags?.message || (form.formState.errors.tags as any)?.root?.message}</FormMessage>
-                  <div className="mt-2 flex flex-wrap gap-1.5"> 
+                  <div className="mt-2 flex flex-wrap gap-1.5 w-full"> {/* Allow tags to wrap and take full width, already had flex-wrap*/}
                     {tags.map((tag) => (
                       <Badge key={tag} variant="secondary" className="flex items-center gap-1 text-xs sm:text-sm py-1 px-2"> 
                         <span>{tag}</span> 

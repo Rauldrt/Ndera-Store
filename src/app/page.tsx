@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -15,11 +16,11 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch } from "lucide-react"; // Added PackageSearch
+import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch } from "lucide-react";
 import { CatalogForm } from "@/components/catalog/catalog-form";
 import type { Catalog } from "@/types";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc, getDocs, Timestamp, writeBatch, where } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc, getDocs, Timestamp, writeBatch, where, getDoc } from "firebase/firestore";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertDialog,
@@ -58,28 +59,26 @@ export default function Home() {
                 id: doc.id,
                 name: data.name,
                 description: data.description,
-                createdAt: data.createdAt as Timestamp, // Ensure createdAt is cast to Timestamp
+                createdAt: data.createdAt as Timestamp,
             } as Catalog;
         });
     },
   });
 
-    // Fetch catalog details for the mobile header title
     const { data: catalogDetails, isLoading: isLoadingCatalogDetails } = useQuery<Catalog | null>({
         queryKey: ['catalog', selectedCatalogId],
         queryFn: async () => {
             if (!selectedCatalogId) return null;
             const docRef = doc(db, "catalogs", selectedCatalogId);
-            const docSnap = await getDocs(docRef); // Use getDocs if it's a collection, getDoc for a single document
-            if (docSnap.exists()) { // For getDoc
+            const docSnap = await getDoc(docRef); // Changed from getDocs to getDoc
+            if (docSnap.exists()) {
                  const data = docSnap.data() as Omit<Catalog, 'id'>;
                  return { id: docSnap.id, ...data } as Catalog;
             } else {
-                // console.warn(`Catalog with ID ${selectedCatalogId} not found for header.`);
                 return null;
             }
         },
-        enabled: !!selectedCatalogId, // Only run if a catalog is selected
+        enabled: !!selectedCatalogId,
     });
 
 
@@ -140,22 +139,14 @@ export default function Home() {
   const deleteCatalogMutation = useMutation({
     mutationFn: async (catalogIdToDelete: string) => {
        const batch = writeBatch(db);
-
-       // 1. Query for all items in the catalog
        const itemsQuery = query(collection(db, "items"), where("catalogId", "==", catalogIdToDelete));
        const itemsSnapshot = await getDocs(itemsQuery);
-
-       // 2. Add delete operations for each item to the batch
        itemsSnapshot.docs.forEach((itemDoc) => {
            batch.delete(doc(db, "items", itemDoc.id));
        });
-
-       // 3. Add delete operation for the catalog itself
        batch.delete(doc(db, "catalogs", catalogIdToDelete));
-
-       // 4. Commit the batch
        await batch.commit();
-       return catalogIdToDelete; // Return the ID for onSuccess
+       return catalogIdToDelete;
     },
     onSuccess: (deletedId) => {
       queryClient.invalidateQueries({ queryKey: ['catalogs'] });
@@ -221,24 +212,19 @@ export default function Home() {
   const handleCancelForm = () => {
        setEditingCatalog(null);
        setShowCatalogForm(false);
-        // If there were catalogs, and one was previously selected, reselect it.
-        // Otherwise, if catalogs exist, select the first one.
         if (catalogs && catalogs.length > 0) {
             const previouslySelectedId = queryClient.getQueryData<Catalog[]>(['catalogs'])?.find(c => c.id === selectedCatalogId)?.id;
             if (previouslySelectedId) {
                 setSelectedCatalogId(previouslySelectedId);
             } else {
-                 // Check if selectedCatalogId was an actual ID before clearing it
-                 // This ensures we don't re-select if we cancelled creating the *first* catalog
                  const wasViewingCatalog = !!queryClient.getQueryData<Catalog[]>(['catalogs'])?.find(c => c.id === selectedCatalogId);
-                 if (wasViewingCatalog || (!selectedCatalogId && catalogs.length > 0)) { // Also select if nothing was selected and catalogs exist
+                 if (wasViewingCatalog || (!selectedCatalogId && catalogs.length > 0)) { 
                     setSelectedCatalogId(catalogs[0].id);
                  }
             }
         }
    }
 
-   // Effect to select the first catalog if none is selected and catalogs load
     useEffect(() => {
         if (!selectedCatalogId && !showCatalogForm && !isLoadingCatalogs && catalogs && catalogs.length > 0) {
             setSelectedCatalogId(catalogs[0].id);
@@ -258,7 +244,7 @@ export default function Home() {
         <SidebarContent className="p-2">
           <Button
             variant="default"
-            className="w-full mb-4 hidden md:flex" // Hide on mobile, FAB is used instead
+            className="w-full mb-4 hidden md:flex"
             onClick={handleOpenCreateForm}
             title="Create New Catalog"
           >
@@ -319,12 +305,10 @@ export default function Home() {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          {/* Footer content if needed */}
         </SidebarFooter>
       </Sidebar>
 
       <SidebarInset>
-        {/* Mobile Header */}
         <div className="md:hidden flex items-center justify-between p-4 border-b bg-background sticky top-0 z-20">
           <h1 className="text-lg font-semibold text-primary truncate">
             {isLoadingCatalogDetails && selectedCatalogId ? (
@@ -368,10 +352,10 @@ export default function Home() {
               )}
               {!isLoadingCatalogs && catalogs && catalogs.length === 0 && (
                  <div className="flex flex-col items-center justify-center h-full text-center">
-                    <PackageSearch className="w-12 h-12 md:w-16 md:h-16 text-primary mb-4" /> {/* Changed icon */}
+                    <PackageSearch className="w-12 h-12 md:w-16 md:h-16 text-primary mb-4" />
                     <h2 className="text-lg md:text-xl font-semibold text-foreground">Welcome to Catalogify!</h2>
                     <p className="text-muted-foreground text-sm md:text-base">Get started by creating your first catalog using the button in the sidebar or the + button below.</p>
-                     <Button onClick={handleOpenCreateForm} className="mt-6 hidden md:inline-flex"> {/* Hide on mobile, FAB is primary */}
+                     <Button onClick={handleOpenCreateForm} className="mt-6 hidden md:inline-flex">
                         <PlusCircle className="mr-2 h-4 w-4" /> Create Your First Catalog
                     </Button>
                 </div>
@@ -427,3 +411,6 @@ export default function Home() {
         </AlertDialog>
     </SidebarProvider>
   );
+}
+
+    
