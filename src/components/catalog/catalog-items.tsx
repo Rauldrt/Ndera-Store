@@ -24,7 +24,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";import { Skeleton } from '@/components/ui/skeleton';
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CatalogItemsProps {
   catalogId: string;
@@ -92,17 +93,19 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
   const addItemMutation = useMutation({
     mutationFn: async ({ data, catalogId: currentCatalogId }: { data: ItemFormValues, catalogId: string }): Promise<string> => {
         // Prepare item data for Firestore, ensuring tags are an array
-        const newItemData: Omit<Item, 'id' | 'createdAt'> = {
+        const newItemData: Omit<Item, 'id' | 'createdAt'> & { catalogId: string } = {
             name: data.name,
             description: data.description,
             imageUrl: data.imageUrl,
             tags: Array.isArray(data.tags) ? data.tags : [],
             catalogId: currentCatalogId,
         };
+        console.log("[CatalogItems] Attempting to add item:", JSON.stringify(newItemData, null, 2));
         const docRef = await addDoc(collection(db, "items"), {
            ...newItemData,
             createdAt: serverTimestamp(), // Use Firestore server-side timestamp
         });
+        console.log("[CatalogItems] Item added with ID:", docRef.id);
       return docRef.id;
     },
     onSuccess: () => {
@@ -115,11 +118,22 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       setShowItemForm(false);
       setEditingItem(null);
     },
-    onError: (error) => {
-      console.error("Error adding item: ", error);
+    onError: (error: any) => {
+      console.error(`[CatalogItems] Error adding item to catalog '${catalogId}':`, error);
+      let description = "Could not add item. Please try again.";
+      if (error instanceof Error) {
+        description = error.message;
+      }
+      // Check for specific Firebase error codes
+      if (error && error.code === 'permission-denied') {
+        description = "Permission denied. Please check Firestore rules for the 'items' collection.";
+      } else if (error && error.code) {
+        description = `Error: ${error.code} - ${error.message}`;
+      }
+
        toast({
          title: "Error Adding Item",
-         description: (error as Error)?.message || "Could not add item. Please try again.",
+         description: description,
          variant: "destructive",
        });
     },
@@ -127,18 +141,19 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
   // Mutation for updating an item
     const updateItemMutation = useMutation({
-        mutationFn: async ({ id, data }: { id: string, data: ItemFormValues }) => { // Removed catalogId from args as it's not used here directly for updateData
+        mutationFn: async ({ id, data }: { id: string, data: ItemFormValues }) => { 
             const itemRef = doc(db, "items", id);
-            // Prepare update data, ensuring tags is an array and excluding non-updatable fields
              const updateData: Partial<Omit<Item, 'id' | 'createdAt' | 'catalogId'>> = {
                 name: data.name,
                 description: data.description,
                 imageUrl: data.imageUrl,
                 tags: Array.isArray(data.tags) ? data.tags : [],
             };
+            console.log("[CatalogItems] Attempting to update item:", id, JSON.stringify(updateData, null, 2));
             await updateDoc(itemRef, updateData);
+            console.log("[CatalogItems] Item updated:", id);
         },
-        onSuccess: () => { // variables.catalogId is not available directly here, rely on outer scope catalogId
+        onSuccess: () => { 
             queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
             toast({
                 title: "Item Updated",
@@ -148,11 +163,20 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             setShowItemForm(false);
             setEditingItem(null);
         },
-        onError: (error) => {
-            console.error("Error updating item: ", error);
+        onError: (error: any) => {
+            console.error(`[CatalogItems] Error updating item:`, error);
+            let description = "Could not update item. Please try again.";
+            if (error instanceof Error) {
+                description = error.message;
+            }
+            if (error && error.code === 'permission-denied') {
+                description = "Permission denied. Please check Firestore rules for the 'items' collection.";
+            } else if (error && error.code) {
+                description = `Error: ${error.code} - ${error.message}`;
+            }
             toast({
                 title: "Error Updating Item",
-                description: (error as Error)?.message || "Could not update item.",
+                description: description,
                 variant: "destructive",
             });
         },
@@ -174,7 +198,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
        setShowDeleteDialog(false);
      },
      onError: (error) => {
-       console.error("Error deleting item: ", error);
+       console.error("[CatalogItems] Error deleting item: ", error);
        toast({
          title: "Error Deleting Item",
          description: (error as Error)?.message || "Could not delete item.",
@@ -250,9 +274,8 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             onSubmit={editingItem ? handleUpdateItem : handleAddItem}
             initialData={editingItem ? {
               ...editingItem,
-              // Convert Firestore Timestamp to Date for the form if it exists
               createdAt: editingItem.createdAt ? new Date(editingItem.createdAt.seconds * 1000 + (editingItem.createdAt.nanoseconds || 0) / 1000000) : undefined,
-            } as Partial<Item> : {}} // Cast as Partial<Item> to satisfy ItemForm's initialData type if Item expects Date
+            } as Partial<Item> : {}} 
             isLoading={addItemMutation.isPending || updateItemMutation.isPending}
             key={editingItem?.id || 'new-item'}
           />
@@ -287,7 +310,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             <AlertTriangle className="mx-auto h-12 w-12 mb-4"/>
             <p className="font-semibold">Error loading items.</p>
             <p className="text-sm text-muted-foreground">Please try again later or check the console for details.</p>
-            {/* Optionally, provide a refetch button */}
             <Button variant="outline" size="sm" className="mt-4" onClick={() => queryClient.refetchQueries({ queryKey: ['items', catalogId] })}>
               Try Again
             </Button>
@@ -387,5 +409,3 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
-
-    
