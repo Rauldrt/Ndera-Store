@@ -173,7 +173,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               control={form.control}
               name="name"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="w-full">
                   <FormLabel>Item Name</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Vintage Leather Jacket, Organic Coffee Beans" {...field} />
@@ -186,7 +186,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               control={form.control}
               name="description"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="w-full">
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea
@@ -203,7 +203,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               control={form.control}
               name="imageUrl"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="w-full">
                   <FormLabel className="flex items-center">
                     Image URL (Optional)
                     <Tooltip delayDuration={100}>
@@ -228,8 +228,8 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               name="tags"
               render={() => ( // field is not directly used here, manage via form.watch and form.setValue
                 <FormItem>
-                  <FormLabel>Tags ({tags.length}/10)</FormLabel>
- <div className="flex flex-col md:flex-row items-start md:items-center gap-2 flex-wrap">
+ <FormLabel>Tags ({tags.length}/10)</FormLabel>
+ <div className="flex flex-col md:flex-row items-start md:items-center gap-2 w-full"> {/* Ensure the container takes full width */}
  <FormControl className="flex-grow w-full">
                         <Input
                         placeholder="Type a tag and press Enter or ,"

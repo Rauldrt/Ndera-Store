@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader as ShadSheetHeader, SheetTitle as ShadSheetTitle, SheetDescription as ShadSheetDescription } from "@/components/ui/sheet" // Import SheetHeader, SheetTitle, SheetDescription
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -222,13 +222,16 @@ const Sidebar = React.forwardRef<
             data-sidebar="sidebar"
             data-mobile="true"
             className="w-[--sidebar-width-mobile] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden" // Use mobile width var
-            style={
-              {
-                // "--sidebar-width": SIDEBAR_WIDTH_MOBILE, // Set via CSS var instead
-              } as React.CSSProperties
-            }
             side={side}
           >
+            {/* Add an accessible title and description for the Sheet itself */}
+            <ShadSheetHeader className="sr-only"> {/* Visually hidden but accessible */}
+              <ShadSheetTitle>Main Menu</ShadSheetTitle>
+              <ShadSheetDescription>
+                Primary navigation for catalogs and application features.
+              </ShadSheetDescription>
+            </ShadSheetHeader>
+            {/* The actual content of the sidebar */}
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>
         </Sheet>
@@ -361,7 +364,7 @@ const SidebarInset = React.forwardRef<
     <main
       ref={ref}
       className={cn(
-        "relative flex min-h-svh flex-1 flex-col bg-background transition-[margin-left,margin-right] duration-200 ease-in-out", // Added transition
+        "relative flex flex-1 flex-col bg-background transition-[margin-left,margin-right] duration-200 ease-in-out", // Added transition
         // Apply margin based on sidebar state and variant for desktop
         "md:peer-data-[side=left]:peer-data-[state=expanded]:peer-data-[collapsible=icon]:ml-[var(--sidebar-width)]",
         "md:peer-data-[side=left]:peer-data-[state=collapsed]:peer-data-[collapsible=icon]:ml-[var(--sidebar-width-icon)]",

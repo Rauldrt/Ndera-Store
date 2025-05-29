@@ -52,7 +52,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
               control={form.control}
               name="name"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="w-full">
                   <FormLabel>Catalog Name</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Electronics, Books" {...field} />
@@ -65,7 +65,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
               control={form.control}
               name="description"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="w-full">
                   <FormLabel>Description (Optional)</FormLabel>
                   <FormControl>
                     <Textarea
