@@ -50,22 +50,40 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
   const { data: itemsWithTimestamp, isLoading: isLoadingItemsWithTimestamp, error: itemsWithTimestampError } = useQuery<ItemWithTimestamp[] | undefined>({
     queryKey: ['items', catalogId], // Include catalogId in the query key
     queryFn: async () => {
-      if (!catalogId) return undefined; // Don't fetch if no catalogId
+      if (!catalogId) {
+        console.log("[CatalogItems] queryFn: No catalogId, returning undefined.");
+        return undefined;
+      }
+      console.log(`[CatalogItems] queryFn: Fetching items for catalogId: ${catalogId}`);
       const q = query(collection(db, "items"), where("catalogId", "==", catalogId), orderBy("createdAt", "desc"));
-      const querySnapshot = await getDocs(q);
-       // Map Firestore docs to Item type
-      return querySnapshot.docs.map(doc => {
-        const data = doc.data();
-         return {
-             id: doc.id,
-             name: data.name,
-             description: data.description,
-             imageUrl: data.imageUrl,
-             tags: data.tags,
-             createdAt: data.createdAt as Timestamp,
-             catalogId: data.catalogId,
-         } as ItemWithTimestamp;
-      });
+      try {
+        const querySnapshot = await getDocs(q);
+        console.log(`[CatalogItems] queryFn: Fetched ${querySnapshot.docs.length} items for catalogId: ${catalogId}`);
+        if (querySnapshot.empty) {
+            console.log(`[CatalogItems] queryFn: Snapshot is empty. No items found matching catalogId: ${catalogId}. This might be due to missing Firestore indexes if data exists in DB.`);
+        }
+        // Map Firestore docs to Item type
+        return querySnapshot.docs.map(doc => {
+          const data = doc.data();
+           return {
+               id: doc.id,
+               name: data.name,
+               description: data.description,
+               imageUrl: data.imageUrl,
+               tags: data.tags,
+               createdAt: data.createdAt as Timestamp,
+               catalogId: data.catalogId,
+           } as ItemWithTimestamp;
+        });
+      } catch (error) {
+        console.error(`[CatalogItems] queryFn: Error fetching items for catalogId ${catalogId}:`, error);
+        toast({
+          title: "Error Fetching Items",
+          description: (error as Error)?.message || "Could not fetch items. Check console for details.",
+          variant: "destructive",
+        });
+        throw error; // Ensure react-query catches this and sets itemsWithTimestampError
+      }
     },
     enabled: !!catalogId, // Only run query if catalogId is available
   });
@@ -309,7 +327,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
          <div className="text-center text-destructive py-10">
             <AlertTriangle className="mx-auto h-12 w-12 mb-4"/>
             <p className="font-semibold">Error loading items.</p>
-            <p className="text-sm text-muted-foreground">Please try again later or check the console for details.</p>
+            <p className="text-sm text-muted-foreground">Please try again later or check the console for details. Firestore indexing might be required.</p>
             <Button variant="outline" size="sm" className="mt-4" onClick={() => queryClient.refetchQueries({ queryKey: ['items', catalogId] })}>
               Try Again
             </Button>
@@ -409,3 +427,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
+
+
+    
