@@ -8,7 +8,7 @@ export interface Catalog {
 }
 
 export interface Item {
-  id: string;
+  id:string;
   catalogId: string;
   name: string;
   description: string;
@@ -21,4 +21,5 @@ export interface Item {
 export interface CartItem extends Item {
     quantity: number;
     price: number; // Added for cart functionality
+    catalogName?: string; // Optional catalog name
 }

@@ -60,9 +60,12 @@ export function CartSheet() {
   const handleDownloadPdf = () => {
     const doc = new jsPDF() as jsPDFWithAutoTable;
     
+    // Determine the catalog name. Use the first item's catalog name or a default.
+    const catalogName = cart.length > 0 && cart[0].catalogName ? cart[0].catalogName : 'Catalogify';
+
     // Add header
     doc.setFontSize(20);
-    doc.text("Presupuesto - Catalogify", 14, 22);
+    doc.text(`Presupuesto - ${catalogName}`, 14, 22);
     doc.setFontSize(12);
     doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 30);
     
@@ -87,7 +90,7 @@ export function CartSheet() {
     doc.text(`Total: $${total.toFixed(2)}`, 14, finalY + 15);
 
     // Save PDF
-    doc.save(`presupuesto-catalogify-${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`presupuesto-${catalogName.replace(/\s+/g, '_').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   const handleSendWhatsApp = () => {

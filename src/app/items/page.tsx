@@ -3,9 +3,9 @@
 
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { collection, query, orderBy, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Item } from '@/types';
+import type { Item, Catalog } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertTriangle, PackageSearch, ImageOff, ShoppingCart, Plus, Minus } from 'lucide-react';
@@ -22,7 +22,7 @@ interface ItemWithTimestamp extends Omit<Item, 'createdAt'> {
 
 export default function AllItemsPage() {
   const queryClient = useQueryClient();
-  const { cart, addToCart, updateQuantity, removeFromCart } = useCart();
+  const { cart, addToCart, updateQuantity } = useCart();
   const { toast } = useToast();
 
   const {
@@ -33,8 +33,8 @@ export default function AllItemsPage() {
     queryKey: ['allItems'],
     queryFn: async () => {
       // Note: This query fetches items from all catalogs.
-      // For it to work efficiently, you might need a Firestore index on 'createdAt'.
-      const q = query(collection(db, 'items'), orderBy('createdAt', 'desc'));
+      const itemsCollection = collection(db, 'items');
+      const q = query(itemsCollection, orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map((doc) => {
         const data = doc.data();
@@ -51,10 +51,26 @@ export default function AllItemsPage() {
     },
   });
 
-  const handleAddToCart = (item: ItemWithTimestamp) => {
+  // Fetch catalog details to get the name
+  const getCatalogName = async (catalogId: string) => {
+    // Attempt to get from cache first
+    const cachedCatalogs = queryClient.getQueryData<Catalog[]>(['catalogs']);
+    const cachedCatalog = cachedCatalogs?.find(c => c.id === catalogId);
+    if (cachedCatalog) {
+      return cachedCatalog.name;
+    }
+    // Fetch from Firestore if not in cache
+    const docRef = doc(db, 'catalogs', catalogId);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? (docSnap.data().name as string) : 'Catálogo';
+  };
+
+
+  const handleAddToCart = async (item: ItemWithTimestamp) => {
     // Assign a random price for demonstration purposes
     const price = Math.floor(Math.random() * 100) + 10;
-    addToCart({ ...item, price, quantity: 1, createdAt: item.createdAt! });
+    const catalogName = await getCatalogName(item.catalogId);
+    addToCart({ ...item, price, quantity: 1, createdAt: item.createdAt!, catalogName });
     toast({
       title: "Producto Añadido",
       description: `${item.name} ha sido añadido a tu carrito.`,
