@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Catalogify',
-  description: 'Manage your catalogs with ease.',
+  description: 'Gestiona tus catálogos con facilidad.',
 };
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es">
       <body className={`${inter.className} antialiased`}>
         <Providers>
           {children}
@@ -27,3 +27,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

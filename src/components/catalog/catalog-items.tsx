@@ -78,8 +78,8 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       } catch (error) {
         console.error(`[CatalogItems] queryFn: Error fetching items for catalogId ${catalogId}:`, error);
         toast({
-          title: "Error Fetching Items",
-          description: (error as Error)?.message || "Could not fetch items. Check console for details.",
+          title: "Error al Cargar Productos",
+          description: (error as Error)?.message || "No se pudieron cargar los productos. Revisa la consola para más detalles.",
           variant: "destructive",
         });
         throw error; // Ensure react-query catches this and sets itemsWithTimestampError
@@ -99,7 +99,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                  const data = docSnap.data() as Omit<Catalog, 'id'>;
                  return { id: docSnap.id, ...data } as Catalog;
             } else {
-                console.error(`Catalog with ID ${catalogId} not found.`);
+                console.error(`Catálogo con ID ${catalogId} no encontrado.`);
                 return null;
             }
         },
@@ -118,39 +118,39 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             tags: Array.isArray(data.tags) ? data.tags : [],
             catalogId: currentCatalogId,
         };
-        console.log("[CatalogItems] Attempting to add item:", JSON.stringify(newItemData, null, 2));
+        console.log("[CatalogItems] Intentando añadir producto:", JSON.stringify(newItemData, null, 2));
         const docRef = await addDoc(collection(db, "items"), {
            ...newItemData,
             createdAt: serverTimestamp(), // Use Firestore server-side timestamp
         });
-        console.log("[CatalogItems] Item added with ID:", docRef.id);
+        console.log("[CatalogItems] Producto añadido con ID:", docRef.id);
       return docRef.id;
     },
     onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
         toast({
-            title: "Item Added",
-            description: "The new item has been added to the catalog.",
+            title: "Producto Añadido",
+            description: "El nuevo producto ha sido añadido al catálogo.",
             variant: "default",
         });
       setShowItemForm(false);
       setEditingItem(null);
     },
     onError: (error: any) => {
-      console.error(`[CatalogItems] Error adding item to catalog '${catalogId}':`, error);
-      let description = "Could not add item. Please try again.";
+      console.error(`[CatalogItems] Error al añadir producto al catálogo '${catalogId}':`, error);
+      let description = "No se pudo añadir el producto. Por favor, inténtalo de nuevo.";
       if (error instanceof Error) {
         description = error.message;
       }
       // Check for specific Firebase error codes
       if (error && error.code === 'permission-denied') {
-        description = "Permission denied. Please check Firestore rules for the 'items' collection.";
+        description = "Permiso denegado. Por favor, revisa las reglas de Firestore para la colección 'items'.";
       } else if (error && error.code) {
         description = `Error: ${error.code} - ${error.message}`;
       }
 
        toast({
-         title: "Error Adding Item",
+         title: "Error al Añadir Producto",
          description: description,
          variant: "destructive",
        });
@@ -167,33 +167,33 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                 imageUrl: data.imageUrl,
                 tags: Array.isArray(data.tags) ? data.tags : [],
             };
-            console.log("[CatalogItems] Attempting to update item:", id, JSON.stringify(updateData, null, 2));
+            console.log("[CatalogItems] Intentando actualizar producto:", id, JSON.stringify(updateData, null, 2));
             await updateDoc(itemRef, updateData);
-            console.log("[CatalogItems] Item updated:", id);
+            console.log("[CatalogItems] Producto actualizado:", id);
         },
         onSuccess: () => { 
             queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
             toast({
-                title: "Item Updated",
-                description: "The item has been saved.",
+                title: "Producto Actualizado",
+                description: "El producto ha sido guardado.",
                  variant: "default",
             });
             setShowItemForm(false);
             setEditingItem(null);
         },
         onError: (error: any) => {
-            console.error(`[CatalogItems] Error updating item:`, error);
-            let description = "Could not update item. Please try again.";
+            console.error(`[CatalogItems] Error al actualizar producto:`, error);
+            let description = "No se pudo actualizar el producto. Por favor, inténtalo de nuevo.";
             if (error instanceof Error) {
                 description = error.message;
             }
             if (error && error.code === 'permission-denied') {
-                description = "Permission denied. Please check Firestore rules for the 'items' collection.";
+                description = "Permiso denegado. Por favor, revisa las reglas de Firestore para la colección 'items'.";
             } else if (error && error.code) {
                 description = `Error: ${error.code} - ${error.message}`;
             }
             toast({
-                title: "Error Updating Item",
+                title: "Error al Actualizar Producto",
                 description: description,
                 variant: "destructive",
             });
@@ -209,17 +209,17 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
        toast({
-         title: "Item Deleted",
-         description: "The item has been removed from the catalog.",
+         title: "Producto Eliminado",
+         description: "El producto ha sido eliminado del catálogo.",
        });
        setItemToDelete(null);
        setShowDeleteDialog(false);
      },
      onError: (error) => {
-       console.error("[CatalogItems] Error deleting item: ", error);
+       console.error("[CatalogItems] Error al eliminar producto: ", error);
        toast({
-         title: "Error Deleting Item",
-         description: (error as Error)?.message || "Could not delete item.",
+         title: "Error al Eliminar Producto",
+         description: (error as Error)?.message || "No se pudo eliminar el producto.",
          variant: "destructive",
        });
        setItemToDelete(null);
@@ -262,7 +262,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                 <Skeleton className="h-8 w-3/4 mb-1" />
            ) : (
                <h1 className="text-xl sm:text-2xl font-bold text-primary break-words">
-                 {catalogDetails?.name || "Catalog Items"}
+                 {catalogDetails?.name || "Productos del Catálogo"}
                </h1>
            )}
             {isLoadingCatalogDetails ? (
@@ -272,7 +272,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             )}
         </div>
         <Button onClick={() => { setEditingItem(null); setShowItemForm(true); }} className="w-full sm:w-auto flex-shrink-0">
-          <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
+          <PlusCircle className="mr-2 h-4 w-4" /> Añadir Nuevo Producto
         </Button>
       </div>
 
@@ -282,9 +282,9 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingItem ? 'Edit Item' : 'Add Item'}</DialogTitle>
+            <DialogTitle>{editingItem ? 'Editar Producto' : 'Añadir Producto'}</DialogTitle>
             <DialogDescription>
-              {editingItem ? 'Modify the item in this form.' : 'Add a new item using this form.'}
+              {editingItem ? 'Modifica el producto en este formulario.' : 'Añade un nuevo producto usando este formulario.'}
             </DialogDescription>
           </DialogHeader>
           <ItemForm
@@ -326,20 +326,20 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
        {itemsWithTimestampError && (
          <div className="text-center text-destructive py-10">
             <AlertTriangle className="mx-auto h-12 w-12 mb-4"/>
-            <p className="font-semibold">Error loading items.</p>
-            <p className="text-sm text-muted-foreground">Please try again later or check the console for details. Firestore indexing might be required.</p>
+            <p className="font-semibold">Error al cargar los productos.</p>
+            <p className="text-sm text-muted-foreground">Por favor, inténtalo de nuevo más tarde o revisa la consola para más detalles. Podría ser necesario un índice de Firestore.</p>
             <Button variant="outline" size="sm" className="mt-4" onClick={() => queryClient.refetchQueries({ queryKey: ['items', catalogId] })}>
-              Try Again
+              Intentar de Nuevo
             </Button>
          </div>
         )}
 
       {!isLoadingItemsWithTimestamp && !itemsWithTimestampError && itemsWithTimestamp && itemsWithTimestamp.length === 0 && !showItemForm && (
         <div className="text-center py-10 border border-dashed rounded-lg border-muted-foreground/20">
-          <h3 className="text-lg font-medium text-muted-foreground">No items yet</h3>
-          <p className="text-muted-foreground mb-4">Add your first item to this catalog!</p>
+          <h3 className="text-lg font-medium text-muted-foreground">Aún no hay productos</h3>
+          <p className="text-muted-foreground mb-4">¡Añade tu primer producto a este catálogo!</p>
            <Button onClick={() => { setEditingItem(null); setShowItemForm(true); }}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Item
+              <PlusCircle className="mr-2 h-4 w-4" /> Añadir Producto
             </Button>
         </div>
       )}
@@ -354,7 +354,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                      {item.imageUrl ? (
                         <Image
                            src={item.imageUrl}
-                           alt={item.name || 'Item image'}
+                           alt={item.name || 'Imagen del producto'}
                            fill
                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                            style={{ objectFit: 'cover' }}
@@ -388,10 +388,10 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
               </CardContent>
               <CardFooter className="flex justify-end gap-2 p-4 border-t">
                  <Button variant="outline" size="sm" onClick={() => handleEditItem(item)}>
-                  <Edit className="mr-1 h-3 w-3" /> Edit
+                  <Edit className="mr-1 h-3 w-3" /> Editar
                 </Button>
                 <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(item.id)}>
-                   <Trash2 className="mr-1 h-3 w-3" /> Delete
+                   <Trash2 className="mr-1 h-3 w-3" /> Eliminar
                 </Button>
               </CardFooter>
             </Card>
@@ -402,13 +402,13 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the item.
+                Esta acción no se puede deshacer. Esto eliminará permanentemente el producto.
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
                 onClick={() => {
                 if (itemToDelete) {
@@ -419,7 +419,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
                  {deleteItemMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {deleteItemMutation.isPending ? "Deleting..." : "Delete"}
+                {deleteItemMutation.isPending ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
@@ -428,5 +428,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
   );
 }
 
+
+    
 
     

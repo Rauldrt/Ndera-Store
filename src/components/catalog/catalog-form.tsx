@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { SubmitHandler } from "react-hook-form";
@@ -19,8 +20,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Catalog } from "@/types";
 
 const catalogFormSchema = z.object({
-  name: z.string().min(1, "Catalog name is required").max(100, "Name too long"),
-  description: z.string().max(500, "Description too long").optional(),
+  name: z.string().min(1, "El nombre del catálogo es obligatorio").max(100, "Nombre demasiado largo"),
+  description: z.string().max(500, "Descripción demasiado larga").optional(),
 });
 
 type CatalogFormValues = z.infer<typeof catalogFormSchema>;
@@ -43,7 +44,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{initialData?.id ? "Edit Catalog" : "Create New Catalog"}</CardTitle>
+        <CardTitle>{initialData?.id ? "Editar Catálogo" : "Crear Nuevo Catálogo"}</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -53,9 +54,9 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
               name="name"
               render={({ field }) => (
                 <FormItem className="w-full">
-                  <FormLabel>Catalog Name</FormLabel>
+                  <FormLabel>Nombre del Catálogo</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Electronics, Books" {...field} />
+                    <Input placeholder="Ej: Electrónica, Libros" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -66,10 +67,10 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
               name="description"
               render={({ field }) => (
                 <FormItem className="w-full">
-                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormLabel>Descripción (Opcional)</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe the catalog..."
+                      placeholder="Describe el catálogo..."
                       {...field}
                       rows={3}
                     />
@@ -79,7 +80,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
               )}
             />
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? (initialData?.id ? "Saving..." : "Creating...") : (initialData?.id ? "Save Changes" : "Create Catalog")}
+              {isLoading ? (initialData?.id ? "Guardando..." : "Creando...") : (initialData?.id ? "Guardar Cambios" : "Crear Catálogo")}
             </Button>
           </form>
         </Form>
@@ -87,3 +88,5 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
     </Card>
   );
 }
+
+    

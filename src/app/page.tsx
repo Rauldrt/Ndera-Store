@@ -93,18 +93,18 @@ export default function Home() {
     onSuccess: (newId) => {
       queryClient.invalidateQueries({ queryKey: ['catalogs'] });
       toast({
-        title: "Catalog Created",
-        description: "Your new catalog has been added.",
+        title: "Catálogo Creado",
+        description: "Tu nuevo catálogo ha sido añadido.",
       });
       setShowCatalogForm(false);
       setEditingCatalog(null);
       setSelectedCatalogId(newId); 
     },
     onError: (error) => {
-      console.error("Error adding catalog: ", error);
+      console.error("Error al añadir catálogo: ", error);
       toast({
-        title: "Error Creating Catalog",
-        description: (error as Error)?.message || "Could not create catalog. Please try again.",
+        title: "Error al Crear Catálogo",
+        description: (error as Error)?.message || "No se pudo crear el catálogo. Por favor, inténtalo de nuevo.",
         variant: "destructive",
       });
     },
@@ -119,18 +119,18 @@ export default function Home() {
           queryClient.invalidateQueries({ queryKey: ['catalogs'] });
           queryClient.invalidateQueries({ queryKey: ['catalog', variables.id] });
           toast({
-              title: "Catalog Updated",
-              description: "Your catalog has been saved.",
+              title: "Catálogo Actualizado",
+              description: "Tu catálogo ha sido guardado.",
           });
           setEditingCatalog(null); 
           setShowCatalogForm(false); 
           setSelectedCatalogId(variables.id); 
       },
       onError: (error) => {
-          console.error("Error updating catalog: ", error);
+          console.error("Error al actualizar catálogo: ", error);
           toast({
-              title: "Error Updating Catalog",
-              description: (error as Error)?.message || "Could not update catalog.",
+              title: "Error al Actualizar Catálogo",
+              description: (error as Error)?.message || "No se pudo actualizar el catálogo.",
               variant: "destructive",
           });
       },
@@ -156,17 +156,17 @@ export default function Home() {
         setSelectedCatalogId(null);
       }
       toast({
-        title: "Catalog Deleted",
-        description: "The catalog and all its items have been removed.",
+        title: "Catálogo Eliminado",
+        description: "El catálogo y todos sus productos han sido eliminados.",
       });
       setCatalogToDelete(null); 
       setShowDeleteDialog(false);
     },
     onError: (error) => {
-      console.error("Error deleting catalog and its items: ", error);
+      console.error("Error al eliminar catálogo y sus productos: ", error);
        toast({
-         title: "Error Deleting Catalog",
-         description: (error as Error)?.message || "Could not delete catalog and its items.",
+         title: "Error al Eliminar Catálogo",
+         description: (error as Error)?.message || "No se pudo eliminar el catálogo y sus productos.",
          variant: "destructive",
        });
        setCatalogToDelete(null);
@@ -246,10 +246,10 @@ export default function Home() {
             variant="default"
             className="w-full mb-4 hidden md:flex"
             onClick={handleOpenCreateForm}
-            title="Create New Catalog"
+            title="Crear Nuevo Catálogo"
           >
             <PlusCircle className="mr-2 h-4 w-4 group-data-[collapsible=icon]:mr-0" />
-             <span className="group-data-[collapsible=icon]:hidden">Create Catalog</span>
+             <span className="group-data-[collapsible=icon]:hidden">Crear Catálogo</span>
           </Button>
           <SidebarMenu>
             {isLoadingCatalogs && (
@@ -261,7 +261,7 @@ export default function Home() {
             )}
             {catalogsError && (
               <SidebarMenuItem className="text-destructive px-2 py-1 text-xs">
-                <AlertTriangle className="inline-block mr-2 h-4 w-4"/> Error loading.
+                <AlertTriangle className="inline-block mr-2 h-4 w-4"/> Error al cargar.
               </SidebarMenuItem>
             )}
             {catalogs && catalogs.map((catalog) => (
@@ -282,7 +282,7 @@ export default function Home() {
                             size="icon"
                             className="h-6 w-6 text-muted-foreground hover:text-foreground"
                             onClick={(e) => { e.stopPropagation(); handleEditCatalog(catalog); }}
-                            title={`Edit ${catalog.name}`}
+                            title={`Editar ${catalog.name}`}
                         >
                            <Edit className="h-4 w-4" />
                         </Button>
@@ -291,7 +291,7 @@ export default function Home() {
                             size="icon"
                             className="h-6 w-6 text-destructive hover:text-destructive/90"
                             onClick={(e) => { e.stopPropagation(); openDeleteDialog(catalog.id); }}
-                            title={`Delete ${catalog.name}`}
+                            title={`Eliminar ${catalog.name}`}
                         >
                             <Trash2 className="h-4 w-4" />
                         </Button>
@@ -300,7 +300,7 @@ export default function Home() {
               </SidebarMenuItem>
             ))}
              {catalogs && catalogs.length === 0 && !isLoadingCatalogs && !showCatalogForm && (
-                <p className="px-2 text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">No catalogs yet. Create one!</p>
+                <p className="px-2 text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">Aún no hay catálogos. ¡Crea uno!</p>
             )}
           </SidebarMenu>
         </SidebarContent>
@@ -325,7 +325,7 @@ export default function Home() {
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
           {showCatalogForm ? (
              <div className="mb-6 max-w-full md:max-w-2xl mx-auto relative">
-             <Button variant="ghost" size="sm" onClick={handleCancelForm} className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground">Cancel</Button>
+             <Button variant="ghost" size="sm" onClick={handleCancelForm} className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground">Cancelar</Button>
               <CatalogForm
                  onSubmit={editingCatalog ? handleUpdateCatalog : handleCreateCatalog}
                  initialData={editingCatalog ?? undefined}
@@ -340,33 +340,33 @@ export default function Home() {
               {isLoadingCatalogs && (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <Loader2 className="w-16 h-16 text-primary mb-4 animate-spin" />
-                  <p className="text-muted-foreground">Loading catalogs...</p>
+                  <p className="text-muted-foreground">Cargando catálogos...</p>
                 </div>
               )}
               {!isLoadingCatalogs && catalogs && catalogs.length > 0 && !selectedCatalogId && (
                  <div className="flex flex-col items-center justify-center h-full text-center">
                     <LayoutGrid className="w-12 h-12 md:w-16 md:h-16 text-primary mb-4" />
-                    <h2 className="text-lg md:text-xl font-semibold text-foreground">Select a catalog</h2>
-                    <p className="text-muted-foreground text-sm md:text-base">Choose a catalog from the sidebar to view its items, or create a new one.</p>
+                    <h2 className="text-lg md:text-xl font-semibold text-foreground">Selecciona un catálogo</h2>
+                    <p className="text-muted-foreground text-sm md:text-base">Elige un catálogo de la barra lateral para ver sus productos, o crea uno nuevo.</p>
                 </div>
               )}
               {!isLoadingCatalogs && catalogs && catalogs.length === 0 && (
                  <div className="flex flex-col items-center justify-center h-full text-center">
                     <PackageSearch className="w-12 h-12 md:w-16 md:h-16 text-primary mb-4" />
-                    <h2 className="text-lg md:text-xl font-semibold text-foreground">Welcome to Catalogify!</h2>
-                    <p className="text-muted-foreground text-sm md:text-base">Get started by creating your first catalog using the button in the sidebar or the + button below.</p>
+                    <h2 className="text-lg md:text-xl font-semibold text-foreground">¡Bienvenido a Catalogify!</h2>
+                    <p className="text-muted-foreground text-sm md:text-base">Comienza creando tu primer catálogo usando el botón en la barra lateral o el botón + de abajo.</p>
                      <Button onClick={handleOpenCreateForm} className="mt-6 hidden md:inline-flex">
-                        <PlusCircle className="mr-2 h-4 w-4" /> Create Your First Catalog
+                        <PlusCircle className="mr-2 h-4 w-4" /> Crea tu Primer Catálogo
                     </Button>
                 </div>
               )}
                {!isLoadingCatalogs && catalogsError && (
                  <div className="flex flex-col items-center justify-center h-full text-center text-destructive">
                     <AlertTriangle className="w-12 h-12 md:w-16 md:h-16 mb-4" />
-                    <h2 className="text-lg md:text-xl font-semibold">Error Loading Catalogs</h2>
-                    <p className="text-sm md:text-base">Could not fetch your catalogs. Please check your connection and try again.</p>
+                    <h2 className="text-lg md:text-xl font-semibold">Error al Cargar Catálogos</h2>
+                    <p className="text-sm md:text-base">No se pudieron obtener tus catálogos. Por favor, revisa tu conexión e inténtalo de nuevo.</p>
                      <Button onClick={() => queryClient.refetchQueries({ queryKey: ['catalogs'] })} variant="outline" className="mt-4">
-                        Try Again
+                        Intentar de Nuevo
                     </Button>
                 </div>
               )}
@@ -377,7 +377,7 @@ export default function Home() {
         <Fab
             className="md:hidden fixed bottom-4 right-4 z-30 shadow-lg"
             onClick={handleOpenCreateForm}
-            aria-label="Create New Catalog"
+            aria-label="Crear Nuevo Catálogo"
         >
             <Plus className="h-6 w-6" />
         </Fab>
@@ -387,13 +387,13 @@ export default function Home() {
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
             <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the catalog and <span className="font-semibold">all items within it.</span>
+                Esta acción no se puede deshacer. Esto eliminará permanentemente el catálogo y <span className="font-semibold">todos los productos que contiene.</span>
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {setCatalogToDelete(null); setShowDeleteDialog(false);}}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => {setCatalogToDelete(null); setShowDeleteDialog(false);}}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
                 onClick={() => {
                 if (catalogToDelete) {
@@ -404,7 +404,7 @@ export default function Home() {
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
                 {deleteCatalogMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {deleteCatalogMutation.isPending ? "Deleting..." : "Delete Catalog"}
+                {deleteCatalogMutation.isPending ? "Eliminando..." : "Eliminar Catálogo"}
             </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
@@ -412,5 +412,7 @@ export default function Home() {
     </SidebarProvider>
   );
 }
+
+    
 
     

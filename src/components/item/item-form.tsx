@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { SubmitHandler } from "react-hook-form";
@@ -32,10 +33,10 @@ import {
 
 
 const itemFormSchema = z.object({
-  name: z.string().min(1, "Item name is required").max(100, "Name is too long (max 100 characters)"),
-  description: z.string().min(1, "Description is required").max(1000, "Description is too long (max 1000 characters)"),
-  imageUrl: z.string().url("Invalid URL format. Please enter a valid https:// or http:// URL.").optional().or(z.literal("")),
-  tags: z.array(z.string().min(1, "Tag cannot be empty.").max(50, "Tag is too long (max 50 characters).")).max(10, "Maximum 10 tags allowed."),
+  name: z.string().min(1, "El nombre del producto es obligatorio").max(100, "Nombre demasiado largo (máx. 100 caracteres)"),
+  description: z.string().min(1, "La descripción es obligatoria").max(1000, "Descripción demasiado larga (máx. 1000 caracteres)"),
+  imageUrl: z.string().url("Formato de URL inválido. Por favor, introduce una URL válida https:// o http://.").optional().or(z.literal("")),
+  tags: z.array(z.string().min(1, "La etiqueta no puede estar vacía.").max(50, "Etiqueta demasiado larga (máx. 50 caracteres).")).max(10, "Máximo 10 etiquetas permitidas."),
 });
 
 export type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -96,8 +97,8 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     const descriptionValue = form.getValues("description");
     if (!descriptionValue || descriptionValue.trim().length < 10) { // Require minimum length for description
       toast({
-        title: "Description Too Short",
-        description: "Please enter a more detailed item description (at least 10 characters) to suggest tags.",
+        title: "Descripción Demasiado Corta",
+        description: "Por favor, introduce una descripción más detallada del producto (al menos 10 caracteres) para sugerir etiquetas.",
         variant: "destructive",
       });
       return;
@@ -118,20 +119,20 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
 
       if (uniqueSuggestions.length === 0 && result.tags.length > 0) {
          toast({
-           title: "No New Suggestions",
-           description: "AI couldn't find any new relevant tags. Try refining your description.",
+           title: "No hay Nuevas Sugerencias",
+           description: "La IA no encontró nuevas etiquetas relevantes. Intenta refinar tu descripción.",
          });
        } else if (uniqueSuggestions.length === 0 && result.tags.length === 0) {
             toast({
-                title: "No Suggestions Found",
-                description: "AI couldn't suggest any tags for this description.",
+                title: "No se Encontraron Sugerencias",
+                description: "La IA no pudo sugerir ninguna etiqueta para esta descripción.",
             });
        }
     } catch (error: any) {
-      console.error("Error suggesting tags:", error);
+      console.error("Error al sugerir etiquetas:", error);
        toast({
-         title: "Suggestion Failed",
-         description: error.message || "Could not get AI tag suggestions. Please try again.",
+         title: "Fallo en la Sugerencia",
+         description: error.message || "No se pudieron obtener sugerencias de etiquetas de la IA. Por favor, inténtalo de nuevo.",
          variant: "destructive",
        });
       setSuggestedTags([]);
@@ -163,8 +164,8 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     <TooltipProvider>
     <Card className="shadow-xl">
       <CardHeader className="p-4 md:p-6">
-        <CardTitle className="text-lg md:text-xl">{initialData?.id ? "Edit Item" : "Add New Item"}</CardTitle>
-        <CardDescription>Fill in the details for your catalog item.</CardDescription>
+        <CardTitle className="text-lg md:text-xl">{initialData?.id ? "Editar Producto" : "Añadir Nuevo Producto"}</CardTitle>
+        <CardDescription>Rellena los detalles de tu producto de catálogo.</CardDescription>
       </CardHeader>
       <CardContent className="p-4 md:p-6">
         <Form {...form}>
@@ -174,9 +175,9 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               name="name"
               render={({ field }) => (
                 <FormItem className="w-full">
-                  <FormLabel>Item Name</FormLabel>
+                  <FormLabel>Nombre del Producto</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Vintage Leather Jacket, Organic Coffee Beans" {...field} />
+                    <Input placeholder="Ej: Chaqueta de Cuero Vintage, Granos de Café Orgánico" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -187,10 +188,10 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               name="description"
               render={({ field }) => (
                 <FormItem className="w-full">
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Descripción</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe the item, its features, condition, etc."
+                      placeholder="Describe el producto, sus características, estado, etc."
                       {...field}
                       rows={4}
                     />
@@ -205,13 +206,13 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               render={({ field }) => (
                 <FormItem className="w-full">
                   <FormLabel className="flex items-center">
-                    Image URL (Optional)
+                    URL de la Imagen (Opcional)
                     <Tooltip delayDuration={100}>
                       <TooltipTrigger asChild>
                         <Info className="h-3 w-3 ml-1.5 text-muted-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-xs">
-                        <p>Provide a direct link (URL) to an image of the item. Ensure it starts with http:// or https://.</p>
+                        <p>Proporciona un enlace directo (URL) a una imagen del producto. Asegúrate de que empiece por http:// o https://.</p>
                       </TooltipContent>
                     </Tooltip>
                   </FormLabel>
@@ -228,11 +229,11 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               name="tags"
               render={() => ( // field is not directly used here, manage via form.watch and form.setValue
                 <FormItem>
- <FormLabel>Tags ({tags.length}/10)</FormLabel>
+ <FormLabel>Etiquetas ({tags.length}/10)</FormLabel>
  <div className="flex flex-col md:flex-row items-start md:items-center gap-2 w-full"> {/* Ensure the container takes full width */}
  <FormControl className="flex-grow w-full">
                         <Input
-                        placeholder="Type a tag and press Enter or ,"
+                        placeholder="Escribe una etiqueta y presiona Enter o ,"
                         value={currentTag.toLowerCase()} // Display in lowercase
                         onChange={(e) => setCurrentTag(e.target.value)}
                         onKeyDown={handleKeyDown}
@@ -247,14 +248,14 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                           className="w-full md:w-auto flex-shrink-0" 
                           onClick={handleSuggestTags}
                           disabled={isSuggestingTags || !itemDescription || itemDescription.trim().length < 10 || isLoading}
-                          title={!itemDescription || itemDescription.trim().length < 10 ? "Enter a description (min 10 chars) to suggest tags" : "Suggest tags based on description"}
+                          title={!itemDescription || itemDescription.trim().length < 10 ? "Introduce una descripción (mín. 10 caracteres) para sugerir etiquetas" : "Sugerir etiquetas basadas en la descripción"}
                       >
                           {isSuggestingTags ? (
                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           ) : (
                              <Lightbulb className="mr-2 h-4 w-4" />
                           )}
-                          Suggest Tags
+                          Sugerir Etiquetas
                      </Button>
                     </FormControl>
                   </div>
@@ -267,7 +268,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                           type="button"
                           onClick={() => handleRemoveTag(tag)}
                           className="rounded-full outline-none ring-offset-background focus:ring-1 focus:ring-ring focus:ring-offset-1" 
-                          aria-label={`Remove ${tag}`}
+                          aria-label={`Eliminar ${tag}`}
                            disabled={isLoading || isSuggestingTags} 
                         >
                           <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
@@ -287,7 +288,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                    )}
                   {!isSuggestingTags && suggestedTags.length > 0 && (
                     <div className="mt-3"> 
-                      <p className="text-sm font-medium text-muted-foreground mb-1.5">Suggestions:</p> 
+                      <p className="text-sm font-medium text-muted-foreground mb-1.5">Sugerencias:</p> 
                       <div className="flex flex-wrap gap-1.5"> 
                         {suggestedTags.map((tag) => (
                           <Button
@@ -313,10 +314,10 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {initialData?.id ? "Saving..." : "Adding..."}
+                  {initialData?.id ? "Guardando..." : "Añadiendo..."}
                 </>
               ) : (
-                initialData?.id ? "Save Changes" : "Add Item"
+                initialData?.id ? "Guardar Cambios" : "Añadir Producto"
               )}
             </Button>
           </form>
@@ -327,3 +328,6 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   );
 }
 
+
+
+    
