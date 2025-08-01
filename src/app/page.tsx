@@ -16,7 +16,7 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, Home as HomeIcon, Boxes } from "lucide-react";
+import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, Home as HomeIcon, Boxes, Library } from "lucide-react";
 import { CatalogForm } from "@/components/catalog/catalog-form";
 import type { Catalog } from "@/types";
 import { db } from "@/lib/firebase";
@@ -45,6 +45,7 @@ export default function Home() {
   const [editingCatalog, setEditingCatalog] = useState<Catalog | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [catalogToDelete, setCatalogToDelete] = useState<string | null>(null);
+  const [isAllCatalogsView, setIsAllCatalogsView] = useState(true);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -99,7 +100,8 @@ export default function Home() {
       });
       setShowCatalogForm(false);
       setEditingCatalog(null);
-      setSelectedCatalogId(newId); 
+      setSelectedCatalogId(newId);
+      setIsAllCatalogsView(false);
     },
     onError: (error) => {
       console.error("Error al añadir catálogo: ", error);
@@ -125,7 +127,8 @@ export default function Home() {
           });
           setEditingCatalog(null); 
           setShowCatalogForm(false); 
-          setSelectedCatalogId(variables.id); 
+          setSelectedCatalogId(variables.id);
+          setIsAllCatalogsView(false);
       },
       onError: (error) => {
           console.error("Error al actualizar catálogo: ", error);
@@ -155,6 +158,7 @@ export default function Home() {
       queryClient.removeQueries({ queryKey: ['catalog', deletedId] });
       if (selectedCatalogId === deletedId) {
         setSelectedCatalogId(null);
+        setIsAllCatalogsView(true);
       }
       toast({
         title: "Catálogo Eliminado",
@@ -195,42 +199,35 @@ export default function Home() {
   const handleSelectCatalog = (id: string) => {
       setSelectedCatalogId(id);
       setShowCatalogForm(false); 
-      setEditingCatalog(null); 
+      setEditingCatalog(null);
+      setIsAllCatalogsView(false);
   }
 
   const handleEditCatalog = (catalog: Catalog) => {
       setEditingCatalog(catalog);
       setSelectedCatalogId(null); 
-      setShowCatalogForm(true); 
+      setShowCatalogForm(true);
+      setIsAllCatalogsView(false);
   }
 
   const handleOpenCreateForm = () => {
     setShowCatalogForm(true);
     setSelectedCatalogId(null);
     setEditingCatalog(null);
+    setIsAllCatalogsView(false);
   }
 
   const handleCancelForm = () => {
        setEditingCatalog(null);
        setShowCatalogForm(false);
-        if (catalogs && catalogs.length > 0) {
-            const previouslySelectedId = queryClient.getQueryData<Catalog[]>(['catalogs'])?.find(c => c.id === selectedCatalogId)?.id;
-            if (previouslySelectedId) {
-                setSelectedCatalogId(previouslySelectedId);
-            } else {
-                 const wasViewingCatalog = !!queryClient.getQueryData<Catalog[]>(['catalogs'])?.find(c => c.id === selectedCatalogId);
-                 if (wasViewingCatalog || (!selectedCatalogId && catalogs.length > 0)) { 
-                    setSelectedCatalogId(catalogs[0].id);
-                 }
-            }
-        }
+       setIsAllCatalogsView(true);
    }
 
     useEffect(() => {
-        if (!selectedCatalogId && !showCatalogForm && !isLoadingCatalogs && catalogs && catalogs.length > 0) {
-            setSelectedCatalogId(catalogs[0].id);
+        if (isAllCatalogsView && !showCatalogForm) {
+            setSelectedCatalogId(null);
         }
-    }, [catalogs, isLoadingCatalogs, selectedCatalogId, showCatalogForm]);
+    }, [isAllCatalogsView, showCatalogForm]);
 
 
   return (
@@ -255,7 +252,7 @@ export default function Home() {
              <span className="group-data-[collapsible=icon]:hidden">Crear Catálogo</span>
           </Button>
           <SidebarMenu>
-             <SidebarMenuItem>
+            <SidebarMenuItem>
                  <SidebarMenuButton
                      asChild
                      tooltip={{ children: "Todos los productos", side: 'right', align: 'center' }}
@@ -265,6 +262,17 @@ export default function Home() {
                       <Boxes />
                       <span>Todos los productos</span>
                     </Link>
+                 </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                 <SidebarMenuButton
+                     isActive={isAllCatalogsView && !showCatalogForm}
+                     onClick={() => setIsAllCatalogsView(true)}
+                     tooltip={{ children: "Todos los catálogos", side: 'right', align: 'center' }}
+                     className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
+                 >
+                    <Library />
+                    <span>Todos los catálogos</span>
                  </SidebarMenuButton>
             </SidebarMenuItem>
             {isLoadingCatalogs && (
@@ -358,7 +366,7 @@ export default function Home() {
                   <p className="text-muted-foreground">Cargando catálogos...</p>
                 </div>
               )}
-              {!isLoadingCatalogs && catalogs && catalogs.length > 0 && !selectedCatalogId && (
+              {!isLoadingCatalogs && catalogs && catalogs.length > 0 && isAllCatalogsView && (
                  <div className="flex flex-col items-center justify-center h-full text-center">
                     <LayoutGrid className="w-12 h-12 md:w-16 md:h-16 text-primary mb-4" />
                     <h2 className="text-lg md:text-xl font-semibold text-foreground">Selecciona un catálogo</h2>
@@ -394,7 +402,7 @@ export default function Home() {
             {
               label: 'Inicio',
               icon: <HomeIcon className="h-6 w-6" />,
-              href: '/',
+              onClick: () => setIsAllCatalogsView(true),
             },
             {
               label: 'Todos los productos',
