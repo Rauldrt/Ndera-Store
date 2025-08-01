@@ -300,8 +300,8 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         </DialogContent>
       </Dialog>
       {isLoadingItemsWithTimestamp && (
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
+         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {[...Array(8)].map((_, i) => (
                  <Card key={i} className="flex flex-col">
                     <CardHeader>
                         <Skeleton className="aspect-video w-full mb-4" data-ai-hint="placeholder image" />
@@ -346,7 +346,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
       {!isLoadingItemsWithTimestamp && !itemsWithTimestampError && itemsWithTimestamp && itemsWithTimestamp.length > 0 && (
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8 items-stretch">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 items-stretch">
           {itemsWithTimestamp.map((item, index) => (
             <Card key={item.id} className="group flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                <CardHeader className="p-0">
@@ -356,9 +356,9 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                            src={item.imageUrl}
                            alt={item.name || 'Imagen del producto'}
                            fill
-                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                            style={{ objectFit: 'cover' }}
-                           priority={index < 4} 
+                           priority={index < 8} 
                            className="transition-transform duration-300 group-hover:scale-105"
                            data-ai-hint="product photo"
                            onError={(e) => {
@@ -433,3 +433,4 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     
 
     
+
