@@ -16,7 +16,7 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch } from "lucide-react";
+import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, Home as HomeIcon, Boxes } from "lucide-react";
 import { CatalogForm } from "@/components/catalog/catalog-form";
 import type { Catalog } from "@/types";
 import { db } from "@/lib/firebase";
@@ -35,7 +35,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { CatalogItems } from '@/components/catalog/catalog-items';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Fab } from '@/components/ui/fab';
+import { FabMenu } from '@/components/ui/fab';
+import Link from 'next/link';
 
 
 export default function Home() {
@@ -70,7 +71,7 @@ export default function Home() {
         queryFn: async () => {
             if (!selectedCatalogId) return null;
             const docRef = doc(db, "catalogs", selectedCatalogId);
-            const docSnap = await getDoc(docRef); // Changed from getDocs to getDoc
+            const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                  const data = docSnap.data() as Omit<Catalog, 'id'>;
                  return { id: docSnap.id, ...data } as Catalog;
@@ -236,7 +237,9 @@ export default function Home() {
     <SidebarProvider>
       <Sidebar collapsible="icon"> 
         <SidebarHeader className="items-center justify-between p-2">
-          <h2 className="text-lg font-semibold text-sidebar-primary group-data-[collapsible=icon]:hidden">Catalogify</h2>
+          <Link href="/" className="text-lg font-semibold text-sidebar-primary group-data-[collapsible=icon]:hidden">
+            Catalogify
+          </Link>
           <div className="flex items-center gap-1">
             <SidebarTrigger />
           </div>
@@ -252,6 +255,18 @@ export default function Home() {
              <span className="group-data-[collapsible=icon]:hidden">Crear Catálogo</span>
           </Button>
           <SidebarMenu>
+             <SidebarMenuItem>
+                 <SidebarMenuButton
+                     asChild
+                     tooltip={{ children: "Todos los productos", side: 'right', align: 'center' }}
+                     className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
+                 >
+                    <Link href="/items">
+                      <Boxes />
+                      <span>Todos los productos</span>
+                    </Link>
+                 </SidebarMenuButton>
+            </SidebarMenuItem>
             {isLoadingCatalogs && (
                <>
                  <SidebarMenuSkeleton showIcon />
@@ -374,13 +389,26 @@ export default function Home() {
           )}
         </main>
 
-        <Fab
-            className="md:hidden fixed bottom-4 right-4 z-30 shadow-lg"
-            onClick={handleOpenCreateForm}
-            aria-label="Crear Nuevo Catálogo"
-        >
-            <Plus className="h-6 w-6" />
-        </Fab>
+        <FabMenu
+          actions={[
+            {
+              label: 'Inicio',
+              icon: <HomeIcon className="h-6 w-6" />,
+              href: '/',
+            },
+            {
+              label: 'Todos los productos',
+              icon: <Boxes className="h-6 w-6" />,
+              href: '/items',
+            },
+            {
+              label: 'Crear Catálogo',
+              icon: <Plus className="h-6 w-6" />,
+              onClick: handleOpenCreateForm,
+            },
+          ]}
+        />
+
 
       </SidebarInset>
 
@@ -412,7 +440,3 @@ export default function Home() {
     </SidebarProvider>
   );
 }
-
-    
-
-    
