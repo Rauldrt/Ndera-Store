@@ -236,7 +236,7 @@ export default function Home() {
     <SidebarProvider>
       <Sidebar collapsible="icon"> 
         <SidebarHeader className="items-center justify-between p-2">
-          <h2 className="text-lg font-semibold text-primary group-data-[collapsible=icon]:hidden">Catalogify</h2>
+          <h2 className="text-lg font-semibold text-sidebar-primary group-data-[collapsible=icon]:hidden">Catalogify</h2>
           <div className="flex items-center gap-1">
             <SidebarTrigger />
           </div>

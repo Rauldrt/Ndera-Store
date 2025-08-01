@@ -261,7 +261,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
            {isLoadingCatalogDetails ? (
                 <Skeleton className="h-8 w-3/4 mb-1" />
            ) : (
-               <h1 className="text-xl sm:text-2xl font-bold text-primary break-words">
+               <h1 className="text-2xl sm:text-3xl font-bold text-foreground break-words">
                  {catalogDetails?.name || "Productos del Catálogo"}
                </h1>
            )}
@@ -300,8 +300,8 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         </DialogContent>
       </Dialog>
       {isLoadingItemsWithTimestamp && (
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => (
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
                  <Card key={i} className="flex flex-col">
                     <CardHeader>
                         <Skeleton className="aspect-video w-full mb-4" data-ai-hint="placeholder image" />
@@ -335,7 +335,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         )}
 
       {!isLoadingItemsWithTimestamp && !itemsWithTimestampError && itemsWithTimestamp && itemsWithTimestamp.length === 0 && !showItemForm && (
-        <div className="text-center py-10 border border-dashed rounded-lg border-muted-foreground/20">
+        <div className="text-center py-10 border-2 border-dashed rounded-lg">
           <h3 className="text-lg font-medium text-muted-foreground">Aún no hay productos</h3>
           <p className="text-muted-foreground mb-4">¡Añade tu primer producto a este catálogo!</p>
            <Button onClick={() => { setEditingItem(null); setShowItemForm(true); }}>
@@ -346,9 +346,9 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
       {!isLoadingItemsWithTimestamp && !itemsWithTimestampError && itemsWithTimestamp && itemsWithTimestamp.length > 0 && (
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 items-stretch">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8 items-stretch">
           {itemsWithTimestamp.map((item, index) => (
-            <Card key={item.id} className="flex flex-col overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 rounded-lg">
+            <Card key={item.id} className="group flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                <CardHeader className="p-0">
                 <div className="aspect-video relative bg-muted overflow-hidden">
                      {item.imageUrl ? (
@@ -358,7 +358,8 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                            fill
                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                            style={{ objectFit: 'cover' }}
-                           priority={index < 3} 
+                           priority={index < 4} 
+                           className="transition-transform duration-300 group-hover:scale-105"
                            data-ai-hint="product photo"
                            onError={(e) => {
                               const target = e.target as HTMLImageElement;
@@ -369,29 +370,29 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                          />
                       ) : (
                          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-gradient-to-br from-muted via-background to-muted">
-                           <ImageOff size={36} />
+                           <ImageOff size={48} />
                          </div>
                        )}
                  </div>
               </CardHeader>
-              <CardContent className="flex-grow p-4">
-                 <CardTitle className="text-base sm:text-lg mb-1 line-clamp-1">{item.name}</CardTitle>
-                 <CardDescription className="text-xs sm:text-sm mb-3 line-clamp-3 h-12 sm:h-16">{item.description}</CardDescription>
-                 <div className="flex flex-wrap gap-1 mt-auto">
+              <CardContent className="flex-grow p-4 flex flex-col">
+                 <CardTitle className="text-lg mb-2 line-clamp-2 font-semibold">{item.name}</CardTitle>
+                 <CardDescription className="text-sm mb-4 line-clamp-3 flex-grow">{item.description}</CardDescription>
+                 <div className="flex flex-wrap gap-1.5 mt-auto">
                    {Array.isArray(item.tags) && item.tags.slice(0, 5).map((tag) => (
-                     <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                     <Badge key={tag} variant="secondary" className="text-xs font-medium">{tag}</Badge>
                    ))}
                    {Array.isArray(item.tags) && item.tags.length > 5 && (
                        <Badge variant="outline" className="text-xs">...</Badge>
                    )}
                  </div>
               </CardContent>
-              <CardFooter className="flex justify-end gap-2 p-4 border-t">
+              <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                  <Button variant="outline" size="sm" onClick={() => handleEditItem(item)}>
-                  <Edit className="mr-1 h-3 w-3" /> Editar
+                  <Edit className="mr-1.5 h-3.5 w-3.5" /> Editar
                 </Button>
                 <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(item.id)}>
-                   <Trash2 className="mr-1 h-3 w-3" /> Eliminar
+                   <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Eliminar
                 </Button>
               </CardFooter>
             </Card>
