@@ -37,6 +37,7 @@ import { CatalogItems } from '@/components/catalog/catalog-items';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FabMenu } from '@/components/ui/fab';
 import Link from 'next/link';
+import { CartSheet } from '@/components/cart/cart-sheet';
 
 
 export default function Home() {
@@ -238,6 +239,7 @@ export default function Home() {
             Catalogify
           </Link>
           <div className="flex items-center gap-1">
+             <CartSheet />
             <SidebarTrigger />
           </div>
         </SidebarHeader>
@@ -342,7 +344,10 @@ export default function Home() {
               "Catalogify"
             )}
           </h1>
-          <SidebarTrigger />
+           <div className="flex items-center gap-2">
+            <CartSheet />
+            <SidebarTrigger />
+          </div>
         </div>
 
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">

@@ -10,7 +10,7 @@ import { ItemForm, type ItemFormValues } from '@/components/item/item-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2 } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, ShoppingCart } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 import {
@@ -24,8 +24,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCart } from '@/context/cart-context';
 
 interface CatalogItemsProps {
   catalogId: string;
@@ -45,6 +46,17 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { addToCart } = useCart();
+
+  const handleAddToCart = (item: ItemWithTimestamp) => {
+    // Assign a random price for demonstration purposes
+    const price = Math.floor(Math.random() * 100) + 10;
+    addToCart({ ...item, price, quantity: 1, createdAt: item.createdAt! });
+    toast({
+      title: "Producto Añadido",
+      description: `${item.name} ha sido añadido a tu carrito.`,
+    });
+  };
 
   // Fetch items for the selected catalog
   const { data: itemsWithTimestamp, isLoading: isLoadingItemsWithTimestamp, error: itemsWithTimestampError } = useQuery<ItemWithTimestamp[] | undefined>({
@@ -387,12 +399,15 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                    )}
                  </div>
               </CardContent>
-              <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                 <Button variant="outline" size="sm" onClick={() => handleEditItem(item)}>
+              <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50 opacity-100 group-hover:opacity-100 transition-opacity duration-300">
+                 <Button variant="outline" size="sm" onClick={() => handleEditItem(item)} className="flex-1">
                   <Edit className="mr-1.5 h-3.5 w-3.5" /> Editar
                 </Button>
-                <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(item.id)}>
+                <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(item.id)} className="flex-1">
                    <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Eliminar
+                </Button>
+                <Button variant="default" size="icon" onClick={() => handleAddToCart(item)} aria-label="Añadir al carrito">
+                    <ShoppingCart className="h-4 w-4" />
                 </Button>
               </CardFooter>
             </Card>
@@ -428,9 +443,3 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
-
-
-    
-
-    
-

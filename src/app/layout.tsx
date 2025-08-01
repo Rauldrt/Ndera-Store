@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'; // Using Inter font for better readabi
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { Toaster } from "@/components/ui/toaster" // Import Toaster
+import { CartProvider } from '@/context/cart-context';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,12 +21,12 @@ export default function RootLayout({
     <html lang="es">
       <body className={`${inter.className} antialiased`}>
         <Providers>
-          {children}
-          <Toaster /> {/* Add Toaster component */}
+          <CartProvider>
+            {children}
+            <Toaster /> {/* Add Toaster component */}
+          </CartProvider>
         </Providers>
       </body>
     </html>
   );
 }
-
-    

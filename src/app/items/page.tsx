@@ -8,11 +8,13 @@ import { db } from '@/lib/firebase';
 import type { Item } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertTriangle, PackageSearch, ImageOff, Edit, Trash2 } from 'lucide-react';
+import { Loader2, AlertTriangle, PackageSearch, ImageOff, Edit, Trash2, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useCart } from '@/context/cart-context';
+import { useToast } from '@/hooks/use-toast';
 
 interface ItemWithTimestamp extends Omit<Item, 'createdAt'> {
   createdAt: Timestamp | null;
@@ -20,6 +22,8 @@ interface ItemWithTimestamp extends Omit<Item, 'createdAt'> {
 
 export default function AllItemsPage() {
   const queryClient = useQueryClient();
+  const { addToCart } = useCart();
+  const { toast } = useToast();
 
   const {
     data: items,
@@ -44,6 +48,16 @@ export default function AllItemsPage() {
       });
     },
   });
+
+  const handleAddToCart = (item: ItemWithTimestamp) => {
+    // Assign a random price for demonstration purposes
+    const price = Math.floor(Math.random() * 100) + 10;
+    addToCart({ ...item, price, quantity: 1, createdAt: item.createdAt! });
+    toast({
+      title: "Producto Añadido",
+      description: `${item.name} ha sido añadido a tu carrito.`,
+    });
+  };
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
@@ -141,6 +155,12 @@ export default function AllItemsPage() {
                   )}
                 </div>
               </CardContent>
+              <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50 opacity-100 group-hover:opacity-100 transition-opacity duration-300">
+                <Button variant="default" size="sm" onClick={() => handleAddToCart(item)} className="w-full">
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  Añadir al carrito
+                </Button>
+              </CardFooter>
             </Card>
           ))}
         </div>

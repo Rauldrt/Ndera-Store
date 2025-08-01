@@ -17,3 +17,8 @@ export interface Item {
   createdAt: Timestamp; // Use Firestore Timestamp
 }
 
+// Defines the structure for an item inside the shopping cart
+export interface CartItem extends Item {
+    quantity: number;
+    price: number; // Added for cart functionality
+}
