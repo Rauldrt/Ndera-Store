@@ -101,8 +101,13 @@ export function CartSheet() {
   };
 
   const handleSendWhatsApp = () => {
-    const phoneNumber = "1234567890"; // Reemplazar con el número de teléfono de destino
+    const phoneNumber = window.prompt("Por favor, introduce el número de WhatsApp de destino (solo dígitos, sin símbolos ni espacios):");
     
+    if (!phoneNumber || !/^\d+$/.test(phoneNumber)) {
+        alert("Número de teléfono inválido. Por favor, introduce solo números.");
+        return;
+    }
+
     let message = "Hola, estoy interesado en un presupuesto para los siguientes productos:\n\n";
     cart.forEach(item => {
         message += `*${item.name}*\n`;
