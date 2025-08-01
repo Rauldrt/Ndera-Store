@@ -11,8 +11,7 @@ import { ShoppingCart, Trash2, Plus, Minus, PackageX } from 'lucide-react';
 import Link from 'next/link';
 
 export function CartSheet() {
-  const { cart, removeFromCart, updateQuantity, getCartTotal, clearCart, shippingCost } = useCart();
-  const subtotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  const { cart, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart();
   const total = getCartTotal();
   
   const handleIncreaseQuantity = (itemId: string) => {
@@ -89,14 +88,6 @@ export function CartSheet() {
             </ScrollArea>
             <SheetFooter className="mt-auto border-t bg-background/95 p-6">
               <div className="flex w-full flex-col gap-3">
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
-                </div>
-                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Envío</span>
-                  <span>${shippingCost.toFixed(2)}</span>
-                </div>
                 <div className="flex items-center justify-between text-base font-semibold">
                   <span>Total</span>
                   <span>${total.toFixed(2)}</span>

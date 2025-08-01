@@ -11,7 +11,6 @@ interface CartContextType {
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   getCartTotal: () => number;
-  shippingCost: number; // Export shipping cost for display
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -27,8 +26,6 @@ export function useCart() {
 interface CartProviderProps {
   children: ReactNode;
 }
-
-const SHIPPING_COST = 5.00; // Define a fixed shipping cost
 
 export function CartProvider({ children }: CartProviderProps) {
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -74,9 +71,7 @@ export function CartProvider({ children }: CartProviderProps) {
   };
 
   const getCartTotal = () => {
-    const subtotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
-    // Add shipping cost only if there are items in the cart
-    return cart.length > 0 ? subtotal + SHIPPING_COST : 0;
+    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
   return (
@@ -88,7 +83,6 @@ export function CartProvider({ children }: CartProviderProps) {
           updateQuantity, 
           clearCart, 
           getCartTotal,
-          shippingCost: cart.length > 0 ? SHIPPING_COST : 0, // Provide shipping cost based on cart content
       }}
     >
       {children}
