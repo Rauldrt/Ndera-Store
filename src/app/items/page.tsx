@@ -3,12 +3,12 @@
 
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { collection, query, orderBy, getDocs, doc, deleteDoc, updateDoc, Timestamp, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Item } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertTriangle, PackageSearch, ImageOff, Edit, Trash2, ShoppingCart } from 'lucide-react';
+import { Loader2, AlertTriangle, PackageSearch, ImageOff, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -32,6 +32,8 @@ export default function AllItemsPage() {
   } = useQuery<ItemWithTimestamp[]>({
     queryKey: ['allItems'],
     queryFn: async () => {
+      // Note: This query fetches items from all catalogs.
+      // For it to work efficiently, you might need a Firestore index on 'createdAt'.
       const q = query(collection(db, 'items'), orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map((doc) => {
@@ -61,9 +63,16 @@ export default function AllItemsPage() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Todos los Productos</h1>
-        <p className="text-muted-foreground mt-1 text-sm sm:text-base">Explora todos los productos de tus catálogos.</p>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Todos los Productos</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Explora nuestro catálogo completo.</p>
+        </div>
+         <div className="hidden md:block">
+           <Link href="/">
+            <Button variant="outline">Volver a la Gestión</Button>
+          </Link>
+        </div>
       </div>
 
       {isLoading && (
@@ -104,7 +113,7 @@ export default function AllItemsPage() {
         <div className="text-center py-10 border-2 border-dashed rounded-lg">
           <PackageSearch className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium text-muted-foreground">No se encontraron productos</h3>
-          <p className="text-muted-foreground mb-4">Parece que aún no has añadido ningún producto a tus catálogos.</p>
+          <p className="text-muted-foreground mb-4">Parece que aún no hay productos disponibles en la tienda.</p>
           <Link href="/">
             <Button>
               Volver al inicio
@@ -155,7 +164,7 @@ export default function AllItemsPage() {
                   )}
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50 opacity-100 group-hover:opacity-100 transition-opacity duration-300">
+              <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50">
                 <Button variant="default" size="sm" onClick={() => handleAddToCart(item)} className="w-full">
                   <ShoppingCart className="mr-2 h-4 w-4" />
                   Añadir al carrito

@@ -10,7 +10,7 @@ import { ItemForm, type ItemFormValues } from '@/components/item/item-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, ShoppingCart } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 import {
@@ -26,7 +26,6 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCart } from '@/context/cart-context';
 
 interface CatalogItemsProps {
   catalogId: string;
@@ -46,17 +45,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { addToCart } = useCart();
-
-  const handleAddToCart = (item: ItemWithTimestamp) => {
-    // Assign a random price for demonstration purposes
-    const price = Math.floor(Math.random() * 100) + 10;
-    addToCart({ ...item, price, quantity: 1, createdAt: item.createdAt! });
-    toast({
-      title: "Producto Añadido",
-      description: `${item.name} ha sido añadido a tu carrito.`,
-    });
-  };
 
   // Fetch items for the selected catalog
   const { data: itemsWithTimestamp, isLoading: isLoadingItemsWithTimestamp, error: itemsWithTimestampError } = useQuery<ItemWithTimestamp[] | undefined>({
@@ -312,7 +300,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         </DialogContent>
       </Dialog>
       {isLoadingItemsWithTimestamp && (
-         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
             {[...Array(8)].map((_, i) => (
                  <Card key={i} className="flex flex-col">
                     <CardHeader>
@@ -405,9 +393,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                 </Button>
                 <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(item.id)} className="flex-1">
                    <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Eliminar
-                </Button>
-                <Button variant="default" size="icon" onClick={() => handleAddToCart(item)} aria-label="Añadir al carrito">
-                    <ShoppingCart className="h-4 w-4" />
                 </Button>
               </CardFooter>
             </Card>

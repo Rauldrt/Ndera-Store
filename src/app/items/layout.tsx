@@ -1,7 +1,8 @@
 
 'use client';
 
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { CartSheet } from "@/components/cart/cart-sheet";
+import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 
 export default function ItemsLayout({
@@ -10,25 +11,31 @@ export default function ItemsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider>
-      <Sidebar collapsible="icon">
-        {/* El contenido de la barra lateral puede estar vacío o tener navegación específica si es necesario */}
-        <SidebarHeader>
-           <Link href="/" className="text-lg font-semibold text-sidebar-primary group-data-[collapsible=icon]:hidden">
+    // Simplified layout without the sidebar for the client view
+    <div>
+      <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+          <Link href="/" className="text-xl font-bold text-primary">
             Catalogify
           </Link>
-        </SidebarHeader>
-        <SidebarContent />
-      </Sidebar>
-      <SidebarInset>
-         <div className="md:hidden flex items-center justify-between p-4 border-b bg-background sticky top-0 z-20">
-          <h1 className="text-lg font-semibold text-primary truncate">
-             Todos los Productos
-          </h1>
-          <Link href="/"><SidebarTrigger /></Link>
+          <div className="flex items-center gap-2">
+             <CartSheet />
+             <Link href="/" className="hidden sm:inline-flex">
+                <Button variant="outline">
+                    Volver a Gestión
+                </Button>
+             </Link>
+          </div>
         </div>
+      </header>
+      <main>
         {children}
-      </SidebarInset>
-    </SidebarProvider>
+      </main>
+      <footer className="border-t bg-background">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center text-sm text-muted-foreground">
+              <p>&copy; {new Date().getFullYear()} Catalogify. Todos los derechos reservados.</p>
+          </div>
+      </footer>
+    </div>
   );
 }
