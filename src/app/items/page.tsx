@@ -8,7 +8,7 @@ import { db } from '@/lib/firebase';
 import type { Item } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertTriangle, PackageSearch, ImageOff, ShoppingCart } from 'lucide-react';
+import { Loader2, AlertTriangle, PackageSearch, ImageOff, ShoppingCart, Plus, Minus } from 'lucide-react';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -22,7 +22,7 @@ interface ItemWithTimestamp extends Omit<Item, 'createdAt'> {
 
 export default function AllItemsPage() {
   const queryClient = useQueryClient();
-  const { addToCart } = useCart();
+  const { cart, addToCart, updateQuantity, removeFromCart } = useCart();
   const { toast } = useToast();
 
   const {
@@ -59,6 +59,21 @@ export default function AllItemsPage() {
       title: "Producto Añadido",
       description: `${item.name} ha sido añadido a tu carrito.`,
     });
+  };
+  
+  const handleIncreaseQuantity = (itemId: string) => {
+    const itemInCart = cart.find(cartItem => cartItem.id === itemId);
+    if (itemInCart) {
+      updateQuantity(itemId, itemInCart.quantity + 1);
+    }
+  };
+
+  const handleDecreaseQuantity = (itemId: string) => {
+    const itemInCart = cart.find(cartItem => cartItem.id === itemId);
+    if (itemInCart) {
+       // updateQuantity handles removal if quantity drops to 0 or below
+      updateQuantity(itemId, itemInCart.quantity - 1);
+    }
   };
 
   return (
@@ -124,54 +139,70 @@ export default function AllItemsPage() {
 
       {!isLoading && !error && items && items.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 items-stretch">
-          {items.map((item, index) => (
-            <Card key={item.id} className="group flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-              <CardHeader className="p-0">
-                <div className="aspect-video relative bg-muted overflow-hidden">
-                  {item.imageUrl ? (
-                    <Image
-                      src={item.imageUrl}
-                      alt={item.name || 'Imagen del producto'}
-                      fill
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                      style={{ objectFit: 'cover' }}
-                      priority={index < 10}
-                      className="transition-transform duration-300 group-hover:scale-105"
-                      data-ai-hint="product photo"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = `https://placehold.co/400x300.png`;
-                        target.srcset = '';
-                        target.dataset.aiHint = 'placeholder image';
-                      }}
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-gradient-to-br from-muted via-background to-muted">
-                      <ImageOff size={48} />
+          {items.map((item, index) => {
+            const itemInCart = cart.find(cartItem => cartItem.id === item.id);
+            
+            return (
+              <Card key={item.id} className="group flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                <CardHeader className="p-0">
+                  <div className="aspect-video relative bg-muted overflow-hidden">
+                    {item.imageUrl ? (
+                      <Image
+                        src={item.imageUrl}
+                        alt={item.name || 'Imagen del producto'}
+                        fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                        style={{ objectFit: 'cover' }}
+                        priority={index < 10}
+                        className="transition-transform duration-300 group-hover:scale-105"
+                        data-ai-hint="product photo"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = `https://placehold.co/400x300.png`;
+                          target.srcset = '';
+                          target.dataset.aiHint = 'placeholder image';
+                        }}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-gradient-to-br from-muted via-background to-muted">
+                        <ImageOff size={48} />
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-grow p-4 flex flex-col">
+                  <CardTitle className="text-lg mb-2 line-clamp-2 font-semibold">{item.name}</CardTitle>
+                  <CardDescription className="text-sm mb-4 line-clamp-3 flex-grow">{item.description}</CardDescription>
+                  <div className="flex flex-wrap gap-1.5 mt-auto">
+                    {Array.isArray(item.tags) && item.tags.slice(0, 5).map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-xs font-medium">{tag}</Badge>
+                    ))}
+                    {Array.isArray(item.tags) && item.tags.length > 5 && (
+                      <Badge variant="outline" className="text-xs">...</Badge>
+                    )}
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50">
+                  {itemInCart ? (
+                    <div className="flex items-center justify-center w-full gap-2">
+                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDecreaseQuantity(item.id)}>
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <span className="font-bold text-lg w-10 text-center">{itemInCart.quantity}</span>
+                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleIncreaseQuantity(item.id)}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
                     </div>
+                  ) : (
+                    <Button variant="default" size="sm" onClick={() => handleAddToCart(item)} className="w-full">
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      Añadir al carrito
+                    </Button>
                   )}
-                </div>
-              </CardHeader>
-              <CardContent className="flex-grow p-4 flex flex-col">
-                <CardTitle className="text-lg mb-2 line-clamp-2 font-semibold">{item.name}</CardTitle>
-                <CardDescription className="text-sm mb-4 line-clamp-3 flex-grow">{item.description}</CardDescription>
-                <div className="flex flex-wrap gap-1.5 mt-auto">
-                  {Array.isArray(item.tags) && item.tags.slice(0, 5).map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs font-medium">{tag}</Badge>
-                  ))}
-                  {Array.isArray(item.tags) && item.tags.length > 5 && (
-                    <Badge variant="outline" className="text-xs">...</Badge>
-                  )}
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50">
-                <Button variant="default" size="sm" onClick={() => handleAddToCart(item)} className="w-full">
-                  <ShoppingCart className="mr-2 h-4 w-4" />
-                  Añadir al carrito
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
