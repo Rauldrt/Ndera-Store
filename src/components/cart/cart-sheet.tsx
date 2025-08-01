@@ -59,9 +59,16 @@ export function CartSheet() {
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF() as jsPDFWithAutoTable;
-    
-    // Determine the catalog name. Use the first item's catalog name or a default.
-    const catalogName = cart.length > 0 && cart[0].catalogName ? cart[0].catalogName : 'Catalogify';
+
+    // Check if all items in the cart are from the same catalog
+    let catalogName = 'Catalogify';
+    if (cart.length > 0) {
+      const firstCatalogName = cart[0].catalogName;
+      const allSameCatalog = cart.every(item => item.catalogName === firstCatalogName);
+      if (allSameCatalog && firstCatalogName) {
+        catalogName = firstCatalogName;
+      }
+    }
 
     // Add header
     doc.setFontSize(20);
