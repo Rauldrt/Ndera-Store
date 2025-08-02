@@ -322,53 +322,41 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                     {featuredItems.map((item, index) => (
                         <CarouselItem key={item.id} className="md:basis-1/2 lg:basis-1/3">
                             <div className="p-1 h-full">
-                                <Card key={item.id} className="group flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 h-full">
-                                    <CardHeader className="p-0">
-                                        <div className="aspect-video relative bg-muted overflow-hidden">
-                                            {item.imageUrl ? (
-                                                <Image
-                                                    src={item.imageUrl}
-                                                    alt={item.name || 'Imagen del producto'}
-                                                    fill
-                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                                    style={{ objectFit: 'cover' }}
-                                                    priority={index < 3}
-                                                    className="transition-transform duration-300 group-hover:scale-105"
-                                                    data-ai-hint="product photo"
-                                                    onError={(e) => {
-                                                        const target = e.target as HTMLImageElement;
-                                                        target.src = `https://placehold.co/400x300.png`;
-                                                        target.srcset = '';
-                                                        target.dataset.aiHint = "placeholder image";
-                                                    }}
-                                                />
-                                            ) : (
-                                                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-gradient-to-br from-muted via-background to-muted">
-                                                    <ImageOff size={48} />
-                                                </div>
-                                            )}
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="flex-grow p-4 flex flex-col">
-                                        <CardTitle className="text-lg mb-2 line-clamp-2 font-semibold">{item.name}</CardTitle>
-                                        <CardDescription className="text-sm mb-4 line-clamp-3 flex-grow">{item.description}</CardDescription>
-                                        <div className="flex flex-wrap gap-1.5 mt-auto">
-                                            {Array.isArray(item.tags) && item.tags.slice(0, 5).map((tag) => (
-                                                <Badge key={tag} variant="secondary" className="text-xs font-medium">{tag}</Badge>
-                                            ))}
-                                            {Array.isArray(item.tags) && item.tags.length > 5 && (
-                                                <Badge variant="outline" className="text-xs">...</Badge>
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                    <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50 opacity-100 group-hover:opacity-100 transition-opacity duration-300">
-                                        <Button variant="outline" size="sm" onClick={() => handleEditItem(item)} className="flex-1">
-                                            <Edit className="mr-1.5 h-3.5 w-3.5" /> Editar
+                                <Card className="group relative w-full h-full overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
+                                    <div className="absolute top-2 right-2 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/70 hover:bg-background" onClick={() => handleEditItem(item)}>
+                                            <Edit className="h-4 w-4" />
+                                            <span className="sr-only">Edit Item</span>
                                         </Button>
-                                        <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(item.id)} className="flex-1">
-                                            <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Eliminar
+                                        <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => openDeleteDialog(item.id)}>
+                                            <Trash2 className="h-4 w-4" />
+                                            <span className="sr-only">Delete Item</span>
                                         </Button>
-                                    </CardFooter>
+                                    </div>
+                                    {item.imageUrl ? (
+                                        <Image
+                                            src={item.imageUrl}
+                                            alt={item.name || 'Imagen del producto'}
+                                            fill
+                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                            className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
+                                            data-ai-hint="product photo"
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.src = `https://placehold.co/400x300.png`;
+                                                target.srcset = '';
+                                                target.dataset.aiHint = "placeholder image";
+                                            }}
+                                        />
+                                    ) : (
+                                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-gradient-to-br from-muted via-background to-muted">
+                                            <ImageOff size={48} />
+                                        </div>
+                                    )}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4 flex flex-col justify-end">
+                                        <CardTitle className="text-lg font-bold text-white shadow-black [text-shadow:0_2px_4px_var(--tw-shadow-color)] line-clamp-2">{item.name}</CardTitle>
+                                        <CardDescription className="text-white/90 text-sm mt-1 [text-shadow:0_1px_2px_var(--tw-shadow-color)] line-clamp-2">{item.description}</CardDescription>
+                                    </div>
                                 </Card>
                             </div>
                         </CarouselItem>
