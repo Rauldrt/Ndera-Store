@@ -16,7 +16,7 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, Home as HomeIcon, Boxes, Library } from "lucide-react";
+import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, Home as HomeIcon, Boxes, Library, Eye } from "lucide-react";
 import { CatalogForm } from "@/components/catalog/catalog-form";
 import type { Catalog } from "@/types";
 import { db } from "@/lib/firebase";
@@ -32,6 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { CatalogItems } from '@/components/catalog/catalog-items';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -46,7 +47,6 @@ export default function Home() {
   const [editingCatalog, setEditingCatalog] = useState<Catalog | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [catalogToDelete, setCatalogToDelete] = useState<string | null>(null);
-  const [isAllCatalogsView, setIsAllCatalogsView] = useState(true);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -68,23 +68,6 @@ export default function Home() {
     },
   });
 
-    const { data: catalogDetails, isLoading: isLoadingCatalogDetails } = useQuery<Catalog | null>({
-        queryKey: ['catalog', selectedCatalogId],
-        queryFn: async () => {
-            if (!selectedCatalogId) return null;
-            const docRef = doc(db, "catalogs", selectedCatalogId);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                 const data = docSnap.data() as Omit<Catalog, 'id'>;
-                 return { id: docSnap.id, ...data } as Catalog;
-            } else {
-                return null;
-            }
-        },
-        enabled: !!selectedCatalogId,
-    });
-
-
   const addCatalogMutation = useMutation({
     mutationFn: async (newCatalogData: Pick<Catalog, 'name' | 'description'>): Promise<string> => {
         const docRef = await addDoc(collection(db, "catalogs"), {
@@ -102,7 +85,6 @@ export default function Home() {
       setShowCatalogForm(false);
       setEditingCatalog(null);
       setSelectedCatalogId(newId);
-      setIsAllCatalogsView(false);
     },
     onError: (error) => {
       console.error("Error al añadir catálogo: ", error);
@@ -129,7 +111,6 @@ export default function Home() {
           setEditingCatalog(null); 
           setShowCatalogForm(false); 
           setSelectedCatalogId(variables.id);
-          setIsAllCatalogsView(false);
       },
       onError: (error) => {
           console.error("Error al actualizar catálogo: ", error);
@@ -159,7 +140,6 @@ export default function Home() {
       queryClient.removeQueries({ queryKey: ['catalog', deletedId] });
       if (selectedCatalogId === deletedId) {
         setSelectedCatalogId(null);
-        setIsAllCatalogsView(true);
       }
       toast({
         title: "Catálogo Eliminado",
@@ -201,41 +181,39 @@ export default function Home() {
       setSelectedCatalogId(id);
       setShowCatalogForm(false); 
       setEditingCatalog(null);
-      setIsAllCatalogsView(false);
   }
 
   const handleEditCatalog = (catalog: Catalog) => {
       setEditingCatalog(catalog);
       setSelectedCatalogId(null); 
       setShowCatalogForm(true);
-      setIsAllCatalogsView(false);
   }
 
   const handleOpenCreateForm = () => {
     setShowCatalogForm(true);
     setSelectedCatalogId(null);
     setEditingCatalog(null);
-    setIsAllCatalogsView(false);
   }
 
   const handleCancelForm = () => {
        setEditingCatalog(null);
        setShowCatalogForm(false);
-       setIsAllCatalogsView(true);
+       if (!selectedCatalogId) {
+         setSelectedCatalogId(null); // Go back to dashboard if no catalog was selected
+       }
    }
-
-    useEffect(() => {
-        if (isAllCatalogsView && !showCatalogForm) {
-            setSelectedCatalogId(null);
-        }
-    }, [isAllCatalogsView, showCatalogForm]);
-
+   
+   const handleBackToDashboard = () => {
+       setSelectedCatalogId(null);
+       setShowCatalogForm(false);
+       setEditingCatalog(null);
+   }
 
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon"> 
         <SidebarHeader className="items-center justify-between p-2">
-          <Link href="/" className="text-lg font-semibold text-sidebar-primary group-data-[collapsible=icon]:hidden">
+          <Link href="/" onClick={handleBackToDashboard} className="text-lg font-semibold text-sidebar-primary group-data-[collapsible=icon]:hidden">
             Catalogify
           </Link>
           <div className="flex items-center gap-1">
@@ -257,24 +235,24 @@ export default function Home() {
             <SidebarMenuItem>
                  <SidebarMenuButton
                      asChild
-                     tooltip={{ children: "Todos los productos", side: 'right', align: 'center' }}
+                     tooltip={{ children: "Ver Tienda", side: 'right', align: 'center' }}
                      className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
                  >
                     <Link href="/items">
                       <Boxes />
-                      <span>Todos los productos</span>
+                      <span>Ver Tienda</span>
                     </Link>
                  </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
                  <SidebarMenuButton
-                     isActive={isAllCatalogsView && !showCatalogForm}
-                     onClick={() => setIsAllCatalogsView(true)}
-                     tooltip={{ children: "Todos los catálogos", side: 'right', align: 'center' }}
+                     isActive={!selectedCatalogId && !showCatalogForm}
+                     onClick={handleBackToDashboard}
+                     tooltip={{ children: "Dashboard", side: 'right', align: 'center' }}
                      className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
                  >
                     <Library />
-                    <span>Todos los catálogos</span>
+                    <span>Dashboard</span>
                  </SidebarMenuButton>
             </SidebarMenuItem>
             {isLoadingCatalogs && (
@@ -336,13 +314,7 @@ export default function Home() {
       <SidebarInset>
         <div className="md:hidden flex items-center justify-between p-4 border-b bg-background sticky top-0 z-20">
           <h1 className="text-lg font-semibold text-primary truncate">
-            {isLoadingCatalogDetails && selectedCatalogId ? (
-              <Skeleton className="h-6 w-32" />
-            ) : selectedCatalogId && catalogDetails ? (
-              catalogDetails.name
-            ) : (
-              "Catalogify"
-            )}
+            { selectedCatalogId ? (catalogs?.find(c => c.id === selectedCatalogId)?.name || "Catálogo") : "Dashboard"}
           </h1>
            <div className="flex items-center gap-2">
             <CartSheet />
@@ -364,38 +336,71 @@ export default function Home() {
           ) : selectedCatalogId ? (
              <CatalogItems catalogId={selectedCatalogId} />
           ) : (
+            // DASHBOARD VIEW
             <>
+              <div className="mb-6">
+                <h1 className="text-2xl sm:text-3xl font-bold">Dashboard de Catálogos</h1>
+                <p className="text-muted-foreground mt-1">Gestiona tus catálogos o crea uno nuevo.</p>
+              </div>
+
               {isLoadingCatalogs && (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <Loader2 className="w-16 h-16 text-primary mb-4 animate-spin" />
-                  <p className="text-muted-foreground">Cargando catálogos...</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {[...Array(4)].map((_, i) => (
+                        <Card key={i}>
+                            <CardHeader>
+                                <Skeleton className="h-6 w-3/4 mb-2" />
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-2/3" />
+                            </CardHeader>
+                            <CardFooter>
+                                <Skeleton className="h-10 w-24" />
+                                <Skeleton className="h-10 w-24" />
+                            </CardFooter>
+                        </Card>
+                    ))}
                 </div>
               )}
-              {!isLoadingCatalogs && catalogs && catalogs.length > 0 && isAllCatalogsView && (
-                 <div className="flex flex-col items-center justify-center h-full text-center">
-                    <LayoutGrid className="w-12 h-12 md:w-16 md:h-16 text-primary mb-4" />
-                    <h2 className="text-lg md:text-xl font-semibold text-foreground">Selecciona un catálogo</h2>
-                    <p className="text-muted-foreground text-sm md:text-base">Elige un catálogo de la barra lateral para ver sus productos, o crea uno nuevo.</p>
-                </div>
-              )}
-              {!isLoadingCatalogs && catalogs && catalogs.length === 0 && (
-                 <div className="flex flex-col items-center justify-center h-full text-center">
-                    <PackageSearch className="w-12 h-12 md:w-16 md:h-16 text-primary mb-4" />
-                    <h2 className="text-lg md:text-xl font-semibold text-foreground">¡Bienvenido a Catalogify!</h2>
-                    <p className="text-muted-foreground text-sm md:text-base">Comienza creando tu primer catálogo usando el botón en la barra lateral o el botón + de abajo.</p>
-                     <Button onClick={handleOpenCreateForm} className="mt-6 hidden md:inline-flex">
-                        <PlusCircle className="mr-2 h-4 w-4" /> Crea tu Primer Catálogo
-                    </Button>
-                </div>
-              )}
-               {!isLoadingCatalogs && catalogsError && (
-                 <div className="flex flex-col items-center justify-center h-full text-center text-destructive">
+
+              {catalogsError && (
+                 <div className="flex flex-col items-center justify-center h-full text-center text-destructive py-10">
                     <AlertTriangle className="w-12 h-12 md:w-16 md:h-16 mb-4" />
                     <h2 className="text-lg md:text-xl font-semibold">Error al Cargar Catálogos</h2>
                     <p className="text-sm md:text-base">No se pudieron obtener tus catálogos. Por favor, revisa tu conexión e inténtalo de nuevo.</p>
                      <Button onClick={() => queryClient.refetchQueries({ queryKey: ['catalogs'] })} variant="outline" className="mt-4">
                         Intentar de Nuevo
                     </Button>
+                </div>
+              )}
+              
+              {!isLoadingCatalogs && !catalogsError && catalogs && catalogs.length === 0 && (
+                 <div className="flex flex-col items-center justify-center h-full text-center py-10 border-2 border-dashed rounded-lg">
+                    <PackageSearch className="w-12 h-12 md:w-16 md:h-16 text-primary mb-4" />
+                    <h2 className="text-lg md:text-xl font-semibold text-foreground">¡Bienvenido a Catalogify!</h2>
+                    <p className="text-muted-foreground text-sm md:text-base">Comienza creando tu primer catálogo para añadir productos.</p>
+                     <Button onClick={handleOpenCreateForm} className="mt-6">
+                        <PlusCircle className="mr-2 h-4 w-4" /> Crea tu Primer Catálogo
+                    </Button>
+                </div>
+              )}
+
+              {!isLoadingCatalogs && !catalogsError && catalogs && catalogs.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {catalogs.map(catalog => (
+                        <Card key={catalog.id} className="flex flex-col">
+                            <CardHeader>
+                                <CardTitle className="text-xl line-clamp-2">{catalog.name}</CardTitle>
+                                <CardDescription className="line-clamp-3 h-[60px]">{catalog.description || 'Sin descripción.'}</CardDescription>
+                            </CardHeader>
+                            <CardFooter className="mt-auto flex justify-end gap-2">
+                                <Button variant="outline" size="sm" onClick={() => handleEditCatalog(catalog)}>
+                                    <Edit className="mr-2 h-4 w-4" /> Editar
+                                </Button>
+                                <Button size="sm" onClick={() => handleSelectCatalog(catalog.id)}>
+                                    <Eye className="mr-2 h-4 w-4" /> Ver
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    ))}
                 </div>
               )}
             </>
@@ -405,12 +410,12 @@ export default function Home() {
         <FabMenu
           actions={[
             {
-              label: 'Inicio',
+              label: 'Dashboard',
               icon: <HomeIcon className="h-6 w-6" />,
-              onClick: () => setIsAllCatalogsView(true),
+              onClick: handleBackToDashboard,
             },
             {
-              label: 'Todos los productos',
+              label: 'Ver Tienda',
               icon: <Boxes className="h-6 w-6" />,
               href: '/items',
             },
@@ -453,3 +458,5 @@ export default function Home() {
     </SidebarProvider>
   );
 }
+
+    

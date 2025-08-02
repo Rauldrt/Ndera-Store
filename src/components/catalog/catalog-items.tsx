@@ -305,7 +305,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       </Dialog>
       
       {/* Featured Items Carousel */}
-      {!isLoadingItems && featuredItems.length > 0 && (
+      {!isLoadingItems && featuredItems && featuredItems.length > 0 && (
         <div className='space-y-4'>
             <div className='flex items-center gap-2'>
               <Star className="h-6 w-6 text-yellow-500" />
@@ -523,5 +523,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
+
+    
 
     
