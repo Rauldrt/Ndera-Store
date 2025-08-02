@@ -85,6 +85,17 @@ export default function CheckoutPage() {
     }
   }, [methods]);
 
+  React.useEffect(() => {
+    if (cart.length === 0) {
+        // We add a small delay to give react time to process state changes
+        // and avoid race conditions with other effects or renders.
+        const timer = setTimeout(() => {
+            router.replace('/items');
+        }, 50);
+        return () => clearTimeout(timer);
+    }
+}, [cart.length, router]);
+
 
   const onSubmit = (data: CheckoutFormValues) => {
     setIsLoading(true);
@@ -245,48 +256,6 @@ export default function CheckoutPage() {
                   />
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Forma de Pago</CardTitle>
-                  <CardDescription>Selecciona cómo quieres pagar tu pedido.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <FormField
-                    control={methods.control}
-                    name="paymentMethod"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="space-y-3"
-                          >
-                            <Label className="flex items-center gap-4 rounded-md border p-4 cursor-pointer hover:bg-accent has-[:checked]:bg-accent has-[:checked]:border-primary">
-                              <RadioGroupItem value="transfer" />
-                              <Landmark className="h-6 w-6 text-muted-foreground" />
-                              <div className='flex flex-col'>
-                                <span className='font-semibold'>Transferencia Bancaria</span>
-                                <span className='text-xs text-muted-foreground'>Paga directamente desde tu cuenta bancaria.</span>
-                              </div>
-                            </Label>
-                            <Label className="flex items-center gap-4 rounded-md border p-4 cursor-pointer hover:bg-accent has-[:checked]:bg-accent has-[:checked]:border-primary">
-                              <RadioGroupItem value="cash" />
-                              <Wallet className="h-6 w-6 text-muted-foreground" />
-                               <div className='flex flex-col'>
-                                <span className='font-semibold'>Pago en Efectivo</span>
-                                <span className='text-xs text-muted-foreground'>Paga al momento de recibir tu pedido.</span>
-                              </div>
-                            </Label>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage className="pt-4" />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
             </div>
 
             {/* Columna Derecha: Resumen del Pedido */}
@@ -320,6 +289,35 @@ export default function CheckoutPage() {
                       ))}
                     </div>
                   </ScrollArea>
+                  <Separator />
+                  <FormField
+                    control={methods.control}
+                    name="paymentMethod"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel className="font-semibold text-base">Forma de Pago</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="grid grid-cols-2 gap-4"
+                          >
+                            <Label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 p-4 cursor-pointer hover:bg-accent has-[:checked]:bg-accent has-[:checked]:border-primary transition-all">
+                              <RadioGroupItem value="transfer" className="sr-only" />
+                              <Landmark className="h-8 w-8 text-muted-foreground" />
+                              <span className='font-medium text-sm text-center'>Transferencia</span>
+                            </Label>
+                            <Label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 p-4 cursor-pointer hover:bg-accent has-[:checked]:bg-accent has-[:checked]:border-primary transition-all">
+                              <RadioGroupItem value="cash" className="sr-only" />
+                              <Wallet className="h-8 w-8 text-muted-foreground" />
+                              <span className='font-medium text-sm text-center'>Efectivo</span>
+                            </Label>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage className="pt-2 text-center" />
+                      </FormItem>
+                    )}
+                  />
                   <Separator />
                   <div className="flex justify-between font-semibold text-lg">
                     <span>Total</span>
