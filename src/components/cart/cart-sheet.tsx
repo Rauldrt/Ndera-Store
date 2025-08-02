@@ -7,9 +7,11 @@ import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetTrigger, SheetClose } from '@/components/ui/sheet';
-import { ShoppingCart, Trash2, Plus, Minus, PackageX, CreditCard } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, PackageX, CreditCard, Download, Send } from 'lucide-react';
 import Link from 'next/link';
 import type { CartItem } from '@/types';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 
 export function CartSheet() {
@@ -28,6 +30,45 @@ export function CartSheet() {
     if (itemInCart) {
       updateQuantity(itemId, itemInCart.quantity - 1);
     }
+  };
+
+  const generateQuotePDF = () => {
+    const doc = new jsPDF();
+    const tableColumn = ["Producto", "Cantidad", "Precio Unitario", "Subtotal"];
+    const tableRows = cart.map(item => [
+      item.name,
+      item.quantity,
+      `$${item.price.toFixed(2)}`,
+      `$${(item.price * item.quantity).toFixed(2)}`
+    ]);
+
+    doc.setFontSize(18);
+    doc.text('Presupuesto de Productos', 14, 22);
+    
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 30,
+    });
+    
+    const finalY = (doc as any).lastAutoTable.finalY || 30;
+    doc.setFontSize(12);
+    doc.text(`Total: $${total.toFixed(2)}`, 14, finalY + 10);
+    doc.save(`presupuesto-${new Date().getTime()}.pdf`);
+  };
+
+  const sendQuoteByWhatsApp = () => {
+    const phoneNumber = "5491112345678"; // Reemplaza con tu número de WhatsApp
+    let message = "¡Hola! Quisiera solicitar un presupuesto para los siguientes productos:\n\n";
+    cart.forEach(item => {
+      message += `*${item.name}*\n`;
+      message += `Cantidad: ${item.quantity}\n`;
+      message += `Precio: $${(item.price * item.quantity).toFixed(2)}\n\n`;
+    });
+    message += `*Total estimado: $${total.toFixed(2)}*`;
+
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   return (
@@ -101,6 +142,16 @@ export function CartSheet() {
                     </Button>
                   </Link>
                 </SheetClose>
+                <div className="grid grid-cols-2 gap-2">
+                   <Button variant="secondary" onClick={generateQuotePDF}>
+                      <Download className="mr-2 h-4 w-4" />
+                      Presupuesto
+                   </Button>
+                   <Button variant="secondary" onClick={sendQuoteByWhatsApp}>
+                      <Send className="mr-2 h-4 w-4" />
+                      WhatsApp
+                   </Button>
+                </div>
                 <Button variant="outline" className="w-full" onClick={clearCart}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Vaciar Carrito
