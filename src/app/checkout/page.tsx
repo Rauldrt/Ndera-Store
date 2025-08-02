@@ -141,7 +141,8 @@ export default function CheckoutPage() {
     setTimeout(() => {
       clearCart();
       setIsLoading(false);
-      router.push('/checkout/success'); // Redirigir a la página de éxito
+      // Pequeño delay para asegurar que sessionStorage se escriba antes de redirigir
+      setTimeout(() => router.push('/checkout/success'), 50);
     }, 1000);
   };
   
@@ -346,3 +347,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    
