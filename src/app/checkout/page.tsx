@@ -84,7 +84,7 @@ export default function CheckoutPage() {
       console.error("Error al cargar la información de envío guardada:", error);
     }
   }, [methods]);
-
+  
   React.useEffect(() => {
     if (cart.length === 0) {
         // We add a small delay to give react time to process state changes
@@ -302,14 +302,14 @@ export default function CheckoutPage() {
                             defaultValue={field.value}
                             className="grid grid-cols-2 gap-4"
                           >
-                            <Label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 p-4 cursor-pointer hover:bg-accent has-[:checked]:bg-accent has-[:checked]:border-primary transition-all">
+                            <Label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 p-3 cursor-pointer hover:bg-accent has-[:checked]:bg-accent has-[:checked]:border-primary transition-all">
                               <RadioGroupItem value="transfer" className="sr-only" />
-                              <Landmark className="h-8 w-8 text-muted-foreground" />
+                              <Landmark className="h-6 w-6 text-muted-foreground" />
                               <span className='font-medium text-sm text-center'>Transferencia</span>
                             </Label>
-                            <Label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 p-4 cursor-pointer hover:bg-accent has-[:checked]:bg-accent has-[:checked]:border-primary transition-all">
+                            <Label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 p-3 cursor-pointer hover:bg-accent has-[:checked]:bg-accent has-[:checked]:border-primary transition-all">
                               <RadioGroupItem value="cash" className="sr-only" />
-                              <Wallet className="h-8 w-8 text-muted-foreground" />
+                              <Wallet className="h-6 w-6 text-muted-foreground" />
                               <span className='font-medium text-sm text-center'>Efectivo</span>
                             </Label>
                           </RadioGroup>
