@@ -101,13 +101,6 @@ export function CartSheet() {
   };
 
   const handleSendWhatsApp = () => {
-    const phoneNumber = window.prompt("Por favor, introduce el número de WhatsApp de destino (solo dígitos, sin símbolos ni espacios):");
-    
-    if (!phoneNumber || !/^\d+$/.test(phoneNumber)) {
-        alert("Número de teléfono inválido. Por favor, introduce solo números.");
-        return;
-    }
-
     let message = "Hola, estoy interesado en un presupuesto para los siguientes productos:\n\n";
     cart.forEach(item => {
         const itemTotal = item.price * item.quantity;
@@ -117,7 +110,8 @@ export function CartSheet() {
     });
     message += `*Total del Presupuesto: $${total.toFixed(2)}*`;
 
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    // Use a link that opens WhatsApp without a pre-filled number
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
 
