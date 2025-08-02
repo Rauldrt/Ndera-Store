@@ -58,7 +58,7 @@ export function CartSheet() {
   };
 
   const sendQuoteByWhatsApp = () => {
-    const phoneNumber = "5491112345678"; // Reemplaza con tu número de WhatsApp
+    const phoneNumber = ""; // No default number, user will be prompted.
     let message = "¡Hola! Quisiera solicitar un presupuesto para los siguientes productos:\n\n";
     cart.forEach(item => {
       message += `*${item.name}*\n`;
