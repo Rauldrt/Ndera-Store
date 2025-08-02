@@ -24,10 +24,10 @@ interface ItemWithTimestamp extends Omit<Item, 'createdAt'> {
 
 export default function AllItemsPage() {
   const queryClient = useQueryClient();
-  const { cart, addToCart, updateQuantity } = useCart();
+  const { cart, addToCart, updateQuantity } from useCart();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTag, setSelectedTag] = useState('');
+  const [selectedTag, setSelectedTag] = useState('all');
 
   const {
     data: items,
@@ -59,7 +59,9 @@ export default function AllItemsPage() {
     const tagsSet = new Set<string>();
     items.forEach(item => {
       if (Array.isArray(item.tags)) {
-        item.tags.forEach(tag => tagsSet.add(tag));
+        item.tags.forEach(tag => {
+            if(tag) tagsSet.add(tag)
+        });
       }
     });
     return Array.from(tagsSet).sort();
@@ -69,7 +71,7 @@ export default function AllItemsPage() {
     if (!items) return [];
     let tempItems = items;
 
-    if (selectedTag) {
+    if (selectedTag && selectedTag !== 'all') {
       tempItems = tempItems.filter(item => Array.isArray(item.tags) && item.tags.includes(selectedTag));
     }
 
@@ -120,7 +122,7 @@ export default function AllItemsPage() {
   
   const clearFilters = () => {
     setSearchQuery('');
-    setSelectedTag('');
+    setSelectedTag('all');
   };
 
   return (
@@ -151,13 +153,13 @@ export default function AllItemsPage() {
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas las etiquetas</SelectItem>
+              <SelectItem value="all">Todas las etiquetas</SelectItem>
               {allTags.map(tag => (
                 <SelectItem key={tag} value={tag}>{tag}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {(searchQuery || selectedTag) && (
+          {(searchQuery || (selectedTag && selectedTag !== 'all')) && (
             <Button variant="ghost" onClick={clearFilters}>
               <X className="mr-2 h-4 w-4" />
               Limpiar
@@ -209,7 +211,7 @@ export default function AllItemsPage() {
         </div>
       )}
 
-      {!isLoading && !error && filteredItems.length === 0 && (searchQuery || selectedTag) && (
+      {!isLoading && !error && filteredItems.length === 0 && (searchQuery || (selectedTag && selectedTag !== 'all')) && (
         <div className="text-center py-10 border-2 border-dashed rounded-lg">
           <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium text-muted-foreground">No se encontraron resultados</h3>
@@ -291,3 +293,5 @@ export default function AllItemsPage() {
     </div>
   );
 }
+
+    
