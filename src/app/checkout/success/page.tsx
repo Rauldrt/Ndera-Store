@@ -10,7 +10,6 @@ import { CheckCircle, Download, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Link from 'next/link';
-import { useCart } from '@/context/cart-context';
 
 interface OrderDetails {
   shipping: {
@@ -35,7 +34,6 @@ const ORDER_DETAILS_KEY = 'orderDetails';
 export default function CheckoutSuccessPage() {
   const router = useRouter();
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
-  const { clearCart } = useCart(); // Get clearCart to ensure it's empty
 
   useEffect(() => {
     try {
@@ -45,8 +43,6 @@ export default function CheckoutSuccessPage() {
         setOrderDetails(savedDetails);
         // Clear the session storage after retrieving the data
         sessionStorage.removeItem(ORDER_DETAILS_KEY);
-        // Ensure the main cart state is also cleared
-        clearCart();
       } else {
         // If no order details are found, redirect to the main page
         router.replace('/items');
@@ -55,7 +51,7 @@ export default function CheckoutSuccessPage() {
       console.error("Error al cargar los detalles del pedido:", error);
       router.replace('/items');
     }
-  }, [router, clearCart]);
+  }, [router]);
 
   const generatePDF = () => {
     if (!orderDetails) return;
