@@ -85,17 +85,6 @@ export default function CheckoutPage() {
     }
   }, [methods]);
   
-  React.useEffect(() => {
-    if (cart.length === 0) {
-        // We add a small delay to give react time to process state changes
-        // and avoid race conditions with other effects or renders.
-        const timer = setTimeout(() => {
-            router.replace('/items');
-        }, 50);
-        return () => clearTimeout(timer);
-    }
-}, [cart.length, router]);
-
 
   const onSubmit = (data: CheckoutFormValues) => {
     setIsLoading(true);
