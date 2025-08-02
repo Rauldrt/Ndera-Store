@@ -43,6 +43,8 @@ const checkoutSchema = shippingSchema.extend({
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
 const SAVED_SHIPPING_INFO_KEY = 'savedShippingInfo';
+const ORDER_DETAILS_KEY = 'orderDetails';
+
 
 export default function CheckoutPage() {
   const { cart, getCartTotal, clearCart } = useCart();
@@ -81,14 +83,13 @@ export default function CheckoutPage() {
     } catch (error) {
       console.error("Error al cargar la información de envío guardada:", error);
     }
-  }, [methods.reset]);
+  }, [methods]);
 
 
   const onSubmit = (data: CheckoutFormValues) => {
     setIsLoading(true);
 
     if (data.saveInfo) {
-      // Guardar información en localStorage
       const shippingInfoToSave = {
         name: data.name,
         address: data.address,
@@ -101,28 +102,47 @@ export default function CheckoutPage() {
         console.error("Error al guardar la información de envío:", error);
       }
     } else {
-      // Si no se marca, eliminar cualquier información guardada previamente
       localStorage.removeItem(SAVED_SHIPPING_INFO_KEY);
+    }
+    
+    const orderDetails = {
+      shipping: {
+        name: data.name,
+        address: data.address,
+        phone: data.phone,
+        email: data.email,
+      },
+      paymentMethod: data.paymentMethod,
+      items: cart.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        total: item.price * item.quantity
+      })),
+      total,
+      orderDate: new Date().toISOString(),
+    };
+
+    try {
+      sessionStorage.setItem(ORDER_DETAILS_KEY, JSON.stringify(orderDetails));
+    } catch (error) {
+        console.error("Error al guardar los detalles del pedido:", error);
+        toast({
+            title: 'Error Inesperado',
+            description: 'No se pudo procesar el pedido. Por favor, inténtalo de nuevo.',
+            variant: 'destructive',
+        });
+        setIsLoading(false);
+        return;
     }
 
 
-    console.log('Datos del pedido:', {
-      ...data,
-      cart,
-      total,
-      orderDate: new Date().toISOString(),
-    });
-
     // Simular el procesamiento del pedido
     setTimeout(() => {
-      toast({
-        title: '¡Pedido Realizado con Éxito!',
-        description: 'Gracias por tu compra. Recibirás una confirmación por correo.',
-      });
       clearCart();
       setIsLoading(false);
-      router.push('/items'); // Redirigir a la página de productos
-    }, 2000);
+      router.push('/checkout/success'); // Redirigir a la página de éxito
+    }, 1000);
   };
   
   // Redirigir si el carrito está vacío
@@ -326,5 +346,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-    
