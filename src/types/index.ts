@@ -15,6 +15,7 @@ export interface Item {
   imageUrl?: string; // Optional image URL
   tags: string[];
   createdAt: Timestamp; // Use Firestore Timestamp
+  isFeatured?: boolean; // To mark item as featured
 }
 
 // Defines the structure for an item inside the shopping cart

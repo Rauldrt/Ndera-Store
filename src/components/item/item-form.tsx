@@ -30,6 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Switch } from "@/components/ui/switch";
 
 
 const itemFormSchema = z.object({
@@ -37,6 +38,7 @@ const itemFormSchema = z.object({
   description: z.string().min(1, "La descripción es obligatoria").max(1000, "Descripción demasiado larga (máx. 1000 caracteres)"),
   imageUrl: z.string().url("Formato de URL inválido. Por favor, introduce una URL válida https:// o http://.").optional().or(z.literal("")),
   tags: z.array(z.string().min(1, "La etiqueta no puede estar vacía.").max(50, "Etiqueta demasiado larga (máx. 50 caracteres).")).max(10, "Máximo 10 etiquetas permitidas."),
+  isFeatured: z.boolean().default(false),
 });
 
 export type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -56,6 +58,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
       description: initialData?.description || "",
       imageUrl: initialData?.imageUrl || "",
       tags: initialData?.tags || [],
+      isFeatured: initialData?.isFeatured || false,
     },
   });
 
@@ -156,6 +159,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
       description: initialData?.description || "",
       imageUrl: initialData?.imageUrl || "",
       tags: initialData?.tags || [],
+      isFeatured: initialData?.isFeatured || false,
     });
   }, [initialData, form.reset, form]);
 
@@ -310,6 +314,28 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="isFeatured"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Producto Destacado</FormLabel>
+                    <FormDescription>
+                      Los productos destacados se mostrarán en un carrusel.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
              <Button type="submit" disabled={isLoading || isSuggestingTags} className="w-full sm:w-auto"> 
               {isLoading ? (
                 <>
@@ -327,7 +353,3 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     </TooltipProvider>
   );
 }
-
-
-
-    
