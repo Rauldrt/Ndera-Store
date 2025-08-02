@@ -32,6 +32,21 @@ interface OrderDetails {
 
 const ORDER_DETAILS_KEY = 'orderDetails';
 
+// Simple component for WhatsApp icon
+const WhatsAppIcon = () => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className="mr-2"
+    >
+      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.447-4.435-9.884-9.888-9.884-5.448 0-9.886 4.434-9.889 9.884-.001 2.225.651 4.315 1.919 6.066l-1.225 4.485 4.574-1.21zm3.807-6.393c-.277-.138-1.644-.813-1.9-1.018-.255-.205-.44-.347-.614.138-.173.484-.657 1.599-.803 1.845-.145.246-.29.277-.544.138-.254-.138-1.063-.393-2.025-1.25-.748-.657-1.25-1.475-1.412-1.721-.161-.246-.022-.38.114-.51.124-.118.277-.304.415-.45.138-.145.184-.246.277-.414.093-.168.046-.309-.023-.447-.07-.138-.614-1.475-.851-2.012-.23-.532-.47-.458-.644-.465-.161-.007-.347-.007-.521-.007-.173 0-.44.068-.665.347-.225.277-.851.84-.851 2.052s.874 2.378 1.002 2.545c.128.168 1.708 2.572 4.148 3.645.589.255 1.052.408 1.412.521.564.178 1.074.145 1.48.093.447-.053 1.645-.674 1.88-1.314.23-.64.23-.119.16-.247-.07-.127-.255-.204-.521-.34z" />
+    </svg>
+);
+
+
 export default function CheckoutSuccessPage() {
   const router = useRouter();
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
@@ -42,11 +57,8 @@ export default function CheckoutSuccessPage() {
       if (savedDetailsRaw) {
         const savedDetails = JSON.parse(savedDetailsRaw);
         setOrderDetails(savedDetails);
-        // Clear the session storage after retrieving the data to prevent re-using it
         sessionStorage.removeItem(ORDER_DETAILS_KEY);
       } else {
-        // If no order details are found, it means the user accessed this page directly.
-        // Redirect them to a safe page.
         router.replace('/items');
       }
     } catch (error) {
@@ -61,11 +73,9 @@ export default function CheckoutSuccessPage() {
     const doc = new jsPDF();
     const { shipping, items, total, orderDate, paymentMethod } = orderDetails;
 
-    // Título
     doc.setFontSize(22);
     doc.text('Comprobante de Pedido', 105, 20, { align: 'center' });
 
-    // Información del Cliente y Pedido
     doc.setFontSize(12);
     doc.text('Información del Cliente:', 14, 40);
     doc.setFontSize(10);
@@ -83,7 +93,6 @@ export default function CheckoutSuccessPage() {
     doc.text(`Método de Pago: ${paymentMethodText}`, 105, 60);
 
 
-    // Tabla de Productos
     const tableColumn = ["Producto", "Cantidad", "Precio Unitario", "Subtotal"];
     const tableRows = items.map(item => [
       item.name,
@@ -101,21 +110,44 @@ export default function CheckoutSuccessPage() {
       columnStyles: { 0: { halign: 'left' } }
     });
     
-    // Total
     const finalY = (doc as any).lastAutoTable.finalY || 75;
     doc.setFontSize(14);
     doc.text(`Total del Pedido: $${total.toFixed(2)}`, 14, finalY + 15);
 
 
-    // Pie de página
     doc.setFontSize(10);
     doc.text('¡Gracias por tu compra!', 105, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
 
     doc.save(`comprobante-pedido-${new Date().getTime()}.pdf`);
   };
+  
+  const sendByWhatsApp = () => {
+    if (!orderDetails) return;
+    
+    const { shipping, items, total, orderDate, paymentMethod } = orderDetails;
+    const paymentMethodText = paymentMethod === 'transfer' ? 'Transferencia Bancaria' : 'Efectivo';
+
+    let message = `¡Hola! Aquí está el resumen de mi pedido:\n\n`;
+    message += `*Cliente:* ${shipping.name}\n`;
+    message += `*Fecha:* ${new Date(orderDate).toLocaleDateString()}\n`;
+    message += `*Método de Pago:* ${paymentMethodText}\n`;
+    message += `------------------------\n\n`;
+    message += `*Productos:*\n`;
+
+    items.forEach(item => {
+      message += `• ${item.name} (x${item.quantity}) - $${item.total.toFixed(2)}\n`;
+    });
+
+    message += `\n------------------------\n`;
+    message += `*Total del Pedido: $${total.toFixed(2)}*\n\n`;
+    message += `¡Gracias!`;
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
 
   if (!orderDetails) {
-    // Muestra un estado de carga mientras se verifica sessionStorage y se redirige si es necesario
     return (
       <div className="flex items-center justify-center min-h-screen bg-muted/40">
         <div className="text-center">
@@ -163,7 +195,13 @@ export default function CheckoutSuccessPage() {
               <Download className="mr-2 h-4 w-4" />
               Descargar Comprobante
             </Button>
-            <Link href="/items">
+            <Button onClick={sendByWhatsApp} className="w-full sm:w-auto" variant="secondary">
+                <WhatsAppIcon />
+                Enviar por WhatsApp
+            </Button>
+          </div>
+          <div className="mt-4">
+             <Link href="/items">
                 <Button variant="outline" className="w-full sm:w-auto">
                     <ShoppingBag className="mr-2 h-4 w-4" />
                     Seguir Comprando
@@ -175,3 +213,4 @@ export default function CheckoutSuccessPage() {
     </div>
   );
 }
+
