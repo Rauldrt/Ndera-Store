@@ -311,60 +311,62 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
               <Star className="h-6 w-6 text-yellow-500" />
               <h2 className="text-2xl font-bold text-foreground">Productos Destacados</h2>
             </div>
-            <Carousel
-                opts={{
-                    align: "start",
-                    loop: featuredItems.length > 3,
-                }}
-                className="w-full"
-            >
-                <CarouselContent>
-                    {featuredItems.map((item, index) => (
-                        <CarouselItem key={item.id} className="md:basis-1/2 lg:basis-1/3">
-                            <div className="p-1 h-full">
-                                <Card className="group relative w-full h-full aspect-video overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
-                                    <div className="absolute top-2 right-2 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button variant="outline" size="icon" className="h-8 w-8 bg-background/70 hover:bg-background" onClick={() => handleEditItem(item)}>
-                                            <Edit className="h-4 w-4" />
-                                            <span className="sr-only">Edit Item</span>
-                                        </Button>
-                                        <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => openDeleteDialog(item.id)}>
-                                            <Trash2 className="h-4 w-4" />
-                                            <span className="sr-only">Delete Item</span>
-                                        </Button>
-                                    </div>
-                                    {item.imageUrl ? (
-                                        <Image
-                                            src={item.imageUrl}
-                                            alt={item.name || 'Imagen del producto'}
-                                            fill
-                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                            className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
-                                            data-ai-hint="product photo"
-                                            onError={(e) => {
-                                                const target = e.target as HTMLImageElement;
-                                                target.src = `https://placehold.co/400x300.png`;
-                                                target.srcset = '';
-                                                target.dataset.aiHint = "placeholder image";
-                                            }}
-                                        />
-                                    ) : (
-                                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-gradient-to-br from-muted via-background to-muted">
-                                            <ImageOff size={48} />
+            <div className="relative px-12">
+                <Carousel
+                    opts={{
+                        align: "start",
+                        loop: featuredItems.length > 3,
+                    }}
+                    className="w-full"
+                >
+                    <CarouselContent className="-ml-4">
+                        {featuredItems.map((item, index) => (
+                            <CarouselItem key={item.id} className="md:basis-1/2 lg:basis-1/3 pl-4">
+                                <div className="p-1 h-full">
+                                    <Card className="group relative w-full h-full aspect-video overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
+                                        <div className="absolute top-2 right-2 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="outline" size="icon" className="h-8 w-8 bg-background/70 hover:bg-background" onClick={() => handleEditItem(item)}>
+                                                <Edit className="h-4 w-4" />
+                                                <span className="sr-only">Edit Item</span>
+                                            </Button>
+                                            <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => openDeleteDialog(item.id)}>
+                                                <Trash2 className="h-4 w-4" />
+                                                <span className="sr-only">Delete Item</span>
+                                            </Button>
                                         </div>
-                                    )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4 flex flex-col justify-end">
-                                        <CardTitle className="text-lg font-bold text-white shadow-black [text-shadow:0_2px_4px_var(--tw-shadow-color)] line-clamp-2">{item.name}</CardTitle>
-                                        <CardDescription className="text-white/90 text-sm mt-1 [text-shadow:0_1px_2px_var(--tw-shadow-color)] line-clamp-2">{item.description}</CardDescription>
-                                    </div>
-                                </Card>
-                            </div>
-                        </CarouselItem>
-                    ))}
-                </CarouselContent>
-                <CarouselPrevious className="hidden sm:flex" />
-                <CarouselNext className="hidden sm:flex" />
-            </Carousel>
+                                        {item.imageUrl ? (
+                                            <Image
+                                                src={item.imageUrl}
+                                                alt={item.name || 'Imagen del producto'}
+                                                fill
+                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                                className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
+                                                data-ai-hint="product photo"
+                                                onError={(e) => {
+                                                    const target = e.target as HTMLImageElement;
+                                                    target.src = `https://placehold.co/400x300.png`;
+                                                    target.srcset = '';
+                                                    target.dataset.aiHint = "placeholder image";
+                                                }}
+                                            />
+                                        ) : (
+                                            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-gradient-to-br from-muted via-background to-muted">
+                                                <ImageOff size={48} />
+                                            </div>
+                                        )}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4 flex flex-col justify-end">
+                                            <CardTitle className="text-lg font-bold text-white shadow-black [text-shadow:0_2px_4px_var(--tw-shadow-color)] line-clamp-2">{item.name}</CardTitle>
+                                            <CardDescription className="text-white/90 text-sm mt-1 [text-shadow:0_1px_2px_var(--tw-shadow-color)] line-clamp-2">{item.description}</CardDescription>
+                                        </div>
+                                    </Card>
+                                </div>
+                            </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="hidden sm:flex" />
+                    <CarouselNext className="hidden sm:flex" />
+                </Carousel>
+            </div>
             <Separator className="my-6" />
         </div>
       )}
