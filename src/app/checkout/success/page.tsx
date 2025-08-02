@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { CheckCircle, Download, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import Link from 'next/link';
 import { useCart } from '@/context/cart-context';
 
@@ -94,7 +94,7 @@ export default function CheckoutSuccessPage() {
       `$${item.total.toFixed(2)}`
     ]);
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       startY: 75,
@@ -104,7 +104,7 @@ export default function CheckoutSuccessPage() {
     });
     
     // Total
-    const finalY = (doc as any).lastAutoTable.finalY;
+    const finalY = (doc as any).lastAutoTable.finalY || 75;
     doc.setFontSize(14);
     doc.text(`Total del Pedido: $${total.toFixed(2)}`, 14, finalY + 15);
 
