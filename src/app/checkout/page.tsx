@@ -146,12 +146,12 @@ export default function CheckoutPage() {
     }, 1000);
   };
   
-  // Redirigir si el carrito está vacío
+  // Redirigir si el carrito está vacío al cargar la página
   React.useEffect(() => {
-    if (cart.length === 0 && !isLoading) {
+    if (cart.length === 0) {
       router.replace('/items');
     }
-  }, [cart, isLoading, router]);
+  }, []);
 
   if (cart.length === 0) {
     return (
@@ -347,5 +347,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-    
