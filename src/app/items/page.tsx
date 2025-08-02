@@ -236,15 +236,29 @@ export default function AllItemsPage() {
                     className="w-full"
                 >
                     <CarouselContent className="-ml-4">
-                        {featuredItems.map((item) => (
+                        {featuredItems.map((item) => {
+                          const itemInCart = cart.find(cartItem => cartItem.id === item.id);
+                          return (
                             <CarouselItem key={item.id} className="md:basis-1/2 lg:basis-1/3 pl-4">
                                 <div className="p-1 h-full">
                                     <Card className="group relative w-full h-full aspect-video overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
-                                        <div className="absolute top-2 right-2 z-10 flex gap-2">
+                                        <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+                                        {itemInCart ? (
+                                            <div className="flex items-center justify-center gap-2 rounded-full bg-background/80 p-1">
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-foreground hover:bg-white/80" onClick={() => handleDecreaseQuantity(item.id)}>
+                                                    <Minus className="h-4 w-4" />
+                                                </Button>
+                                                <span className="font-bold text-base w-6 text-center text-foreground">{itemInCart.quantity}</span>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-foreground hover:bg-white/80" onClick={() => handleIncreaseQuantity(item.id)}>
+                                                    <Plus className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ) : (
                                             <Button variant="default" size="sm" onClick={() => handleAddToCart(item)}>
                                                 <ShoppingCart className="mr-2 h-4 w-4" />
                                                 Añadir
                                             </Button>
+                                        )}
                                         </div>
                                         {item.imageUrl ? (
                                             <Image
@@ -273,7 +287,8 @@ export default function AllItemsPage() {
                                     </Card>
                                 </div>
                             </CarouselItem>
-                        ))}
+                          )
+                        })}
                     </CarouselContent>
                     <CarouselPrevious className="hidden sm:flex" />
                     <CarouselNext className="hidden sm:flex" />
