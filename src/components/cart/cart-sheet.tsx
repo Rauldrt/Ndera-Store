@@ -110,9 +110,10 @@ export function CartSheet() {
 
     let message = "Hola, estoy interesado en un presupuesto para los siguientes productos:\n\n";
     cart.forEach(item => {
+        const itemTotal = item.price * item.quantity;
         message += `*${item.name}*\n`;
         message += `Cantidad: ${item.quantity}\n`;
-        message += `Precio: $${(item.price * item.quantity).toFixed(2)}\n\n`;
+        message += `Precio: $${itemTotal.toFixed(2)}\n\n`;
     });
     message += `*Total del Presupuesto: $${total.toFixed(2)}*`;
 
