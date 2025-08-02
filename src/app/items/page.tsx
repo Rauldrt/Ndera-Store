@@ -1,20 +1,22 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { collection, query, orderBy, getDocs, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Item, Catalog } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertTriangle, PackageSearch, ImageOff, ShoppingCart, Plus, Minus } from 'lucide-react';
+import { Loader2, AlertTriangle, PackageSearch, ImageOff, ShoppingCart, Plus, Minus, Search, Tag, X } from 'lucide-react';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/cart-context';
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ItemWithTimestamp extends Omit<Item, 'createdAt'> {
   createdAt: Timestamp | null;
@@ -24,6 +26,8 @@ export default function AllItemsPage() {
   const queryClient = useQueryClient();
   const { cart, addToCart, updateQuantity } = useCart();
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTag, setSelectedTag] = useState('');
 
   const {
     data: items,
@@ -32,7 +36,6 @@ export default function AllItemsPage() {
   } = useQuery<ItemWithTimestamp[]>({
     queryKey: ['allItems'],
     queryFn: async () => {
-      // Note: This query fetches items from all catalogs.
       const itemsCollection = collection(db, 'items');
       const q = query(itemsCollection, orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
@@ -51,23 +54,47 @@ export default function AllItemsPage() {
     },
   });
 
-  // Fetch catalog details to get the name
+  const allTags = useMemo(() => {
+    if (!items) return [];
+    const tagsSet = new Set<string>();
+    items.forEach(item => {
+      if (Array.isArray(item.tags)) {
+        item.tags.forEach(tag => tagsSet.add(tag));
+      }
+    });
+    return Array.from(tagsSet).sort();
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    if (!items) return [];
+    let tempItems = items;
+
+    if (selectedTag) {
+      tempItems = tempItems.filter(item => Array.isArray(item.tags) && item.tags.includes(selectedTag));
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      tempItems = tempItems.filter(item =>
+        item.name.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query)
+      );
+    }
+    
+    return tempItems;
+  }, [items, searchQuery, selectedTag]);
+
   const getCatalogName = async (catalogId: string) => {
-    // Attempt to get from cache first
     const cachedCatalogs = queryClient.getQueryData<Catalog[]>(['catalogs']);
     const cachedCatalog = cachedCatalogs?.find(c => c.id === catalogId);
-    if (cachedCatalog) {
-      return cachedCatalog.name;
-    }
-    // Fetch from Firestore if not in cache
+    if (cachedCatalog) return cachedCatalog.name;
+    
     const docRef = doc(db, 'catalogs', catalogId);
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? (docSnap.data().name as string) : 'Catálogo';
   };
 
-
   const handleAddToCart = async (item: ItemWithTimestamp) => {
-    // Assign a random price for demonstration purposes
     const price = Math.floor(Math.random() * 100) + 10;
     const catalogName = await getCatalogName(item.catalogId);
     addToCart({ ...item, price, quantity: 1, createdAt: item.createdAt!, catalogName });
@@ -87,22 +114,55 @@ export default function AllItemsPage() {
   const handleDecreaseQuantity = (itemId: string) => {
     const itemInCart = cart.find(cartItem => cartItem.id === itemId);
     if (itemInCart) {
-       // updateQuantity handles removal if quantity drops to 0 or below
       updateQuantity(itemId, itemInCart.quantity - 1);
     }
+  };
+  
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedTag('');
   };
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Todos los Productos</h1>
-          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Explora nuestro catálogo completo.</p>
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Todos los Productos</h1>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">Explora nuestro catálogo completo. Usa la búsqueda y los filtros para encontrar lo que necesitas.</p>
+      </div>
+
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-grow">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Buscar por nombre o descripción..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10"
+            disabled={isLoading}
+          />
         </div>
-         <div className="hidden md:block">
-           <Link href="/">
-            <Button variant="outline">Volver a la Gestión</Button>
-          </Link>
+        <div className="flex items-center gap-4">
+          <Select value={selectedTag} onValueChange={setSelectedTag} disabled={isLoading || allTags.length === 0}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4" />
+                <SelectValue placeholder="Filtrar por etiqueta" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todas las etiquetas</SelectItem>
+              {allTags.map(tag => (
+                <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {(searchQuery || selectedTag) && (
+            <Button variant="ghost" onClick={clearFilters}>
+              <X className="mr-2 h-4 w-4" />
+              Limpiar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -131,9 +191,7 @@ export default function AllItemsPage() {
         <div className="text-center text-destructive py-10">
           <AlertTriangle className="mx-auto h-12 w-12 mb-4" />
           <p className="font-semibold">Error al cargar los productos.</p>
-          <p className="text-sm text-muted-foreground">
-            Por favor, inténtalo de nuevo más tarde.
-          </p>
+          <p className="text-sm text-muted-foreground">Por favor, inténtalo de nuevo más tarde.</p>
           <Button variant="outline" size="sm" className="mt-4" onClick={() => queryClient.refetchQueries({ queryKey: ['allItems'] })}>
             Intentar de Nuevo
           </Button>
@@ -146,16 +204,25 @@ export default function AllItemsPage() {
           <h3 className="text-lg font-medium text-muted-foreground">No se encontraron productos</h3>
           <p className="text-muted-foreground mb-4">Parece que aún no hay productos disponibles en la tienda.</p>
           <Link href="/">
-            <Button>
-              Volver al inicio
-            </Button>
+            <Button>Volver a la Gestión</Button>
           </Link>
         </div>
       )}
 
-      {!isLoading && !error && items && items.length > 0 && (
+      {!isLoading && !error && filteredItems.length === 0 && (searchQuery || selectedTag) && (
+        <div className="text-center py-10 border-2 border-dashed rounded-lg">
+          <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium text-muted-foreground">No se encontraron resultados</h3>
+          <p className="text-muted-foreground mb-4">No hay productos que coincidan con tu búsqueda o filtro.</p>
+          <Button variant="outline" onClick={clearFilters}>
+            Limpiar Filtros
+          </Button>
+        </div>
+      )}
+
+      {!isLoading && !error && filteredItems.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 items-stretch">
-          {items.map((item, index) => {
+          {filteredItems.map((item, index) => {
             const itemInCart = cart.find(cartItem => cartItem.id === item.id);
             
             return (
