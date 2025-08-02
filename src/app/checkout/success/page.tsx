@@ -57,8 +57,10 @@ export default function CheckoutSuccessPage() {
       if (savedDetailsRaw) {
         const savedDetails = JSON.parse(savedDetailsRaw);
         setOrderDetails(savedDetails);
-        sessionStorage.removeItem(ORDER_DETAILS_KEY);
+        // We keep the details in session storage in case the user wants to download/send again
+        // It will be cleared when they navigate away naturally.
       } else {
+        // If there are no details, redirect to the store
         router.replace('/items');
       }
     } catch (error) {
@@ -213,4 +215,3 @@ export default function CheckoutSuccessPage() {
     </div>
   );
 }
-
