@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { collection, addDoc, serverTimestamp, query, where, orderBy, getDocs, doc, deleteDoc, updateDoc, getDoc, Timestamp } from "firebase/firestore"; // Import Timestamp
 import { db } from "@/lib/firebase";
@@ -10,9 +10,10 @@ import { ItemForm, type ItemFormValues } from '@/components/item/item-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2 } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
+import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,28 +41,23 @@ interface ItemWithTimestamp extends Omit<Item, 'createdAt'> {
 export function CatalogItems({ catalogId }: CatalogItemsProps) {
   const [showItemForm, setShowItemForm] = useState(false);
   const [editingItem, setEditingItem] = useState<ItemWithTimestamp | null>(null);
-   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   // Fetch items for the selected catalog
-  const { data: itemsWithTimestamp, isLoading: isLoadingItemsWithTimestamp, error: itemsWithTimestampError } = useQuery<ItemWithTimestamp[] | undefined>({
+  const { data: itemsWithTimestamp, isLoading: isLoadingItems, error: itemsError } = useQuery<ItemWithTimestamp[] | undefined>({
     queryKey: ['items', catalogId], // Include catalogId in the query key
     queryFn: async () => {
       if (!catalogId) {
-        console.log("[CatalogItems] queryFn: No catalogId, returning undefined.");
         return undefined;
       }
-      console.log(`[CatalogItems] queryFn: Fetching items for catalogId: ${catalogId}`);
       const q = query(collection(db, "items"), where("catalogId", "==", catalogId), orderBy("createdAt", "desc"));
       try {
         const querySnapshot = await getDocs(q);
-        console.log(`[CatalogItems] queryFn: Fetched ${querySnapshot.docs.length} items for catalogId: ${catalogId}`);
-        if (querySnapshot.empty) {
-            console.log(`[CatalogItems] queryFn: Snapshot is empty. No items found matching catalogId: ${catalogId}. This might be due to missing Firestore indexes if data exists in DB.`);
-        }
         // Map Firestore docs to Item type
         return querySnapshot.docs.map(doc => {
           const data = doc.data();
@@ -87,6 +83,18 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     },
     enabled: !!catalogId, // Only run query if catalogId is available
   });
+
+  const filteredItems = useMemo(() => {
+    if (!itemsWithTimestamp) return [];
+    if (!searchQuery.trim()) return itemsWithTimestamp;
+
+    const query = searchQuery.toLowerCase();
+    return itemsWithTimestamp.filter(item => 
+      item.name.toLowerCase().includes(query) ||
+      item.description.toLowerCase().includes(query) ||
+      (Array.isArray(item.tags) && item.tags.some(tag => tag.toLowerCase().includes(query)))
+    );
+  }, [itemsWithTimestamp, searchQuery]);
 
    // Fetch catalog details (for title/description)
     const { data: catalogDetails, isLoading: isLoadingCatalogDetails } = useQuery<Catalog | null>({
@@ -118,12 +126,10 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             tags: Array.isArray(data.tags) ? data.tags : [],
             catalogId: currentCatalogId,
         };
-        console.log("[CatalogItems] Intentando añadir producto:", JSON.stringify(newItemData, null, 2));
         const docRef = await addDoc(collection(db, "items"), {
            ...newItemData,
             createdAt: serverTimestamp(), // Use Firestore server-side timestamp
         });
-        console.log("[CatalogItems] Producto añadido con ID:", docRef.id);
       return docRef.id;
     },
     onSuccess: () => {
@@ -137,18 +143,15 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       setEditingItem(null);
     },
     onError: (error: any) => {
-      console.error(`[CatalogItems] Error al añadir producto al catálogo '${catalogId}':`, error);
       let description = "No se pudo añadir el producto. Por favor, inténtalo de nuevo.";
       if (error instanceof Error) {
         description = error.message;
       }
-      // Check for specific Firebase error codes
       if (error && error.code === 'permission-denied') {
         description = "Permiso denegado. Por favor, revisa las reglas de Firestore para la colección 'items'.";
       } else if (error && error.code) {
         description = `Error: ${error.code} - ${error.message}`;
       }
-
        toast({
          title: "Error al Añadir Producto",
          description: description,
@@ -167,9 +170,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                 imageUrl: data.imageUrl,
                 tags: Array.isArray(data.tags) ? data.tags : [],
             };
-            console.log("[CatalogItems] Intentando actualizar producto:", id, JSON.stringify(updateData, null, 2));
             await updateDoc(itemRef, updateData);
-            console.log("[CatalogItems] Producto actualizado:", id);
         },
         onSuccess: () => { 
             queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
@@ -182,7 +183,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             setEditingItem(null);
         },
         onError: (error: any) => {
-            console.error(`[CatalogItems] Error al actualizar producto:`, error);
             let description = "No se pudo actualizar el producto. Por favor, inténtalo de nuevo.";
             if (error instanceof Error) {
                 description = error.message;
@@ -216,7 +216,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
        setShowDeleteDialog(false);
      },
      onError: (error) => {
-       console.error("[CatalogItems] Error al eliminar producto: ", error);
        toast({
          title: "Error al Eliminar Producto",
          description: (error as Error)?.message || "No se pudo eliminar el producto.",
@@ -276,6 +275,18 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         </Button>
       </div>
 
+       <div className="relative">
+         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+         <Input
+            type="search"
+            placeholder="Buscar por nombre, descripción o etiqueta..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10"
+            disabled={isLoadingItems}
+          />
+       </div>
+
       <Dialog open={showItemForm} onOpenChange={(isOpen) => {
           setShowItemForm(isOpen);
           if (!isOpen) handleCancelForm();
@@ -299,7 +310,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
           />
         </DialogContent>
       </Dialog>
-      {isLoadingItemsWithTimestamp && (
+      {isLoadingItems && (
          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
             {[...Array(8)].map((_, i) => (
                  <Card key={i} className="flex flex-col">
@@ -323,7 +334,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             ))}
          </div>
  )}
-       {itemsWithTimestampError && (
+       {itemsError && (
          <div className="text-center text-destructive py-10">
             <AlertTriangle className="mx-auto h-12 w-12 mb-4"/>
             <p className="font-semibold">Error al cargar los productos.</p>
@@ -334,7 +345,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
          </div>
         )}
 
-      {!isLoadingItemsWithTimestamp && !itemsWithTimestampError && itemsWithTimestamp && itemsWithTimestamp.length === 0 && !showItemForm && (
+      {!isLoadingItems && !itemsError && itemsWithTimestamp && itemsWithTimestamp.length === 0 && !showItemForm && (
         <div className="text-center py-10 border-2 border-dashed rounded-lg">
           <h3 className="text-lg font-medium text-muted-foreground">Aún no hay productos</h3>
           <p className="text-muted-foreground mb-4">¡Añade tu primer producto a este catálogo!</p>
@@ -344,10 +355,20 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         </div>
       )}
 
-      {!isLoadingItemsWithTimestamp && !itemsWithTimestampError && itemsWithTimestamp && itemsWithTimestamp.length > 0 && (
+      {!isLoadingItems && !itemsError && filteredItems.length === 0 && searchQuery && (
+         <div className="text-center py-10 border-2 border-dashed rounded-lg">
+           <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+           <h3 className="text-lg font-medium text-muted-foreground">No se encontraron resultados</h3>
+           <p className="text-muted-foreground mb-4">No hay productos que coincidan con tu búsqueda.</p>
+           <Button variant="outline" onClick={() => setSearchQuery("")}>
+             Limpiar Búsqueda
+           </Button>
+         </div>
+       )}
 
+      {!isLoadingItems && !itemsError && filteredItems.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 items-stretch">
-          {itemsWithTimestamp.map((item, index) => (
+          {filteredItems.map((item, index) => (
             <Card key={item.id} className="group flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                <CardHeader className="p-0">
                 <div className="aspect-video relative bg-muted overflow-hidden">
@@ -428,3 +449,4 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
+
