@@ -24,8 +24,12 @@ interface ItemWithTimestamp extends Omit<Item, 'createdAt'> {
 
 export default function AllItemsPage() {
   const queryClient = useQueryClient();
-  const { cart, addToCart, updateQuantity } from useCart();
-  const { toast } = useToast();
+  const cartContext = useCart();
+  const toastContext = useToast();
+  
+  const { cart, addToCart, updateQuantity } = cartContext;
+  const { toast } = toastContext;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('all');
 
@@ -97,9 +101,17 @@ export default function AllItemsPage() {
   };
 
   const handleAddToCart = async (item: ItemWithTimestamp) => {
+    if (!item.createdAt) {
+        toast({
+            title: "Error",
+            description: "Este producto no se puede añadir al carrito porque le falta información esencial.",
+            variant: "destructive",
+        });
+        return;
+    }
     const price = Math.floor(Math.random() * 100) + 10;
     const catalogName = await getCatalogName(item.catalogId);
-    addToCart({ ...item, price, quantity: 1, createdAt: item.createdAt!, catalogName });
+    addToCart({ ...item, price, quantity: 1, createdAt: item.createdAt, catalogName });
     toast({
       title: "Producto Añadido",
       description: `${item.name} ha sido añadido a tu carrito.`,
