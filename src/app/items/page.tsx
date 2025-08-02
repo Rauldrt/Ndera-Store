@@ -29,6 +29,12 @@ export default function AllItemsPage() {
   const cartContext = useCart();
   const toastContext = useToast();
   
+  if (!cartContext || !toastContext) {
+    // This can happen during the initial render if the context is not yet available.
+    // You can return a loading state or null.
+    return <Loader2 className="w-16 h-16 text-primary animate-spin mx-auto mt-10" />;
+  }
+
   const { cart, addToCart, updateQuantity } = cartContext;
   const { toast } = toastContext;
 
@@ -260,9 +266,9 @@ export default function AllItemsPage() {
                                                 <ImageOff size={48} />
                                             </div>
                                         )}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent p-4 flex flex-col justify-end">
-                                            <CardTitle className="text-xl font-bold text-white shadow-black [text-shadow:0_2px_4px_var(--tw-shadow-color)] line-clamp-2">{item.name}</CardTitle>
-                                            <CardDescription className="text-white/90 text-sm mt-1 [text-shadow:0_1px_2px_var(--tw-shadow-color)] line-clamp-2">{item.description}</CardDescription>
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/60 p-4 flex flex-col justify-center items-center text-center">
+                                            <CardTitle className="text-2xl font-bold text-white shadow-black [text-shadow:0_2px_4px_var(--tw-shadow-color)] line-clamp-2">{item.name}</CardTitle>
+                                            <CardDescription className="text-white/90 text-base mt-2 [text-shadow:0_1px_2px_var(--tw-shadow-color)] line-clamp-3">{item.description}</CardDescription>
                                         </div>
                                     </Card>
                                 </div>
@@ -376,5 +382,3 @@ export default function AllItemsPage() {
     </div>
   );
 }
-
-    
