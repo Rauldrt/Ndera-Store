@@ -11,13 +11,15 @@ import { Separator } from '@/components/ui/separator';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, CreditCard, Landmark, Wallet } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
+
 
 const shippingSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
@@ -32,9 +34,15 @@ const paymentSchema = z.object({
   }),
 });
 
-const checkoutSchema = shippingSchema.extend(paymentSchema.shape);
+const checkoutSchema = shippingSchema.extend({
+  ...paymentSchema.shape,
+  saveInfo: z.boolean().default(false).optional(),
+});
+
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
+
+const SAVED_SHIPPING_INFO_KEY = 'savedShippingInfo';
 
 export default function CheckoutPage() {
   const { cart, getCartTotal, clearCart } = useCart();
@@ -51,11 +59,53 @@ export default function CheckoutPage() {
       phone: '',
       email: '',
       paymentMethod: undefined,
+      saveInfo: false,
     },
   });
 
+  // Cargar datos guardados al montar el componente
+  React.useEffect(() => {
+    try {
+      const savedInfoRaw = localStorage.getItem(SAVED_SHIPPING_INFO_KEY);
+      if (savedInfoRaw) {
+        const savedInfo = JSON.parse(savedInfoRaw);
+        // Rellenar el formulario con los datos guardados
+        methods.reset({
+          name: savedInfo.name || '',
+          address: savedInfo.address || '',
+          phone: savedInfo.phone || '',
+          email: savedInfo.email || '',
+          saveInfo: true, // Marcar la casilla si se encontraron datos
+        });
+      }
+    } catch (error) {
+      console.error("Error al cargar la información de envío guardada:", error);
+    }
+  }, [methods.reset]);
+
+
   const onSubmit = (data: CheckoutFormValues) => {
     setIsLoading(true);
+
+    if (data.saveInfo) {
+      // Guardar información en localStorage
+      const shippingInfoToSave = {
+        name: data.name,
+        address: data.address,
+        phone: data.phone,
+        email: data.email,
+      };
+      try {
+        localStorage.setItem(SAVED_SHIPPING_INFO_KEY, JSON.stringify(shippingInfoToSave));
+      } catch (error) {
+        console.error("Error al guardar la información de envío:", error);
+      }
+    } else {
+      // Si no se marca, eliminar cualquier información guardada previamente
+      localStorage.removeItem(SAVED_SHIPPING_INFO_KEY);
+    }
+
+
     console.log('Datos del pedido:', {
       ...data,
       cart,
@@ -157,6 +207,28 @@ export default function CheckoutPage() {
                       )}
                     />
                   </div>
+                   <FormField
+                    control={methods.control}
+                    name="saveInfo"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 mt-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Guardar mi información para futuras compras
+                          </FormLabel>
+                          <FormDescription>
+                            Tus datos de envío se guardarán en este navegador.
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
                 </CardContent>
               </Card>
 
