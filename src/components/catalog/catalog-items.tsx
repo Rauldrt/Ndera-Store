@@ -354,9 +354,9 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                                                 <ImageOff size={48} />
                                             </div>
                                         )}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4 flex flex-col justify-end">
-                                            <CardTitle className="text-lg font-bold text-white shadow-black [text-shadow:0_2px_4px_var(--tw-shadow-color)] line-clamp-2">{item.name}</CardTitle>
-                                            <CardDescription className="text-white/90 text-sm mt-1 [text-shadow:0_1px_2px_var(--tw-shadow-color)] line-clamp-2">{item.description}</CardDescription>
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/60 p-4 flex flex-col justify-center items-center text-center">
+                                            <CardTitle className="text-2xl font-bold text-white shadow-black [text-shadow:0_2px_4px_var(--tw-shadow-color)] line-clamp-2">{item.name}</CardTitle>
+                                            <CardDescription className="text-white/90 text-base mt-2 [text-shadow:0_1px_2px_var(--tw-shadow-color)] line-clamp-3">{item.description}</CardDescription>
                                         </div>
                                     </Card>
                                 </div>
@@ -523,3 +523,5 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
+
+    
