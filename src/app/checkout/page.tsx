@@ -153,7 +153,7 @@ export default function CheckoutPage() {
     if (cart.length === 0) {
       router.replace('/items');
     }
-  }, [cart, router]);
+  }, []); // The empty dependency array is crucial here.
 
   if (cart.length === 0) {
     // Show a loading spinner while redirecting.
