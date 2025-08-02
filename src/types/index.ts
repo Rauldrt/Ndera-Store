@@ -24,3 +24,14 @@ export interface CartItem extends Item {
     price: number; // Added for cart functionality
     catalogName?: string; // Optional catalog name
 }
+
+// Defines the structure for a customer
+export interface Customer {
+    id: string; // Firestore document ID
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    createdAt: Timestamp;
+    lastOrderDate: Timestamp;
+}

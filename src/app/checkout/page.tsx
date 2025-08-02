@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -19,6 +18,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, CreditCard, Landmark, Wallet } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
+import { collection, query, where, getDocs, addDoc, updateDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 
 const shippingSchema = z.object({
@@ -86,7 +87,7 @@ export default function CheckoutPage() {
   }, [methods]);
   
 
-  const onSubmit = (data: CheckoutFormValues) => {
+  const onSubmit = async (data: CheckoutFormValues) => {
     setIsLoading(true);
 
     if (data.saveInfo) {
@@ -104,52 +105,77 @@ export default function CheckoutPage() {
     } else {
       localStorage.removeItem(SAVED_SHIPPING_INFO_KEY);
     }
-    
-    const orderDetails = {
-      shipping: {
-        name: data.name,
-        address: data.address,
-        phone: data.phone,
-        email: data.email,
-      },
-      paymentMethod: data.paymentMethod,
-      items: cart.map(item => ({
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        total: item.price * item.quantity
-      })),
-      total,
-      orderDate: new Date().toISOString(),
-    };
 
     try {
-      sessionStorage.setItem(ORDER_DETAILS_KEY, JSON.stringify(orderDetails));
+        // Save or update customer
+        const customersRef = collection(db, 'customers');
+        const q = query(customersRef, where("email", "==", data.email));
+        const querySnapshot = await getDocs(q);
+
+        const customerData = {
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            address: data.address,
+            lastOrderDate: serverTimestamp(),
+        };
+
+        if (querySnapshot.empty) {
+            // New customer
+            await addDoc(customersRef, {
+                ...customerData,
+                createdAt: serverTimestamp(),
+            });
+        } else {
+            // Existing customer, update their info
+            const customerDocRef = doc(db, 'customers', querySnapshot.docs[0].id);
+            await updateDoc(customerDocRef, customerData);
+        }
+
+        // Store order details for success page
+        const orderDetails = {
+          shipping: {
+            name: data.name,
+            address: data.address,
+            phone: data.phone,
+            email: data.email,
+          },
+          paymentMethod: data.paymentMethod,
+          items: cart.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            total: item.price * item.quantity
+          })),
+          total,
+          orderDate: new Date().toISOString(),
+        };
+
+        sessionStorage.setItem(ORDER_DETAILS_KEY, JSON.stringify(orderDetails));
+
+        // Clear cart and redirect
+        clearCart();
+        router.push('/checkout/success');
+
     } catch (error) {
-        console.error("Error al guardar los detalles del pedido:", error);
+        console.error("Error al procesar el pedido o guardar cliente:", error);
         toast({
             title: 'Error Inesperado',
             description: 'No se pudo procesar el pedido. Por favor, inténtalo de nuevo.',
             variant: 'destructive',
         });
-        setIsLoading(false);
-        return;
-    }
-
-
-    // Simular el procesamiento del pedido
-    setTimeout(() => {
-      clearCart();
+    } finally {
       setIsLoading(false);
-      // Pequeño delay para asegurar que sessionStorage se escriba antes de redirigir
-      setTimeout(() => router.push('/checkout/success'), 50);
-    }, 1000);
+    }
   };
   
   if (cart.length === 0 && !isLoading) {
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8 flex items-center justify-center min-h-[calc(100vh-200px)]">
-            <Loader2 className="w-16 h-16 text-primary animate-spin" />
+            <div className="text-center">
+                 <Loader2 className="w-16 h-16 text-primary animate-spin" />
+                 <p className="mt-4 text-muted-foreground">Cargando...</p>
+            </div>
         </div>
     );
   }

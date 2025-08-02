@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -16,7 +15,7 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, Home as HomeIcon, Boxes, Library, Eye } from "lucide-react";
+import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, Home as HomeIcon, Boxes, Library, Eye, Users } from "lucide-react";
 import { CatalogForm } from "@/components/catalog/catalog-form";
 import type { Catalog } from "@/types";
 import { db } from "@/lib/firebase";
@@ -232,6 +231,29 @@ export default function Home() {
              <span className="group-data-[collapsible=icon]:hidden">Crear Catálogo</span>
           </Button>
           <SidebarMenu>
+             <SidebarMenuItem>
+                 <SidebarMenuButton
+                     isActive={!selectedCatalogId && !showCatalogForm}
+                     onClick={handleBackToDashboard}
+                     tooltip={{ children: "Dashboard", side: 'right', align: 'center' }}
+                     className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
+                 >
+                    <Library />
+                    <span>Dashboard</span>
+                 </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                 <SidebarMenuButton
+                     asChild
+                     tooltip={{ children: "Clientes", side: 'right', align: 'center' }}
+                     className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
+                 >
+                    <Link href="/customers">
+                      <Users />
+                      <span>Clientes</span>
+                    </Link>
+                 </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
                  <SidebarMenuButton
                      asChild
@@ -244,17 +266,7 @@ export default function Home() {
                     </Link>
                  </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-                 <SidebarMenuButton
-                     isActive={!selectedCatalogId && !showCatalogForm}
-                     onClick={handleBackToDashboard}
-                     tooltip={{ children: "Dashboard", side: 'right', align: 'center' }}
-                     className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
-                 >
-                    <Library />
-                    <span>Dashboard</span>
-                 </SidebarMenuButton>
-            </SidebarMenuItem>
+            
             {isLoadingCatalogs && (
                <>
                  <SidebarMenuSkeleton showIcon />
@@ -458,5 +470,3 @@ export default function Home() {
     </SidebarProvider>
   );
 }
-
-    
