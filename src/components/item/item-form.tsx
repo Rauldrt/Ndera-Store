@@ -12,12 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription as CardDesc } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { X, Lightbulb, Loader2, Info } from "lucide-react"; 
 import type { Item } from "@/types";
@@ -169,7 +170,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     <Card className="shadow-xl">
       <CardHeader className="p-4 md:p-6">
         <CardTitle className="text-lg md:text-xl">{initialData?.id ? "Editar Producto" : "Añadir Nuevo Producto"}</CardTitle>
-        <CardDescription>Rellena los detalles de tu producto de catálogo.</CardDescription>
+        <CardDesc>Rellena los detalles de tu producto de catálogo.</CardDesc>
       </CardHeader>
       <CardContent className="p-4 md:p-6">
         <Form {...form}>
@@ -353,3 +354,5 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     </TooltipProvider>
   );
 }
+
+    
