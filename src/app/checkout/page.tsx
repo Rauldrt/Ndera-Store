@@ -148,12 +148,16 @@ export default function CheckoutPage() {
   
   // Redirigir si el carrito está vacío al cargar la página
   React.useEffect(() => {
+    // This effect runs only on mount.
+    // If the cart is empty when the user lands on this page, redirect them.
     if (cart.length === 0) {
       router.replace('/items');
     }
-  }, []);
+  }, [cart, router]);
 
   if (cart.length === 0) {
+    // Show a loading spinner while redirecting.
+    // This prevents the user from seeing a flash of an empty checkout page.
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8 flex items-center justify-center min-h-[calc(100vh-200px)]">
             <Loader2 className="w-16 h-16 text-primary animate-spin" />

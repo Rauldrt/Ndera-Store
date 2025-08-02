@@ -10,6 +10,7 @@ import { CheckCircle, Download, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Link from 'next/link';
+import { Loader2 } from 'lucide-react';
 
 interface OrderDetails {
   shipping: {
@@ -41,10 +42,11 @@ export default function CheckoutSuccessPage() {
       if (savedDetailsRaw) {
         const savedDetails = JSON.parse(savedDetailsRaw);
         setOrderDetails(savedDetails);
-        // Clear the session storage after retrieving the data
+        // Clear the session storage after retrieving the data to prevent re-using it
         sessionStorage.removeItem(ORDER_DETAILS_KEY);
       } else {
-        // If no order details are found, redirect to the main page
+        // If no order details are found, it means the user accessed this page directly.
+        // Redirect them to a safe page.
         router.replace('/items');
       }
     } catch (error) {
@@ -113,11 +115,12 @@ export default function CheckoutSuccessPage() {
   };
 
   if (!orderDetails) {
-    // Muestra un estado de carga mientras se verifica sessionStorage
+    // Muestra un estado de carga mientras se verifica sessionStorage y se redirige si es necesario
     return (
       <div className="flex items-center justify-center min-h-screen bg-muted/40">
         <div className="text-center">
-          <p>Cargando confirmación...</p>
+          <Loader2 className="w-16 h-16 text-primary animate-spin" />
+          <p className="mt-4">Cargando confirmación...</p>
         </div>
       </div>
     );
