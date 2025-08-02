@@ -322,7 +322,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                     {featuredItems.map((item, index) => (
                         <CarouselItem key={item.id} className="md:basis-1/2 lg:basis-1/3">
                             <div className="p-1 h-full">
-                                <Card className="group relative w-full h-full overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
+                                <Card className="group relative w-full h-full aspect-video overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
                                     <div className="absolute top-2 right-2 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Button variant="outline" size="icon" className="h-8 w-8 bg-background/70 hover:bg-background" onClick={() => handleEditItem(item)}>
                                             <Edit className="h-4 w-4" />
