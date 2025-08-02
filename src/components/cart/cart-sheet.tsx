@@ -7,36 +7,9 @@ import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetTrigger, SheetClose } from '@/components/ui/sheet';
-import { ShoppingCart, Trash2, Plus, Minus, PackageX, FileDown } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, PackageX, CreditCard } from 'lucide-react';
 import Link from 'next/link';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 import type { CartItem } from '@/types';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-
-
-// Extend the jsPDF type to include autoTable
-interface jsPDFWithAutoTable extends jsPDF {
-  autoTable: (options: any) => jsPDFWithAutoTable;
-}
-
-// WhatsApp Icon Component
-const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-    </svg>
-  );
 
 
 export function CartSheet() {
@@ -56,65 +29,6 @@ export function CartSheet() {
       updateQuantity(itemId, itemInCart.quantity - 1);
     }
   };
-
-  const handleDownloadPdf = () => {
-    const doc = new jsPDF() as jsPDFWithAutoTable;
-
-    // Check if all items in the cart are from the same catalog
-    let catalogName = 'Catalogify';
-    if (cart.length > 0) {
-      const firstCatalogName = cart[0].catalogName;
-      const allSameCatalog = cart.every(item => item.catalogName === firstCatalogName);
-      if (allSameCatalog && firstCatalogName) {
-        catalogName = firstCatalogName;
-      }
-    }
-
-    // Add header
-    doc.setFontSize(20);
-    doc.text(`Presupuesto - ${catalogName}`, 14, 22);
-    doc.setFontSize(12);
-    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 30);
-    
-    // Add table
-    doc.autoTable({
-        startY: 40,
-        head: [['Cantidad', 'Producto', 'Precio Unitario', 'Total']],
-        body: cart.map(item => [
-            item.quantity,
-            item.name,
-            `$${item.price.toFixed(2)}`,
-            `$${(item.price * item.quantity).toFixed(2)}`
-        ]),
-        theme: 'striped',
-        headStyles: { fillColor: [34, 48, 62] },
-    });
-
-    // Add total
-    const finalY = doc.autoTable.previous.finalY;
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Total: $${total.toFixed(2)}`, 14, finalY + 15);
-
-    // Save PDF
-    doc.save(`presupuesto-${catalogName.replace(/\s+/g, '_').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`);
-  };
-
-  const handleSendWhatsApp = () => {
-    let message = "Hola, estoy interesado en un presupuesto para los siguientes productos:\n\n";
-    cart.forEach(item => {
-        const itemTotal = item.price * item.quantity;
-        message += `*${item.name}*\n`;
-        message += `Cantidad: ${item.quantity}\n`;
-        message += `Precio: $${itemTotal.toFixed(2)}\n\n`;
-    });
-    message += `*Total del Presupuesto: $${total.toFixed(2)}*`;
-
-    // Use a link that opens WhatsApp without a pre-filled number
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-  };
-
 
   return (
     <Sheet>
@@ -179,23 +93,14 @@ export function CartSheet() {
                   <span>Total</span>
                   <span>${total.toFixed(2)}</span>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <SheetClose asChild>
+                  <Link href="/checkout">
                     <Button className="w-full mt-2">
-                      Solicitar Presupuesto
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Ir a Pagar
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56">
-                    <DropdownMenuItem onClick={handleDownloadPdf}>
-                      <FileDown className="mr-2 h-4 w-4" />
-                      <span>Descargar Presupuesto (PDF)</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleSendWhatsApp}>
-                       <WhatsAppIcon className="mr-2 h-4 w-4" />
-                      <span>Enviar por WhatsApp</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  </Link>
+                </SheetClose>
                 <Button variant="outline" className="w-full" onClick={clearCart}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Vaciar Carrito

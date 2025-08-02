@@ -4,6 +4,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { CartItem } from '@/types';
 
+type CheckoutStep = 'cart' | 'shipping' | 'payment' | 'confirmation';
+
 interface CartContextType {
   cart: CartItem[];
   addToCart: (item: CartItem) => void;
@@ -11,6 +13,8 @@ interface CartContextType {
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   getCartTotal: () => number;
+  checkoutStep: CheckoutStep;
+  setCheckoutStep: (step: CheckoutStep) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -35,6 +39,8 @@ export function CartProvider({ children }: CartProviderProps) {
     }
     return [];
   });
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>('cart');
+
 
   useEffect(() => {
     localStorage.setItem('shoppingCart', JSON.stringify(cart));
@@ -83,6 +89,8 @@ export function CartProvider({ children }: CartProviderProps) {
           updateQuantity, 
           clearCart, 
           getCartTotal,
+          checkoutStep,
+          setCheckoutStep,
       }}
     >
       {children}
