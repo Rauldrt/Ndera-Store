@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/cart-context';
 import { useToast } from '@/hooks/use-toast';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from '@/components/ui/separator';
 
@@ -22,14 +22,9 @@ interface ItemWithTimestamp extends Omit<Item, 'createdAt'> {
   createdAt: Timestamp | null;
 }
 
-interface CatalogPageProps {
-    params: {
-        catalogId: string;
-    };
-}
-
-export default function CatalogPage({ params }: CatalogPageProps) {
-  const { catalogId } = params;
+export default function CatalogPage() {
+  const params = useParams();
+  const catalogId = params.catalogId as string;
   const queryClient = useQueryClient();
   const cartContext = useCart();
   const toastContext = useToast();
@@ -313,3 +308,5 @@ export default function CatalogPage({ params }: CatalogPageProps) {
     </div>
   );
 }
+
+    
