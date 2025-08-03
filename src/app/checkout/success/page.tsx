@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, Download, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Download, ShoppingBag, ArrowLeft, Home } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Link from 'next/link';
@@ -56,7 +56,8 @@ const WhatsAppIcon = () => (
 export default function CheckoutSuccessPage() {
   const router = useRouter();
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
-  const [continueShoppingUrl, setContinueShoppingUrl] = useState('/items');
+  const [backUrl, setBackUrl] = useState('/items');
+  const [isCatalogContext, setIsCatalogContext] = useState(false);
 
   useEffect(() => {
     try {
@@ -64,19 +65,17 @@ export default function CheckoutSuccessPage() {
       if (savedDetailsRaw) {
         const savedDetails = JSON.parse(savedDetailsRaw);
         setOrderDetails(savedDetails);
-        // We keep the details in session storage in case the user wants to download/send again
-        // It will be cleared when they navigate away naturally.
       } else {
-        // If there are no details, redirect to the store
         router.replace('/items');
       }
 
-      // Set the "Continue Shopping" URL
       const lastCatalogId = localStorage.getItem(LAST_VISITED_CATALOG_KEY);
       if (lastCatalogId) {
-          setContinueShoppingUrl(`/catalog/${lastCatalogId}`);
+          setBackUrl(`/catalog/${lastCatalogId}`);
+          setIsCatalogContext(true);
       } else {
-          setContinueShoppingUrl('/items');
+          setBackUrl('/items');
+          setIsCatalogContext(false);
       }
 
     } catch (error) {
@@ -235,10 +234,19 @@ export default function CheckoutSuccessPage() {
             </Button>
           </div>
           <div className="mt-4">
-             <Link href={continueShoppingUrl}>
+             <Link href={backUrl}>
                 <Button variant="outline" className="w-full sm:w-auto">
-                    <ShoppingBag className="mr-2 h-4 w-4" />
-                    Seguir Comprando
+                    {isCatalogContext ? (
+                        <>
+                          <ArrowLeft className="mr-2 h-4 w-4" />
+                          Volver al Catálogo
+                        </>
+                    ) : (
+                        <>
+                           <ShoppingBag className="mr-2 h-4 w-4" />
+                            Ver todos los Productos
+                        </>
+                    )}
                 </Button>
             </Link>
           </div>

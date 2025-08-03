@@ -4,6 +4,7 @@
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
+import { Home } from "lucide-react";
 
 const LAST_VISITED_CATALOG_KEY = 'lastVisitedCatalogId';
 
@@ -13,15 +14,18 @@ export default function CheckoutLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [backToShopUrl, setBackToShopUrl] = useState('/items');
+  const [backUrl, setBackUrl] = useState('/items');
+  const [isCatalogContext, setIsCatalogContext] = useState(false);
 
   useEffect(() => {
     // This code runs only on the client, after hydration
     const lastCatalogId = localStorage.getItem(LAST_VISITED_CATALOG_KEY);
     if (lastCatalogId) {
-      setBackToShopUrl(`/catalog/${lastCatalogId}`);
+      setBackUrl(`/catalog/${lastCatalogId}`);
+      setIsCatalogContext(true);
     } else {
-      setBackToShopUrl('/items');
+      setBackUrl('/items');
+      setIsCatalogContext(false);
     }
   }, []);
 
@@ -30,13 +34,20 @@ export default function CheckoutLayout({
     <div>
       <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href={backToShopUrl} className="text-xl font-bold text-primary">
+          <Link href={backUrl} className="text-xl font-bold text-primary">
             Catalogify
           </Link>
-          <Link href={backToShopUrl}>
-            <Button variant="outline">
-                Volver a la tienda
-            </Button>
+          <Link href={backUrl}>
+            {isCatalogContext ? (
+                 <Button variant="outline">
+                    <Home className="mr-2 h-4 w-4" />
+                    Inicio
+                </Button>
+            ) : (
+                <Button variant="outline">
+                    Volver a la tienda
+                </Button>
+            )}
           </Link>
         </div>
       </header>
