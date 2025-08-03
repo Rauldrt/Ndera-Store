@@ -1,8 +1,52 @@
 
-'use client';
-
 import { CartSheet } from "@/components/cart/cart-sheet";
 import Link from 'next/link';
+import type { Metadata, ResolvingMetadata } from 'next';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { Catalog } from '@/types';
+
+type Props = {
+    params: { catalogId: string }
+}
+
+export async function generateMetadata(
+  { params }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const catalogId = params.catalogId;
+
+  try {
+    const docRef = doc(db, 'catalogs', catalogId);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const catalog = docSnap.data() as Catalog;
+      const previousImages = (await parent).openGraph?.images || []
+      
+      return {
+        title: `${catalog.name} | Catalogify`,
+        description: catalog.description,
+        openGraph: {
+          title: catalog.name,
+          description: catalog.description,
+          images: [catalog.imageUrl || `https://placehold.co/1200x630.png`, ...previousImages],
+        },
+      }
+    } else {
+      return {
+        title: 'Catálogo no Encontrado',
+        description: 'El catálogo que buscas no existe o ha sido eliminado.',
+      }
+    }
+  } catch (error) {
+     console.error("Error generating metadata:", error);
+     return {
+        title: 'Error de Catálogo',
+        description: 'No se pudo cargar la información del catálogo.',
+     }
+  }
+}
 
 export default function CatalogLayout({
   children,
@@ -32,5 +76,3 @@ export default function CatalogLayout({
     </div>
   );
 }
-
-    
