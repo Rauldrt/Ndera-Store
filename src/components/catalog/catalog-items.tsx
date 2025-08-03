@@ -1,15 +1,16 @@
+
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, addDoc, serverTimestamp, query, where, orderBy, getDocs, doc, deleteDoc, updateDoc, getDoc, Timestamp } from "firebase/firestore"; // Import Timestamp
+import { collection, addDoc, serverTimestamp, query, where, orderBy, getDocs, doc, deleteDoc, updateDoc, getDoc, Timestamp, writeBatch } from "firebase/firestore"; // Import Timestamp and writeBatch
 import { db } from "@/lib/firebase";
 import type { Catalog, Item } from "@/types";
 import { ItemForm, type ItemFormValues } from '@/components/item/item-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star, Share2 } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star, Share2, Upload } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Input } from '@/components/ui/input';
 import {
@@ -27,6 +28,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
+import Papa from 'papaparse';
 
 interface CatalogItemsProps {
   catalogId: string;
@@ -44,6 +46,9 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -229,6 +234,83 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
      },
    });
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const requiredHeaders = ['name', 'description', 'imageUrl', 'tags', 'isFeatured'];
+        const actualHeaders = results.meta.fields || [];
+        const missingHeaders = requiredHeaders.filter(h => !actualHeaders.includes(h));
+
+        if (missingHeaders.length > 0) {
+          toast({
+            title: 'Error en el Archivo CSV',
+            description: `Faltan las siguientes columnas: ${missingHeaders.join(', ')}`,
+            variant: 'destructive',
+          });
+          setIsImporting(false);
+          return;
+        }
+
+        const itemsToAdd = results.data as any[];
+
+        try {
+          const batch = writeBatch(db);
+          itemsToAdd.forEach(item => {
+            const itemRef = doc(collection(db, "items"));
+            const tagsArray = typeof item.tags === 'string' ? item.tags.split(',').map(t => t.trim()) : [];
+            const isFeaturedBool = item.isFeatured?.toLowerCase() === 'true';
+
+            batch.set(itemRef, {
+              name: item.name || '',
+              description: item.description || '',
+              imageUrl: item.imageUrl || '',
+              tags: tagsArray,
+              isFeatured: isFeaturedBool,
+              catalogId: catalogId,
+              createdAt: serverTimestamp(),
+            });
+          });
+
+          await batch.commit();
+          queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
+          toast({
+            title: 'Importación Exitosa',
+            description: `${itemsToAdd.length} productos han sido añadidos al catálogo.`,
+          });
+        } catch (error) {
+          toast({
+            title: 'Error en la Importación',
+            description: 'No se pudieron guardar los productos. Revisa la consola.',
+            variant: 'destructive',
+          });
+          console.error("Error al importar CSV:", error);
+        } finally {
+          setIsImporting(false);
+        }
+      },
+      error: (error) => {
+        toast({
+          title: 'Error al Leer el Archivo',
+          description: error.message,
+          variant: 'destructive',
+        });
+        setIsImporting(false);
+      },
+    });
+
+    // Reset file input value to allow re-uploading the same file
+    if (event.target) {
+        event.target.value = '';
+    }
+  };
+
 
    const handleAddItem = async (data: ItemFormValues) => {
         await addItemMutation.mutateAsync({ data, catalogId });
@@ -293,6 +375,17 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             )}
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileChange}
+              className="hidden" 
+              accept=".csv"
+            />
+            <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full sm:w-auto flex-shrink-0" disabled={isImporting}>
+                {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                {isImporting ? 'Importando...' : 'Importar CSV'}
+            </Button>
             <Button onClick={handleShareCatalog} variant="outline" className="w-full sm:w-auto flex-shrink-0">
                 <Share2 className="mr-2 h-4 w-4" /> Compartir Catálogo
             </Button>
