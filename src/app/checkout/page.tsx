@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, CreditCard, Landmark, Wallet } from 'lucide-react';
+import { Loader2, CreditCard, Landmark, Wallet, LocateFixed } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { collection, query, where, getDocs, addDoc, updateDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
@@ -52,6 +52,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
+  const [geolocation, setGeolocation] = React.useState<{ latitude: number, longitude: number } | null>(null);
   const total = getCartTotal();
 
   const methods = useForm<CheckoutFormValues>({
@@ -80,11 +81,45 @@ export default function CheckoutPage() {
           email: savedInfo.email || '',
           saveInfo: true, // Marcar la casilla si se encontraron datos
         });
+        if (savedInfo.geolocation) {
+          setGeolocation(savedInfo.geolocation);
+        }
       }
     } catch (error) {
       console.error("Error al cargar la información de envío guardada:", error);
     }
   }, [methods]);
+
+  const handleGetGeolocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setGeolocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+          toast({
+            title: "Ubicación Obtenida",
+            description: "Tu ubicación se ha guardado correctamente.",
+          });
+        },
+        (error) => {
+          toast({
+            title: "Error de Ubicación",
+            description: "No se pudo obtener tu ubicación. Asegúrate de haber concedido los permisos.",
+            variant: "destructive",
+          });
+          console.error("Error al obtener geolocalización:", error);
+        }
+      );
+    } else {
+      toast({
+        title: "Navegador no Compatible",
+        description: "Tu navegador no soporta la geolocalización.",
+        variant: "destructive",
+      });
+    }
+  };
   
 
   const onSubmit = async (data: CheckoutFormValues) => {
@@ -96,6 +131,7 @@ export default function CheckoutPage() {
         address: data.address,
         phone: data.phone,
         email: data.email,
+        geolocation: geolocation,
       };
       try {
         localStorage.setItem(SAVED_SHIPPING_INFO_KEY, JSON.stringify(shippingInfoToSave));
@@ -113,13 +149,17 @@ export default function CheckoutPage() {
         const querySnapshot = await getDocs(q);
         let customerId: string;
 
-        const customerData = {
+        const customerData: any = {
             name: data.name,
             email: data.email,
             phone: data.phone,
             address: data.address,
             lastOrderDate: serverTimestamp(),
         };
+
+        if (geolocation) {
+          customerData.geolocation = geolocation;
+        }
 
         if (querySnapshot.empty) {
             // New customer
@@ -228,19 +268,30 @@ export default function CheckoutPage() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={methods.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Dirección de Envío</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ej: Calle Falsa 123, Springfield" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                  <div className="space-y-2">
+                    <Label>Dirección de Envío</Label>
+                    <FormField
+                      control={methods.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem className="!mt-0">
+                          <FormControl>
+                            <Input placeholder="Ej: Calle Falsa 123, Springfield" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <Button type="button" variant="outline" size="sm" onClick={handleGetGeolocation}>
+                      <LocateFixed className="mr-2 h-4 w-4" />
+                      Obtener Ubicación Actual
+                    </Button>
+                    {geolocation && (
+                      <p className="text-xs text-muted-foreground">
+                        Ubicación guardada: {geolocation.latitude.toFixed(4)}, {geolocation.longitude.toFixed(4)}
+                      </p>
                     )}
-                  />
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={methods.control}

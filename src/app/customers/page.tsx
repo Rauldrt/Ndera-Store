@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, Users, PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
+import { AlertTriangle, Users, PlusCircle, Edit, Trash2, Loader2, MapPin } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -142,7 +142,7 @@ export default function CustomersPage() {
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead className="hidden sm:table-cell">Email</TableHead>
-                  <TableHead className="hidden md:table-cell">Teléfono</TableHead>
+                  <TableHead className="hidden md:table-cell">Ubicación</TableHead>
                   <TableHead className="hidden lg:table-cell">Última Compra</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -184,7 +184,21 @@ export default function CustomersPage() {
                   <TableRow key={customer.id}>
                     <TableCell className="font-medium">{customer.name}</TableCell>
                     <TableCell className="hidden sm:table-cell">{customer.email}</TableCell>
-                    <TableCell className="hidden md:table-cell">{customer.phone}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {customer.geolocation ? (
+                         <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${customer.geolocation.latitude},${customer.geolocation.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-primary hover:underline"
+                        >
+                          <MapPin className="h-4 w-4" />
+                          Ver en Mapa
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">No disponible</span>
+                      )}
+                    </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       {customer.lastOrderDate ? new Date(customer.lastOrderDate.seconds * 1000).toLocaleDateString() : 'N/A'}
                     </TableCell>

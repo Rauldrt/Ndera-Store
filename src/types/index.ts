@@ -32,6 +32,10 @@ export interface Customer {
     email: string;
     phone: string;
     address: string;
+    geolocation?: {
+      latitude: number;
+      longitude: number;
+    };
     createdAt: Timestamp;
     lastOrderDate: Timestamp;
 }
