@@ -2,18 +2,31 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { collection, query, orderBy, getDocs, Timestamp } from 'firebase/firestore';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { collection, query, orderBy, getDocs, Timestamp, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Order } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, ShoppingCart, Eye } from 'lucide-react';
+import { AlertTriangle, ShoppingCart, Eye, Trash2, Download, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Explicitly type the order data fetched from Firestore
 interface OrderFromDB extends Omit<Order, 'createdAt'> {
@@ -22,7 +35,11 @@ interface OrderFromDB extends Omit<Order, 'createdAt'> {
 }
 
 export default function OrdersPage() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<OrderFromDB | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
 
   const { data: orders, isLoading, error } = useQuery<OrderFromDB[]>({
     queryKey: ['orders'],
@@ -33,6 +50,76 @@ export default function OrdersPage() {
       return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as OrderFromDB));
     },
   });
+
+  const deleteOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      await deleteDoc(doc(db, 'orders', orderId));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      toast({ title: 'Pedido Eliminado', description: 'El pedido ha sido eliminado del historial.' });
+      setShowDeleteDialog(false);
+      setOrderToDelete(null);
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: `No se pudo eliminar el pedido: ${(error as Error).message}`, variant: 'destructive' });
+      setShowDeleteDialog(false);
+      setOrderToDelete(null);
+    },
+  });
+
+  const handleDeleteClick = (orderId: string) => {
+    setOrderToDelete(orderId);
+    setShowDeleteDialog(true);
+  };
+
+  const generateOrderPDF = (order: OrderFromDB) => {
+    const doc = new jsPDF();
+    const { customerInfo, items, total, createdAt, paymentMethod } = order;
+
+    doc.setFontSize(22);
+    doc.text('Comprobante de Pedido', 105, 20, { align: 'center' });
+
+    doc.setFontSize(12);
+    doc.text('Información del Cliente:', 14, 40);
+    doc.setFontSize(10);
+    doc.text(`Nombre: ${customerInfo.name}`, 14, 48);
+    doc.text(`Email: ${customerInfo.email}`, 14, 54);
+
+    doc.setFontSize(12);
+    doc.text('Detalles del Pedido:', 105, 40);
+    doc.setFontSize(10);
+    doc.text(`Fecha: ${new Date(createdAt.seconds * 1000).toLocaleDateString()}`, 105, 48);
+    doc.text(`Total: $${total.toFixed(2)}`, 105, 54);
+    const paymentMethodText = getPaymentMethodText(paymentMethod);
+    doc.text(`Método de Pago: ${paymentMethodText}`, 105, 60);
+
+    const tableColumn = ["Producto", "Cantidad", "Precio Unitario", "Subtotal"];
+    const tableRows = items.map(item => [
+      item.name,
+      item.quantity,
+      `$${item.price.toFixed(2)}`,
+      `$${(item.price * item.quantity).toFixed(2)}`
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 75,
+      headStyles: { fillColor: [22, 163, 74] },
+      styles: { halign: 'center' },
+      columnStyles: { 0: { halign: 'left' } }
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY || 75;
+    doc.setFontSize(14);
+    doc.text(`Total del Pedido: $${total.toFixed(2)}`, 14, finalY + 15);
+
+    doc.setFontSize(10);
+    doc.text('¡Gracias por la compra!', 105, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+
+    doc.save(`comprobante-pedido-${order.id}.pdf`);
+  };
 
   const getPaymentMethodVariant = (method: string): 'default' | 'secondary' => {
     switch (method) {
@@ -55,7 +142,7 @@ export default function OrdersPage() {
       <Card>
         <CardHeader>
           <CardTitle>Todos los Pedidos</CardTitle>
-          <CardDescription>Aquí puedes ver el historial completo de pedidos. Haz clic en un pedido para ver los detalles.</CardDescription>
+          <CardDescription>Aquí puedes ver el historial completo de pedidos y realizar acciones.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -66,7 +153,7 @@ export default function OrdersPage() {
                   <TableHead>Cliente</TableHead>
                   <TableHead className="hidden sm:table-cell w-[150px]">Forma de Pago</TableHead>
                   <TableHead className="hidden md:table-cell text-right w-[120px]">Total</TableHead>
-                  <TableHead className="w-[120px] text-center">Acciones</TableHead>
+                  <TableHead className="text-right w-[200px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -77,7 +164,7 @@ export default function OrdersPage() {
                       <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                       <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-28" /></TableCell>
                       <TableCell className="hidden md:table-cell text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
-                      <TableCell className="text-center"><Skeleton className="h-8 w-24 mx-auto" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-40 ml-auto" /></TableCell>
                     </TableRow>
                   ))
                 )}
@@ -103,7 +190,7 @@ export default function OrdersPage() {
                   </TableRow>
                 )}
                 {!isLoading && !error && orders?.map(order => (
-                  <TableRow key={order.id} onClick={() => setSelectedOrder(order)} className="cursor-pointer">
+                  <TableRow key={order.id}>
                     <TableCell>
                       {new Date(order.createdAt.seconds * 1000).toLocaleDateString()}
                     </TableCell>
@@ -117,11 +204,21 @@ export default function OrdersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-right font-semibold">${order.total.toFixed(2)}</TableCell>
-                    <TableCell className="text-center">
-                       <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Ver
-                        </Button>
+                    <TableCell className="text-right">
+                       <div className="flex justify-end gap-2">
+                         <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(order)} title="Ver Detalles">
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">Ver Detalles</span>
+                         </Button>
+                         <Button variant="ghost" size="icon" onClick={() => generateOrderPDF(order)} title="Descargar PDF">
+                            <Download className="h-4 w-4" />
+                            <span className="sr-only">Descargar PDF</span>
+                         </Button>
+                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteClick(order.id)} title="Eliminar Pedido">
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Eliminar Pedido</span>
+                         </Button>
+                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -181,6 +278,31 @@ export default function OrdersPage() {
           )}
         </DialogContent>
       </Dialog>
+      
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. El pedido será eliminado permanentemente del historial.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (orderToDelete) deleteOrderMutation.mutate(orderToDelete);
+              }}
+              disabled={deleteOrderMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteOrderMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
-}
+
+    
