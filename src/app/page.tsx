@@ -472,6 +472,17 @@ export default function Home() {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardFooter className="mt-auto p-2 flex justify-end gap-2">
+                                     <Button 
+                                        variant={'outline'}
+                                        size="sm" 
+                                        onClick={(e) => handleShareCatalog(catalog.id, e)}
+                                        className={cn(
+                                            "z-10",
+                                            catalog.imageUrl && "bg-white/80 border-gray-300 text-gray-800 hover:bg-white hover:border-gray-400"
+                                        )}
+                                    >
+                                        <Share2 className="mr-2 h-4 w-4" /> Compartir
+                                    </Button>
                                     <Button 
                                         variant={'outline'}
                                         size="sm" 
