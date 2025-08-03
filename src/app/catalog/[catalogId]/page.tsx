@@ -124,7 +124,7 @@ export default function CatalogPage() {
         return;
     }
     const price = Math.floor(Math.random() * 100) + 10;
-    addToCart({ ...item, price, quantity: 1, createdAt: item.createdAt, catalogName: catalogDetails.name });
+    addToCart({ ...item, price, quantity: 1, createdAt: item.createdAt, catalogName: catalogDetails.name }, catalogId);
     toast({
       title: "Producto Añadido",
       description: `${item.name} ha sido añadido a tu carrito.`,
@@ -308,5 +308,3 @@ export default function CatalogPage() {
     </div>
   );
 }
-
-    

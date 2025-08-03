@@ -122,7 +122,7 @@ export default function AllItemsPage() {
     }
     const price = Math.floor(Math.random() * 100) + 10;
     const catalogName = await getCatalogName(item.catalogId);
-    addToCart({ ...item, price, quantity: 1, createdAt: item.createdAt, catalogName });
+    addToCart({ ...item, price, quantity: 1, createdAt: item.createdAt, catalogName }, item.catalogId);
     toast({
       title: "Producto Añadido",
       description: `${item.name} ha sido añadido a tu carrito.`,

@@ -35,6 +35,8 @@ interface OrderDetails {
 }
 
 const ORDER_DETAILS_KEY = 'orderDetails';
+const LAST_VISITED_CATALOG_KEY = 'lastVisitedCatalogId';
+
 
 // Simple component for WhatsApp icon
 const WhatsAppIcon = () => (
@@ -54,6 +56,7 @@ const WhatsAppIcon = () => (
 export default function CheckoutSuccessPage() {
   const router = useRouter();
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
+  const [continueShoppingUrl, setContinueShoppingUrl] = useState('/items');
 
   useEffect(() => {
     try {
@@ -67,6 +70,15 @@ export default function CheckoutSuccessPage() {
         // If there are no details, redirect to the store
         router.replace('/items');
       }
+
+      // Set the "Continue Shopping" URL
+      const lastCatalogId = localStorage.getItem(LAST_VISITED_CATALOG_KEY);
+      if (lastCatalogId) {
+          setContinueShoppingUrl(`/catalog/${lastCatalogId}`);
+      } else {
+          setContinueShoppingUrl('/items');
+      }
+
     } catch (error) {
       console.error("Error al cargar los detalles del pedido:", error);
       router.replace('/items');
@@ -223,7 +235,7 @@ export default function CheckoutSuccessPage() {
             </Button>
           </div>
           <div className="mt-4">
-             <Link href="/items">
+             <Link href={continueShoppingUrl}>
                 <Button variant="outline" className="w-full sm:w-auto">
                     <ShoppingBag className="mr-2 h-4 w-4" />
                     Seguir Comprando

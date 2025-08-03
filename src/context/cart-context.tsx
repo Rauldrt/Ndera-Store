@@ -6,9 +6,12 @@ import type { CartItem } from '@/types';
 
 type CheckoutStep = 'cart' | 'shipping' | 'payment' | 'confirmation';
 
+const LAST_VISITED_CATALOG_KEY = 'lastVisitedCatalogId';
+
+
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (item: CartItem) => void;
+  addToCart: (item: CartItem, catalogId: string) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
@@ -46,7 +49,7 @@ export function CartProvider({ children }: CartProviderProps) {
     localStorage.setItem('shoppingCart', JSON.stringify(cart));
   }, [cart]);
 
-  const addToCart = (itemToAdd: CartItem) => {
+  const addToCart = (itemToAdd: CartItem, catalogId: string) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === itemToAdd.id);
       if (existingItem) {
@@ -56,6 +59,10 @@ export function CartProvider({ children }: CartProviderProps) {
       }
       return [...prevCart, { ...itemToAdd, quantity: 1 }];
     });
+    // Save the last catalog ID to local storage
+    if (typeof window !== 'undefined' && catalogId) {
+        localStorage.setItem(LAST_VISITED_CATALOG_KEY, catalogId);
+    }
   };
 
   const removeFromCart = (itemId: string) => {
@@ -74,6 +81,9 @@ export function CartProvider({ children }: CartProviderProps) {
 
   const clearCart = () => {
     setCart([]);
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem(LAST_VISITED_CATALOG_KEY);
+    }
   };
 
   const getCartTotal = () => {
