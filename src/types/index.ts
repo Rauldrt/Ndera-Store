@@ -3,7 +3,8 @@ import type { Timestamp } from 'firebase/firestore';
 export interface Catalog {
   id: string;
   name: string;
-  description: string; // Keep description optional as per form schema
+  description: string;
+  imageUrl?: string; // Optional image for the catalog card background
   createdAt: Timestamp; // Use Firestore Timestamp
 }
 

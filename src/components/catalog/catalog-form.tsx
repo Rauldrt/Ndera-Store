@@ -22,6 +22,7 @@ import type { Catalog } from "@/types";
 const catalogFormSchema = z.object({
   name: z.string().min(1, "El nombre del catálogo es obligatorio").max(100, "Nombre demasiado largo"),
   description: z.string().max(500, "Descripción demasiado larga").optional(),
+  imageUrl: z.string().url("Formato de URL inválido. Por favor, introduce una URL válida https:// o http://.").optional().or(z.literal("")),
 });
 
 type CatalogFormValues = z.infer<typeof catalogFormSchema>;
@@ -38,6 +39,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
     defaultValues: {
       name: initialData?.name || "",
       description: initialData?.description || "",
+      imageUrl: initialData?.imageUrl || "",
     },
   });
 
@@ -79,6 +81,23 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
                 </FormItem>
               )}
             />
+             <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem className="w-full">
+                  <FormLabel>URL de Imagen de Fondo (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="url" 
+                      placeholder="https://placehold.co/600x400.png" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (initialData?.id ? "Guardando..." : "Creando...") : (initialData?.id ? "Guardar Cambios" : "Crear Catálogo")}
             </Button>
@@ -88,5 +107,3 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
     </Card>
   );
 }
-
-    

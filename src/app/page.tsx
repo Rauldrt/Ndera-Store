@@ -38,6 +38,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FabMenu } from '@/components/ui/fab';
 import Link from 'next/link';
 import { CartSheet } from '@/components/cart/cart-sheet';
+import Image from 'next/image';
 
 
 export default function Home() {
@@ -61,6 +62,7 @@ export default function Home() {
                 id: doc.id,
                 name: data.name,
                 description: data.description,
+                imageUrl: data.imageUrl,
                 createdAt: data.createdAt as Timestamp,
             } as Catalog;
         });
@@ -68,7 +70,7 @@ export default function Home() {
   });
 
   const addCatalogMutation = useMutation({
-    mutationFn: async (newCatalogData: Pick<Catalog, 'name' | 'description'>): Promise<string> => {
+    mutationFn: async (newCatalogData: Pick<Catalog, 'name' | 'description' | 'imageUrl'>): Promise<string> => {
         const docRef = await addDoc(collection(db, "catalogs"), {
             ...newCatalogData,
             createdAt: serverTimestamp(),
@@ -96,7 +98,7 @@ export default function Home() {
   });
 
   const updateCatalogMutation = useMutation({
-      mutationFn: async ({ id, data }: { id: string, data: Partial<Pick<Catalog, 'name' | 'description'>> }) => {
+      mutationFn: async ({ id, data }: { id: string, data: Partial<Pick<Catalog, 'name' | 'description' | 'imageUrl'>> }) => {
           const catalogRef = doc(db, "catalogs", id);
           await updateDoc(catalogRef, data);
       },
@@ -160,11 +162,11 @@ export default function Home() {
   });
 
 
-  const handleCreateCatalog = async (data: Pick<Catalog, 'name' | 'description'>) => {
+  const handleCreateCatalog = async (data: Pick<Catalog, 'name' | 'description' | 'imageUrl'>) => {
     addCatalogMutation.mutate(data);
   };
 
-   const handleUpdateCatalog = async (data: Pick<Catalog, 'name' | 'description'>) => {
+   const handleUpdateCatalog = async (data: Pick<Catalog, 'name' | 'description' | 'imageUrl'>) => {
         if (editingCatalog?.id) {
             updateCatalogMutation.mutate({ id: editingCatalog.id, data });
         }
@@ -182,7 +184,8 @@ export default function Home() {
       setEditingCatalog(null);
   }
 
-  const handleEditCatalog = (catalog: Catalog) => {
+  const handleEditCatalog = (catalog: Catalog, e: React.MouseEvent) => {
+      e.stopPropagation(); // Prevent card click from firing
       setEditingCatalog(catalog);
       setSelectedCatalogId(null); 
       setShowCatalogForm(true);
@@ -308,7 +311,7 @@ export default function Home() {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                            onClick={(e) => { e.stopPropagation(); handleEditCatalog(catalog); }}
+                            onClick={(e) => handleEditCatalog(catalog, e)}
                             title={`Editar ${catalog.name}`}
                         >
                            <Edit className="h-4 w-4" />
@@ -378,7 +381,6 @@ export default function Home() {
                             </CardHeader>
                             <CardFooter>
                                 <Skeleton className="h-10 w-24" />
-                                <Skeleton className="h-10 w-24" />
                             </CardFooter>
                         </Card>
                     ))}
@@ -410,19 +412,45 @@ export default function Home() {
               {!isLoadingCatalogs && !catalogsError && catalogs && catalogs.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {catalogs.map(catalog => (
-                        <Card key={catalog.id} className="flex flex-col">
-                            <CardHeader>
-                                <CardTitle className="text-xl line-clamp-2">{catalog.name}</CardTitle>
-                                <CardDescription className="line-clamp-3 h-[60px]">{catalog.description || 'Sin descripción.'}</CardDescription>
-                            </CardHeader>
-                            <CardFooter className="mt-auto flex justify-end gap-2">
-                                <Button variant="outline" size="sm" onClick={() => handleEditCatalog(catalog)}>
-                                    <Edit className="mr-2 h-4 w-4" /> Editar
-                                </Button>
-                                <Button size="sm" onClick={() => handleSelectCatalog(catalog.id)}>
-                                    <Eye className="mr-2 h-4 w-4" /> Ver
-                                </Button>
-                            </CardFooter>
+                        <Card 
+                            key={catalog.id} 
+                            className="group relative flex flex-col overflow-hidden rounded-lg shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1.5 cursor-pointer"
+                            onClick={() => handleSelectCatalog(catalog.id)}
+                        >
+                            {catalog.imageUrl ? (
+                                <>
+                                    <Image
+                                        src={catalog.imageUrl}
+                                        alt={`Imagen de ${catalog.name}`}
+                                        fill
+                                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                        data-ai-hint="background image"
+                                    />
+                                    <div className="absolute inset-0 bg-black/50 group-hover:bg-black/60 transition-colors" />
+                                </>
+                            ) : (
+                                <div className="absolute inset-0 bg-gradient-to-br from-card to-secondary" />
+                            )}
+                            <div className="relative flex flex-col flex-grow p-4 text-white">
+                                <CardHeader className="p-2">
+                                    <CardTitle className={`text-2xl line-clamp-2 ${catalog.imageUrl ? 'text-white' : 'text-card-foreground'}`}>
+                                        {catalog.name}
+                                    </CardTitle>
+                                    <CardDescription className={`line-clamp-3 h-[60px] ${catalog.imageUrl ? 'text-white/80' : 'text-muted-foreground'}`}>
+                                        {catalog.description || 'Sin descripción.'}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardFooter className="mt-auto p-2 flex justify-end gap-2">
+                                    <Button 
+                                        variant={catalog.imageUrl ? 'secondary' : 'outline'}
+                                        size="sm" 
+                                        onClick={(e) => handleEditCatalog(catalog, e)}
+                                        className="z-10"
+                                    >
+                                        <Edit className="mr-2 h-4 w-4" /> Editar
+                                    </Button>
+                                </CardFooter>
+                            </div>
                         </Card>
                     ))}
                 </div>
