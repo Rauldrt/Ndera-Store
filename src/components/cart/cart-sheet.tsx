@@ -13,6 +13,7 @@ import type { CartItem } from '@/types';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+const SAVED_SHIPPING_INFO_KEY = 'savedShippingInfo';
 
 export function CartSheet() {
   const { cart, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart();
@@ -65,7 +66,26 @@ export function CartSheet() {
       message += `Cantidad: ${item.quantity}\n`;
       message += `Precio: $${(item.price * item.quantity).toFixed(2)}\n\n`;
     });
-    message += `*Total estimado: $${total.toFixed(2)}*`;
+    message += `*Total estimado: $${total.toFixed(2)}*\n\n`;
+
+    // Check for saved shipping info in localStorage
+    try {
+        const savedInfoRaw = localStorage.getItem(SAVED_SHIPPING_INFO_KEY);
+        if (savedInfoRaw) {
+            const savedInfo = JSON.parse(savedInfoRaw);
+            message += `------------------------\n`;
+            message += `*Últimos datos de envío guardados:*\n`;
+            message += `*Cliente:* ${savedInfo.name}\n`;
+            message += `*Dirección:* ${savedInfo.address}\n`;
+            if (savedInfo.geolocation) {
+                const { latitude, longitude } = savedInfo.geolocation;
+                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+                message += `*Ubicación:* ${mapsUrl}\n`;
+            }
+        }
+    } catch (e) {
+        console.warn("No se pudo leer la información de envío guardada para el presupuesto.");
+    }
 
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');

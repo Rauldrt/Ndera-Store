@@ -18,6 +18,10 @@ interface OrderDetails {
     address: string;
     phone: string;
     email: string;
+    geolocation?: {
+        latitude: number;
+        longitude: number;
+    }
   };
   paymentMethod: string;
   items: {
@@ -131,6 +135,12 @@ export default function CheckoutSuccessPage() {
 
     let message = `¡Hola! Aquí está el resumen de mi pedido:\n\n`;
     message += `*Cliente:* ${shipping.name}\n`;
+    message += `*Dirección:* ${shipping.address}\n`;
+    if (shipping.geolocation) {
+        const { latitude, longitude } = shipping.geolocation;
+        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+        message += `*Ubicación:* ${mapsUrl}\n`;
+    }
     message += `*Fecha:* ${new Date(orderDate).toLocaleDateString()}\n`;
     message += `*Método de Pago:* ${paymentMethodText}\n`;
     message += `------------------------\n\n`;
@@ -191,6 +201,16 @@ export default function CheckoutSuccessPage() {
                 <p className="text-sm text-muted-foreground">{orderDetails.shipping.name}</p>
                 <p className="text-sm text-muted-foreground">{orderDetails.shipping.address}</p>
                 <p className="text-sm text-muted-foreground">{orderDetails.shipping.email}</p>
+                 {orderDetails.shipping.geolocation && (
+                    <a 
+                        href={`https://www.google.com/maps/search/?api=1&query=${orderDetails.shipping.geolocation.latitude},${orderDetails.shipping.geolocation.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:underline"
+                    >
+                        Ver ubicación en el mapa
+                    </a>
+                )}
             </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
             <Button onClick={generatePDF} className="w-full sm:w-auto">

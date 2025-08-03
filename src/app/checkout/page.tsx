@@ -202,6 +202,7 @@ export default function CheckoutPage() {
             address: data.address,
             phone: data.phone,
             email: data.email,
+            geolocation: geolocation, // Add geolocation here
           },
           paymentMethod: data.paymentMethod,
           items: cart.map(item => ({
@@ -236,7 +237,7 @@ export default function CheckoutPage() {
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8 flex items-center justify-center min-h-[calc(100vh-200px)]">
             <div className="text-center">
-                 <p className="mt-4 text-muted-foreground">Tu carrito está vacío.</p>
+                 <p className="mt-4 text-muted-foreground">Cargando...</p>
             </div>
         </div>
     );
