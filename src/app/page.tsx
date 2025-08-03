@@ -417,21 +417,23 @@ export default function Home() {
                             className="group relative flex flex-col overflow-hidden rounded-lg shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1.5 cursor-pointer"
                             onClick={() => handleSelectCatalog(catalog.id)}
                         >
-                            {catalog.imageUrl ? (
-                                <>
-                                    <Image
-                                        src={catalog.imageUrl}
-                                        alt={`Imagen de ${catalog.name}`}
-                                        fill
-                                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                                        data-ai-hint="background image"
-                                    />
-                                    <div className="absolute inset-0 bg-black/50 group-hover:bg-black/60 transition-colors" />
-                                </>
-                            ) : (
-                                <div className="absolute inset-0 bg-gradient-to-br from-card to-secondary" />
-                            )}
-                            <div className="relative flex flex-col flex-grow p-4 text-white">
+                             <div className="absolute inset-0">
+                                {catalog.imageUrl ? (
+                                    <>
+                                        <Image
+                                            src={catalog.imageUrl}
+                                            alt={`Imagen de ${catalog.name}`}
+                                            fill
+                                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                            data-ai-hint="background image"
+                                        />
+                                        <div className="absolute inset-0 bg-black/50 group-hover:bg-black/60 transition-colors" />
+                                    </>
+                                ) : (
+                                    <div className="absolute inset-0 bg-gradient-to-br from-card to-secondary" />
+                                )}
+                            </div>
+                            <div className="relative flex flex-col flex-grow p-4">
                                 <CardHeader className="p-2">
                                     <CardTitle className={`text-2xl line-clamp-2 ${catalog.imageUrl ? 'text-white' : 'text-card-foreground'}`}>
                                         {catalog.name}
@@ -442,10 +444,13 @@ export default function Home() {
                                 </CardHeader>
                                 <CardFooter className="mt-auto p-2 flex justify-end gap-2">
                                     <Button 
-                                        variant={catalog.imageUrl ? 'secondary' : 'outline'}
+                                        variant={'outline'}
                                         size="sm" 
                                         onClick={(e) => handleEditCatalog(catalog, e)}
-                                        className="z-10"
+                                        className={cn(
+                                            "z-10",
+                                            catalog.imageUrl && "bg-white/80 border-gray-300 text-gray-800 hover:bg-white hover:border-gray-400"
+                                        )}
                                     >
                                         <Edit className="mr-2 h-4 w-4" /> Editar
                                     </Button>
