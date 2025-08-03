@@ -10,7 +10,7 @@ import { ItemForm, type ItemFormValues } from '@/components/item/item-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star, Share2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
@@ -252,6 +252,25 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         setShowDeleteDialog(true);
     };
 
+    const handleShareCatalog = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const url = `${window.location.origin}/catalog/${catalogId}`;
+        try {
+          await navigator.clipboard.writeText(url);
+          toast({
+            title: "Enlace Copiado",
+            description: "El enlace público a este catálogo se ha copiado al portapapeles.",
+          });
+        } catch (err) {
+          toast({
+            title: "Error",
+            description: "No se pudo copiar el enlace.",
+            variant: "destructive",
+          });
+        }
+      };
+    
+
     const handleCancelForm = () => {
         setShowItemForm(false);
         setEditingItem(null);
@@ -275,9 +294,14 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                 catalogDetails?.description && <p className="text-muted-foreground mt-1 text-sm sm:text-base">{catalogDetails.description}</p>
             )}
         </div>
-        <Button onClick={() => { setEditingItem(null); setShowItemForm(true); }} className="w-full sm:w-auto flex-shrink-0">
-          <PlusCircle className="mr-2 h-4 w-4" /> Añadir Nuevo Producto
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button onClick={handleShareCatalog} variant="outline" className="w-full sm:w-auto flex-shrink-0">
+                <Share2 className="mr-2 h-4 w-4" /> Compartir Catálogo
+            </Button>
+            <Button onClick={() => { setEditingItem(null); setShowItemForm(true); }} className="w-full sm:w-auto flex-shrink-0">
+            <PlusCircle className="mr-2 h-4 w-4" /> Añadir Nuevo Producto
+            </Button>
+        </div>
       </div>
 
       <Dialog open={showItemForm} onOpenChange={(isOpen) => {

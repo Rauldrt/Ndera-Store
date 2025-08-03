@@ -16,7 +16,7 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, Home as HomeIcon, Boxes, Library, Eye, Users, ClipboardList } from "lucide-react";
+import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, Home as HomeIcon, Boxes, Library, Eye, Users, ClipboardList, Share2 } from "lucide-react";
 import { CatalogForm } from "@/components/catalog/catalog-form";
 import type { Catalog } from "@/types";
 import { db } from "@/lib/firebase";
@@ -193,6 +193,24 @@ export default function Home() {
       setShowCatalogForm(true);
   }
 
+  const handleShareCatalog = async (catalogId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/catalog/${catalogId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: "Enlace Copiado",
+        description: "El enlace al catálogo ha sido copiado a tu portapapeles.",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "No se pudo copiar el enlace.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleOpenCreateForm = () => {
     setShowCatalogForm(true);
     setSelectedCatalogId(null);
@@ -309,6 +327,15 @@ export default function Home() {
                         <span>{catalog.name}</span>
                     </SidebarMenuButton>
                      <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex gap-0.5 opacity-0 group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100 transition-opacity group-data-[collapsible=icon]:hidden">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                            onClick={(e) => handleShareCatalog(catalog.id, e)}
+                            title={`Compartir ${catalog.name}`}
+                        >
+                           <Share2 className="h-4 w-4" />
+                        </Button>
                         <Button
                             variant="ghost"
                             size="icon"
