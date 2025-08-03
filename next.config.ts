@@ -35,6 +35,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'w7.pngwing.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   devIndicators: {
