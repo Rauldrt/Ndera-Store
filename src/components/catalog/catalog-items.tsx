@@ -70,6 +70,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                id: doc.id,
                name: data.name,
                description: data.description,
+               price: data.price,
                imageUrl: data.imageUrl,
                tags: data.tags,
                createdAt: data.createdAt as Timestamp,
@@ -138,6 +139,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         const newItemData: Omit<Item, 'id' | 'createdAt'> & { catalogId: string } = {
             name: data.name,
             description: data.description,
+            price: data.price,
             imageUrl: data.imageUrl,
             tags: Array.isArray(data.tags) ? data.tags : [],
             catalogId: currentCatalogId,
@@ -179,6 +181,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
              const updateData: Partial<Omit<Item, 'id' | 'createdAt' | 'catalogId'>> = {
                 name: data.name,
                 description: data.description,
+                price: data.price,
                 imageUrl: data.imageUrl,
                 tags: Array.isArray(data.tags) ? data.tags : [],
                 isFeatured: data.isFeatured,
@@ -244,7 +247,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       header: true,
       skipEmptyLines: true,
       complete: async (results) => {
-        const requiredHeaders = ['name', 'description', 'imageUrl', 'tags', 'isFeatured'];
+        const requiredHeaders = ['name', 'description', 'price', 'imageUrl', 'tags', 'isFeatured'];
         const actualHeaders = results.meta.fields || [];
         const missingHeaders = requiredHeaders.filter(h => !actualHeaders.includes(h));
 
@@ -266,10 +269,12 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             const itemRef = doc(collection(db, "items"));
             const tagsArray = typeof item.tags === 'string' ? item.tags.split(',').map(t => t.trim()) : [];
             const isFeaturedBool = item.isFeatured?.toLowerCase() === 'true';
+            const priceNumber = parseFloat(item.price);
 
             batch.set(itemRef, {
               name: item.name || '',
               description: item.description || '',
+              price: isNaN(priceNumber) ? 0 : priceNumber,
               imageUrl: item.imageUrl || '',
               tags: tagsArray,
               isFeatured: isFeaturedBool,
@@ -324,6 +329,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     const dataToExport = itemsWithTimestamp.map(item => ({
       name: item.name,
       description: item.description,
+      price: item.price,
       imageUrl: item.imageUrl || '',
       tags: Array.isArray(item.tags) ? item.tags.join(',') : '',
       isFeatured: item.isFeatured || false,
@@ -501,9 +507,9 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                                                 <ImageOff size={48} />
                                             </div>
                                         )}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/60 p-4 flex flex-col justify-center items-center text-center">
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4 flex flex-col justify-end">
                                             <CardTitle className="text-2xl font-bold text-white shadow-black [text-shadow:0_2px_4px_var(--tw-shadow-color)] line-clamp-2">{item.name}</CardTitle>
-                                            <CardDescription className="text-white/90 text-base mt-2 [text-shadow:0_1px_2px_var(--tw-shadow-color)] line-clamp-3">{item.description}</CardDescription>
+                                            <p className="text-lg font-semibold text-white mt-1 [text-shadow:0_1px_2px_var(--tw-shadow-color)]">${item.price.toFixed(2)}</p>
                                         </div>
                                     </Card>
                                 </div>
@@ -614,7 +620,8 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                  </div>
               </CardHeader>
               <CardContent className="flex-grow p-4 flex flex-col">
-                 <CardTitle className="text-lg mb-2 line-clamp-2 font-semibold">{item.name}</CardTitle>
+                 <CardTitle className="text-lg mb-1 line-clamp-2 font-semibold">{item.name}</CardTitle>
+                 <p className="text-md font-bold text-primary mb-2">${item.price.toFixed(2)}</p>
                  <CardDescription className="text-sm mb-4 line-clamp-3 flex-grow">{item.description}</CardDescription>
                  <div className="flex flex-wrap gap-1.5 mt-auto">
                    {Array.isArray(item.tags) && item.tags.slice(0, 5).map((tag) => (

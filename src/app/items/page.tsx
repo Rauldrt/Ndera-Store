@@ -55,6 +55,7 @@ export default function AllItemsPage() {
           id: doc.id,
           name: data.name,
           description: data.description,
+          price: data.price,
           imageUrl: data.imageUrl,
           tags: data.tags,
           createdAt: data.createdAt as Timestamp,
@@ -118,9 +119,8 @@ export default function AllItemsPage() {
         });
         return;
     }
-    const price = Math.floor(Math.random() * 100) + 10;
     const catalogName = await getCatalogName(item.catalogId);
-    addToCart({ ...item, price, quantity: 1, createdAt: item.createdAt, catalogName }, item.catalogId);
+    addToCart({ ...item, quantity: 1, createdAt: item.createdAt, catalogName }, item.catalogId);
     toast({
       title: "Producto Añadido",
       description: `${item.name} ha sido añadido a tu carrito.`,
@@ -173,7 +173,8 @@ export default function AllItemsPage() {
             </div>
           </CardHeader>
           <CardContent className="flex-grow p-4 flex flex-col">
-            <CardTitle className="text-lg mb-2 line-clamp-2 font-semibold">{item.name}</CardTitle>
+            <CardTitle className="text-lg mb-1 line-clamp-2 font-semibold">{item.name}</CardTitle>
+            <p className="text-md font-bold text-primary mb-2">${item.price.toFixed(2)}</p>
             <CardDescription className="text-sm mb-4 line-clamp-3 flex-grow">{item.description}</CardDescription>
             <div className="flex flex-wrap gap-1.5 mt-auto">
               {Array.isArray(item.tags) && item.tags.slice(0, 5).map((tag) => (
@@ -235,7 +236,7 @@ export default function AllItemsPage() {
                           return (
                             <CarouselItem key={item.id} className="md:basis-1/2 lg:basis-1/3 pl-4">
                                 <div className="p-1 h-full">
-                                    <Card className="group relative w-full h-full aspect-video overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
+                                    <Card className="group relative w-full h-full aspect-[4/3] overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
                                         <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
                                         {itemInCart ? (
                                             <div className="flex items-center justify-center gap-2 rounded-full bg-background/80 p-1">
@@ -272,9 +273,9 @@ export default function AllItemsPage() {
                                                 <ImageOff size={48} />
                                             </div>
                                         )}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/60 p-4 flex flex-col justify-center items-center text-center">
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4 flex flex-col justify-end">
                                             <CardTitle className="text-2xl font-bold text-white shadow-black [text-shadow:0_2px_4px_var(--tw-shadow-color)] line-clamp-2">{item.name}</CardTitle>
-                                            <CardDescription className="text-white/90 text-base mt-2 [text-shadow:0_1px_2px_var(--tw-shadow-color)] line-clamp-3">{item.description}</CardDescription>
+                                            <p className="text-lg font-semibold text-white mt-1 [text-shadow:0_1px_2px_var(--tw-shadow-color)]">${item.price.toFixed(2)}</p>
                                         </div>
                                     </Card>
                                 </div>

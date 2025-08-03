@@ -13,6 +13,7 @@ export interface Item {
   catalogId: string;
   name: string;
   description: string;
+  price: number; // The price of the item
   imageUrl?: string; // Optional image URL
   tags: string[];
   createdAt: Timestamp; // Use Firestore Timestamp
@@ -22,7 +23,6 @@ export interface Item {
 // Defines the structure for an item inside the shopping cart
 export interface CartItem extends Item {
     quantity: number;
-    price: number; // Added for cart functionality
     catalogName?: string; // Optional catalog name
 }
 

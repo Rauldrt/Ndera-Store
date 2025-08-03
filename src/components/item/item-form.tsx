@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as CardDesc } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Lightbulb, Loader2, Info } from "lucide-react"; 
+import { X, Lightbulb, Loader2, Info, DollarSign } from "lucide-react"; 
 import type { Item } from "@/types";
 import { suggestTags, type SuggestTagsInput, type SuggestTagsOutput } from '@/ai/flows/suggest-tags'; 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,6 +37,7 @@ import { Switch } from "@/components/ui/switch";
 const itemFormSchema = z.object({
   name: z.string().min(1, "El nombre del producto es obligatorio").max(100, "Nombre demasiado largo (máx. 100 caracteres)"),
   description: z.string().min(1, "La descripción es obligatoria").max(1000, "Descripción demasiado larga (máx. 1000 caracteres)"),
+  price: z.coerce.number().min(0, "El precio debe ser un número positivo.").refine(val => val !== null && val !== undefined, { message: "El precio es obligatorio" }),
   imageUrl: z.string().url("Formato de URL inválido. Por favor, introduce una URL válida https:// o http://.").optional().or(z.literal("")),
   tags: z.array(z.string().min(1, "La etiqueta no puede estar vacía.").max(50, "Etiqueta demasiado larga (máx. 50 caracteres).")).max(10, "Máximo 10 etiquetas permitidas."),
   isFeatured: z.boolean().default(false),
@@ -57,6 +58,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     defaultValues: {
       name: initialData?.name || "",
       description: initialData?.description || "",
+      price: initialData?.price || 0,
       imageUrl: initialData?.imageUrl || "",
       tags: initialData?.tags || [],
       isFeatured: initialData?.isFeatured || false,
@@ -158,6 +160,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     form.reset({
       name: initialData?.name || "",
       description: initialData?.description || "",
+      price: initialData?.price || 0,
       imageUrl: initialData?.imageUrl || "",
       tags: initialData?.tags || [],
       isFeatured: initialData?.isFeatured || false,
@@ -205,44 +208,62 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem className="w-full">
-                  <FormLabel className="flex items-center">
-                    URL de la Imagen (Opcional)
-                    <Tooltip delayDuration={100}>
-                      <TooltipTrigger asChild>
-                        <Info className="h-3 w-3 ml-1.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs">
-                        <p>Proporciona un enlace directo (URL) a una imagen del producto. Asegúrate de que empiece por http:// o https://.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </FormLabel>
-                  <FormControl>
-                    <Input type="url" placeholder="https://picsum.photos/seed/example/400/300" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                    <FormItem className="w-full">
+                    <FormLabel>Precio</FormLabel>
+                    <div className="relative">
+                        <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <FormControl>
+                        <Input type="number" placeholder="0.00" {...field} className="pl-8" />
+                        </FormControl>
+                    </div>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="imageUrl"
+                render={({ field }) => (
+                    <FormItem className="w-full">
+                    <FormLabel className="flex items-center">
+                        URL de la Imagen (Opcional)
+                        <Tooltip delayDuration={100}>
+                        <TooltipTrigger asChild>
+                            <Info className="h-3 w-3 ml-1.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                            <p>Proporciona un enlace directo (URL) a una imagen del producto. Asegúrate de que empiece por http:// o https://.</p>
+                        </TooltipContent>
+                        </Tooltip>
+                    </FormLabel>
+                    <FormControl>
+                        <Input type="url" placeholder="https://picsum.photos/seed/example/400/300" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </div>
 
             <FormField
               control={form.control}
               name="tags"
               render={() => ( // field is not directly used here, manage via form.watch and form.setValue
                 <FormItem>
- <FormLabel>Etiquetas ({tags.length}/10)</FormLabel>
- <div className="flex flex-col md:flex-row items-start md:items-center gap-2 w-full"> {/* Ensure the container takes full width */}
- <FormControl className="flex-grow w-full">
+                 <FormLabel>Etiquetas ({tags.length}/10)</FormLabel>
+                 <div className="flex flex-col md:flex-row items-start md:items-center gap-2 w-full"> {/* Ensure the container takes full width */}
+                 <FormControl className="flex-grow w-full">
                         <Input
                         placeholder="Escribe una etiqueta y presiona Enter o ,"
                         value={currentTag.toLowerCase()} // Display in lowercase
                         onChange={(e) => setCurrentTag(e.target.value)}
                         onKeyDown={handleKeyDown}
- disabled={tags.length >= 10 || isSuggestingTags || isLoading}
+                        disabled={tags.length >= 10 || isSuggestingTags || isLoading}
                         />
                     </FormControl>
                     <FormControl>
