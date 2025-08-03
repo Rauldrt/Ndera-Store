@@ -39,7 +39,7 @@ export default function CheckoutLayout({
           </Link>
           <Link href={backUrl}>
             {isCatalogContext ? (
-                 <Button variant="outline">
+                 <Button variant="default">
                     <Home className="mr-2 h-4 w-4" />
                     Inicio
                 </Button>
