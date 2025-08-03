@@ -10,7 +10,7 @@ import { ItemForm, type ItemFormValues } from '@/components/item/item-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star, Share2, Upload } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star, Share2, Upload, Download } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Input } from '@/components/ui/input';
 import {
@@ -311,6 +311,36 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     }
   };
 
+  const handleExportCSV = () => {
+    if (!itemsWithTimestamp || itemsWithTimestamp.length === 0) {
+      toast({
+        title: 'No hay productos para exportar',
+        description: 'Añade productos al catálogo antes de exportar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const dataToExport = itemsWithTimestamp.map(item => ({
+      name: item.name,
+      description: item.description,
+      imageUrl: item.imageUrl || '',
+      tags: Array.isArray(item.tags) ? item.tags.join(',') : '',
+      isFeatured: item.isFeatured || false,
+    }));
+
+    const csv = Papa.unparse(dataToExport);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    const catalogName = catalogDetails?.name.replace(/ /g, '_') || 'catalogo';
+    link.setAttribute('download', `${catalogName}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
 
    const handleAddItem = async (data: ItemFormValues) => {
         await addItemMutation.mutateAsync({ data, catalogId });
@@ -382,6 +412,10 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
               className="hidden" 
               accept=".csv"
             />
+            <Button onClick={handleExportCSV} variant="outline" className="w-full sm:w-auto flex-shrink-0" disabled={isLoadingItems || !itemsWithTimestamp || itemsWithTimestamp.length === 0}>
+                <Download className="mr-2 h-4 w-4" />
+                Exportar CSV
+            </Button>
             <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full sm:w-auto flex-shrink-0" disabled={isImporting}>
                 {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                 {isImporting ? 'Importando...' : 'Importar CSV'}
