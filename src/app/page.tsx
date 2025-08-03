@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -16,7 +15,7 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, Home as HomeIcon, Boxes, Library, Eye, Users, ClipboardList, Share2 } from "lucide-react";
+import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, HomeIcon, Boxes, Library, Eye, Users, ClipboardList, Share2 } from "lucide-react";
 import { CatalogForm } from "@/components/catalog/catalog-form";
 import type { Catalog } from "@/types";
 import { db } from "@/lib/firebase";
@@ -39,7 +38,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FabMenu } from '@/components/ui/fab';
 import Link from 'next/link';
 import { CartSheet } from '@/components/cart/cart-sheet';
-import Image from 'next/image';
 import { cn } from "@/lib/utils";
 
 
@@ -449,12 +447,12 @@ export default function Home() {
                              <div className="absolute inset-0">
                                 {catalog.imageUrl ? (
                                     <>
-                                        <Image
+                                        <img
                                             src={catalog.imageUrl}
                                             alt={`Imagen de ${catalog.name}`}
-                                            fill
-                                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                            className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
                                             data-ai-hint="background image"
+                                            loading="lazy"
                                         />
                                         <div className="absolute inset-0 bg-black/50 group-hover:bg-black/60 transition-colors" />
                                     </>

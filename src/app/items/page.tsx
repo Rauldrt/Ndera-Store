@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -9,7 +8,6 @@ import type { Item, Catalog } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertTriangle, PackageSearch, ImageOff, ShoppingCart, Plus, Minus, Search, Tag, X, Star } from 'lucide-react';
-import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -155,19 +153,15 @@ export default function AllItemsPage() {
           <CardHeader className="p-0">
             <div className="aspect-video relative bg-muted overflow-hidden">
               {item.imageUrl ? (
-                <Image
+                <img
                   src={item.imageUrl}
                   alt={item.name || 'Imagen del producto'}
-                  fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  style={{ objectFit: 'cover' }}
-                  priority={index < 10}
-                  className="transition-transform duration-300 group-hover:scale-105"
+                  className="transition-transform duration-300 group-hover:scale-105 w-full h-full object-cover"
                   data-ai-hint="product photo"
+                  loading="lazy"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = `https://placehold.co/400x300.png`;
-                    target.srcset = '';
                     target.dataset.aiHint = 'placeholder image';
                   }}
                 />
@@ -261,17 +255,15 @@ export default function AllItemsPage() {
                                         )}
                                         </div>
                                         {item.imageUrl ? (
-                                            <Image
+                                            <img
                                                 src={item.imageUrl}
                                                 alt={item.name || 'Imagen del producto'}
-                                                fill
-                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                                className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
+                                                className="object-cover w-full h-full transition-transform duration-500 ease-in-out group-hover:scale-105"
                                                 data-ai-hint="product photo"
+                                                loading="lazy"
                                                 onError={(e) => {
                                                     const target = e.target as HTMLImageElement;
                                                     target.src = `https://placehold.co/400x300.png`;
-                                                    target.srcset = '';
                                                     target.dataset.aiHint = "placeholder image";
                                                 }}
                                             />

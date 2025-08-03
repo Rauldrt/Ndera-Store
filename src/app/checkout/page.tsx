@@ -12,7 +12,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, CreditCard, Landmark, Wallet, LocateFixed } from 'lucide-react';
@@ -359,12 +358,12 @@ export default function CheckoutPage() {
                         {cart.map(item => (
                         <div key={item.id} className="flex items-center gap-4">
                           <div className="relative h-16 w-16 rounded-md overflow-hidden border">
-                             <Image
+                             <img
                                 src={item.imageUrl || `https://placehold.co/100x100.png`}
                                 alt={item.name}
-                                fill
-                                className="object-cover"
+                                className="object-cover w-full h-full"
                                 data-ai-hint="product photo"
+                                loading="lazy"
                               />
                               <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
                                 {item.quantity}

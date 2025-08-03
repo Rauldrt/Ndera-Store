@@ -1,8 +1,6 @@
-
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -199,12 +197,12 @@ export function CartSheet() {
                   {cart.map((item) => (
                     <div key={item.id} className="flex items-start gap-4">
                       <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border">
-                        <Image
+                        <img
                           src={item.imageUrl || `https://placehold.co/100x100.png`}
                           alt={item.name}
-                          fill
-                          className="object-cover"
+                          className="object-cover w-full h-full"
                           data-ai-hint="product photo"
+                          loading="lazy"
                         />
                       </div>
                       <div className="flex-1 space-y-2">
@@ -344,5 +342,3 @@ export function CartSheet() {
     </>
   );
 }
-
-    

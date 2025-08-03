@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo } from 'react';
@@ -12,7 +11,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star, Share2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
@@ -28,7 +26,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { Separator } from '@/components/ui/separator';
+import { Separator } from "@/components/ui/separator";
 
 interface CatalogItemsProps {
   catalogId: string;
@@ -359,17 +357,15 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                                             </Button>
                                         </div>
                                         {item.imageUrl ? (
-                                            <Image
+                                            <img
                                                 src={item.imageUrl}
                                                 alt={item.name || 'Imagen del producto'}
-                                                fill
-                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                                className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
+                                                className="object-cover w-full h-full transition-transform duration-500 ease-in-out group-hover:scale-105"
                                                 data-ai-hint="product photo"
+                                                loading="lazy"
                                                 onError={(e) => {
                                                     const target = e.target as HTMLImageElement;
                                                     target.src = `https://placehold.co/400x300.png`;
-                                                    target.srcset = '';
                                                     target.dataset.aiHint = "placeholder image";
                                                 }}
                                             />
@@ -471,19 +467,15 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                <CardHeader className="p-0">
                 <div className="aspect-video relative bg-muted overflow-hidden">
                      {item.imageUrl ? (
-                        <Image
+                        <img
                            src={item.imageUrl}
                            alt={item.name || 'Imagen del producto'}
-                           fill
-                           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                           style={{ objectFit: 'cover' }}
-                           priority={index < 8} 
-                           className="transition-transform duration-300 group-hover:scale-105"
+                           className="transition-transform duration-300 group-hover:scale-105 w-full h-full object-cover"
                            data-ai-hint="product photo"
+                           loading="lazy"
                            onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.src = `https://placehold.co/400x300.png`; 
-                              target.srcset = '';
                               target.dataset.aiHint = "placeholder image";
                             }}
                          />
@@ -547,7 +539,3 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
-
-    
-
-    
