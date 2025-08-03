@@ -3,20 +3,37 @@
 
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
+
+const LAST_VISITED_CATALOG_KEY = 'lastVisitedCatalogId';
+
 
 export default function CheckoutLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [backToShopUrl, setBackToShopUrl] = useState('/items');
+
+  useEffect(() => {
+    // This code runs only on the client, after hydration
+    const lastCatalogId = localStorage.getItem(LAST_VISITED_CATALOG_KEY);
+    if (lastCatalogId) {
+      setBackToShopUrl(`/catalog/${lastCatalogId}`);
+    } else {
+      setBackToShopUrl('/items');
+    }
+  }, []);
+
+
   return (
     <div>
       <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/items" className="text-xl font-bold text-primary">
+          <Link href={backToShopUrl} className="text-xl font-bold text-primary">
             Catalogify
           </Link>
-          <Link href="/items">
+          <Link href={backToShopUrl}>
             <Button variant="outline">
                 Volver a la tienda
             </Button>
