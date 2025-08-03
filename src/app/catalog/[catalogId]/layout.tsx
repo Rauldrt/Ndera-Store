@@ -19,11 +19,6 @@ export default function CatalogLayout({
           </Link>
           <div className="flex items-center gap-2">
              <CartSheet />
-             <Link href="/items">
-                <Button variant="outline">
-                    Volver a la Tienda
-                </Button>
-             </Link>
           </div>
         </div>
       </header>
