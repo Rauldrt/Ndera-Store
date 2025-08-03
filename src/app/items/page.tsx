@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -174,7 +175,7 @@ export default function AllItemsPage() {
           </CardHeader>
           <CardContent className="flex-grow p-4 flex flex-col">
             <CardTitle className="text-lg mb-1 line-clamp-2 font-semibold">{item.name}</CardTitle>
-            <p className="text-md font-bold text-primary mb-2">${item.price.toFixed(2)}</p>
+            <p className="text-md font-bold text-primary mb-2">${(item.price ?? 0).toFixed(2)}</p>
             <CardDescription className="text-sm mb-4 line-clamp-3 flex-grow">{item.description}</CardDescription>
             <div className="flex flex-wrap gap-1.5 mt-auto">
               {Array.isArray(item.tags) && item.tags.slice(0, 5).map((tag) => (
@@ -275,7 +276,7 @@ export default function AllItemsPage() {
                                         )}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4 flex flex-col justify-end">
                                             <CardTitle className="text-2xl font-bold text-white shadow-black [text-shadow:0_2px_4px_var(--tw-shadow-color)] line-clamp-2">{item.name}</CardTitle>
-                                            <p className="text-lg font-semibold text-white mt-1 [text-shadow:0_1px_2px_var(--tw-shadow-color)]">${item.price.toFixed(2)}</p>
+                                            <p className="text-lg font-semibold text-white mt-1 [text-shadow:0_1px_2px_var(--tw-shadow-color)]">${(item.price ?? 0).toFixed(2)}</p>
                                         </div>
                                     </Card>
                                 </div>
