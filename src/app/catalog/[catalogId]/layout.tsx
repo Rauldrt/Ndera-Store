@@ -57,9 +57,9 @@ export default function CatalogLayout({
     <div>
       <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/items" className="text-xl font-bold text-primary">
+          <span className="text-xl font-bold text-primary">
             Catalogify
-          </Link>
+          </span>
           <div className="flex items-center gap-2">
              <CartSheet />
           </div>
