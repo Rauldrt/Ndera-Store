@@ -111,6 +111,7 @@ export default function CheckoutPage() {
         const customersRef = collection(db, 'customers');
         const q = query(customersRef, where("email", "==", data.email));
         const querySnapshot = await getDocs(q);
+        let customerId: string;
 
         const customerData = {
             name: data.name,
@@ -122,15 +123,37 @@ export default function CheckoutPage() {
 
         if (querySnapshot.empty) {
             // New customer
-            await addDoc(customersRef, {
+            const customerDocRef = await addDoc(customersRef, {
                 ...customerData,
                 createdAt: serverTimestamp(),
             });
+            customerId = customerDocRef.id;
         } else {
             // Existing customer, update their info
             const customerDocRef = doc(db, 'customers', querySnapshot.docs[0].id);
             await updateDoc(customerDocRef, customerData);
+            customerId = customerDocRef.id;
         }
+
+        // Create the order
+        const ordersRef = collection(db, 'orders');
+        await addDoc(ordersRef, {
+            customerId: customerId,
+            customerInfo: { // Denormalized for easy access in order lists
+                name: data.name,
+                email: data.email,
+            },
+            items: cart.map(item => ({
+                id: item.id,
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price,
+            })),
+            total: total,
+            paymentMethod: data.paymentMethod,
+            createdAt: serverTimestamp(),
+        });
+
 
         // Store order details for success page
         const orderDetails = {
@@ -173,8 +196,7 @@ export default function CheckoutPage() {
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8 flex items-center justify-center min-h-[calc(100vh-200px)]">
             <div className="text-center">
-                 <Loader2 className="w-16 h-16 text-primary animate-spin" />
-                 <p className="mt-4 text-muted-foreground">Cargando...</p>
+                 <p className="mt-4 text-muted-foreground">Tu carrito está vacío.</p>
             </div>
         </div>
     );

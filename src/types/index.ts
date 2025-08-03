@@ -35,3 +35,22 @@ export interface Customer {
     createdAt: Timestamp;
     lastOrderDate: Timestamp;
 }
+
+// Defines the structure for an order
+export interface Order {
+    id: string; // Firestore document ID
+    customerId: string;
+    customerInfo: {
+        name: string;
+        email: string;
+    };
+    items: {
+        id: string;
+        name: string;
+        quantity: number;
+        price: number;
+    }[];
+    total: number;
+    paymentMethod: string;
+    createdAt: Timestamp;
+}

@@ -14,6 +14,7 @@ import { AlertTriangle, Users } from 'lucide-react';
 
 // Explicitly type the customer data fetched from Firestore
 interface CustomerFromDB extends Omit<Customer, 'createdAt' | 'lastOrderDate'> {
+  id: string; // Ensure id is present
   createdAt: Timestamp;
   lastOrderDate: Timestamp;
 }
@@ -26,7 +27,7 @@ export default function CustomersPage() {
       const customersCollection = collection(db, 'customers');
       const q = query(customersCollection, orderBy('lastOrderDate', 'desc'));
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => doc.data() as CustomerFromDB);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CustomerFromDB));
     },
   });
 
