@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { collection, query, where, getDocs, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -30,6 +30,16 @@ export default function CatalogPage() {
   const cartContext = useCart();
   const toastContext = useToast();
   const [selectedItem, setSelectedItem] = useState<ItemWithTimestamp | null>(null);
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
 
   if (!cartContext || !toastContext) {
     return <Loader2 className="w-16 h-16 text-primary animate-spin mx-auto mt-10" />;
@@ -82,21 +92,24 @@ export default function CatalogPage() {
   
   if (isLoadingCatalog || isLoadingItems) {
     return (
-        <div className="p-4 md:p-6 lg:p-8 space-y-6">
-            <Skeleton className="h-10 w-3/4 mb-2" />
-            <Skeleton className="h-5 w-1/2 mb-6" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {[...Array(5)].map((_, i) => (
-                    <Card key={i}>
-                        <CardHeader className="p-0">
-                            <Skeleton className="aspect-video w-full" />
-                        </CardHeader>
-                        <CardContent className="p-4">
-                            <Skeleton className="h-6 w-3/4 mb-2" />
-                            <Skeleton className="h-5 w-1/2" />
-                        </CardContent>
-                    </Card>
-                ))}
+        <div className="space-y-6">
+            <div className="relative overflow-hidden h-64 w-full flex items-center justify-center">
+                 <Skeleton className="w-full h-full" />
+            </div>
+            <div className="p-4 md:p-6 lg:p-8 space-y-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                    {[...Array(5)].map((_, i) => (
+                        <Card key={i}>
+                            <CardHeader className="p-0">
+                                <Skeleton className="aspect-video w-full" />
+                            </CardHeader>
+                            <CardContent className="p-4">
+                                <Skeleton className="h-6 w-3/4 mb-2" />
+                                <Skeleton className="h-5 w-1/2" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
             </div>
         </div>
     )
@@ -206,12 +219,29 @@ export default function CatalogPage() {
 
   return (
     <>
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
-        <div className="mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{catalogDetails.name}</h1>
-            <p className="text-muted-foreground mt-1 text-sm sm:text-base">{catalogDetails.description}</p>
+    <div className="relative overflow-hidden h-64 w-full flex items-center justify-center">
+        <div className="absolute inset-0">
+          <img
+            src={catalogDetails?.imageUrl || 'https://placehold.co/1200x400.png'}
+            alt={catalogDetails?.name || ''}
+            className="w-full h-full object-cover"
+            style={{ transform: `translateY(${scrollY * 0.4}px)` }}
+            data-ai-hint="background image"
+          />
+          <div className="absolute inset-0 bg-black/50" />
         </div>
-
+        <div className="relative z-10 w-full text-white text-center p-4">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white shadow-lg [text-shadow:0_2px_4px_var(--tw-shadow-color)]">
+                {catalogDetails.name}
+            </h1>
+            {catalogDetails.description && (
+                <p className="mt-2 text-sm sm:text-base md:text-lg text-white/90 [text-shadow:0_1px_2px_var(--tw-shadow-color)]">
+                    {catalogDetails.description}
+                </p>
+            )}
+        </div>
+      </div>
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
         {/* Featured Items Carousel */}
         {featuredItems.length > 0 && (
           <div className='space-y-4'>
