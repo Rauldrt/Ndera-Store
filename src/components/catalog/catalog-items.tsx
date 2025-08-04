@@ -490,7 +490,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                     )}
                 </>
              )}
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <div className="mt-4 flex flex-nowrap justify-center items-center gap-2">
                 <input 
                     type="file" 
                     ref={fileInputRef} 
@@ -498,12 +498,12 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                     className="hidden" 
                     accept=".csv"
                 />
-                <Button size="sm" onClick={() => { setEditingItem(null); setShowItemForm(true); }} className="w-full sm:w-auto flex-shrink-0 bg-primary hover:bg-primary/90 text-xs sm:text-sm p-2 sm:px-3">
+                <Button size="sm" onClick={() => { setEditingItem(null); setShowItemForm(true); }} className="flex-shrink-0 bg-primary hover:bg-primary/90 text-xs sm:text-sm p-2 sm:px-3">
                     <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Añadir Producto
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button size="sm" variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs sm:text-sm p-2 sm:px-3", "w-full sm:w-auto flex-shrink-0")}>
+                    <Button size="sm" variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs sm:text-sm p-2 sm:px-3", "flex-shrink-0")}>
                         <MoreVertical className="h-4 w-4" />
                         <span className="sr-only">Más opciones</span>
                     </Button>
@@ -772,6 +772,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
+
 
 
 
