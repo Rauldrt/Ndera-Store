@@ -21,12 +21,12 @@ export function ItemDetailModal({ item, onClose }: ItemDetailModalProps) {
     <Dialog open={!!item} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <div className="aspect-video relative bg-muted rounded-md overflow-hidden mb-4">
+          <div className="aspect-video relative bg-muted rounded-md overflow-hidden mb-4 group">
             {item.imageUrl ? (
               <img
                 src={item.imageUrl}
                 alt={item.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-110"
                 data-ai-hint="product photo"
               />
             ) : (
