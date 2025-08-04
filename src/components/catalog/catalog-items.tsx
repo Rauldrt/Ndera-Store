@@ -443,11 +443,11 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                     accept=".csv"
                 />
                 <Button size="sm" onClick={handleExportCSV} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs sm:text-sm p-2 sm:px-3", "w-full sm:w-auto flex-shrink-0")} disabled={isLoadingItems || !itemsWithTimestamp || itemsWithTimestamp.length === 0}>
-                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                    <Upload className="mr-1.5 h-3.5 w-3.5" />
                     Exportar
                 </Button>
                 <Button size="sm" onClick={() => fileInputRef.current?.click()} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs sm:text-sm p-2 sm:px-3", "w-full sm:w-auto flex-shrink-0")} disabled={isImporting}>
-                    {isImporting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-1.5 h-3.5 w-3.5" />}
+                    {isImporting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
                     {isImporting ? 'Importando...' : 'Importar'}
                 </Button>
                 <Button size="sm" onClick={handleShareCatalog} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs sm:text-sm p-2 sm:px-3", "w-full sm:w-auto flex-shrink-0")}>
@@ -700,5 +700,3 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
-
-    
