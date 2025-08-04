@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
 import Papa from 'papaparse';
+import { cn } from '@/lib/utils';
 
 interface CatalogItemsProps {
   catalogId: string;
@@ -106,7 +107,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     const query = searchQuery.toLowerCase();
     const filteredRegular = regular.filter(item => 
       item.name.toLowerCase().includes(query) ||
-      item.description.toLowerCase().includes(query) ||
+      (item.description && item.description.toLowerCase().includes(query)) ||
       (Array.isArray(item.tags) && item.tags.some(tag => tag.toLowerCase().includes(query)))
     );
 
@@ -395,45 +396,70 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-         <div className="flex-1">
-           {isLoadingCatalogDetails ? (
-                <Skeleton className="h-8 w-3/4 mb-1" />
-           ) : (
-               <h1 className="text-2xl sm:text-3xl font-bold text-foreground break-words">
-                 {catalogDetails?.name || "Productos del Catálogo"}
-               </h1>
-           )}
-            {isLoadingCatalogDetails ? (
-                <Skeleton className="h-4 w-1/2 mt-1" />
-            ) : (
-                catalogDetails?.description && <p className="text-muted-foreground mt-1 text-sm sm:text-base">{catalogDetails.description}</p>
-            )}
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileChange}
-              className="hidden" 
-              accept=".csv"
+      
+       {/* Catalog Header */}
+       <div className="relative rounded-lg overflow-hidden h-64 w-full flex items-center justify-center p-6">
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          {isLoadingCatalogDetails ? (
+            <Skeleton className="w-full h-full" />
+          ) : (
+            <img
+              src={catalogDetails?.imageUrl || 'https://placehold.co/1200x400.png'}
+              alt={catalogDetails?.name || ''}
+              className="w-full h-full object-cover"
+              data-ai-hint="background image"
             />
-            <Button onClick={handleExportCSV} variant="outline" className="w-full sm:w-auto flex-shrink-0" disabled={isLoadingItems || !itemsWithTimestamp || itemsWithTimestamp.length === 0}>
-                <Download className="mr-2 h-4 w-4" />
-                Exportar CSV
-            </Button>
-            <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full sm:w-auto flex-shrink-0" disabled={isImporting}>
-                {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                {isImporting ? 'Importando...' : 'Importar CSV'}
-            </Button>
-            <Button onClick={handleShareCatalog} variant="outline" className="w-full sm:w-auto flex-shrink-0">
-                <Share2 className="mr-2 h-4 w-4" /> Compartir Catálogo
-            </Button>
-            <Button onClick={() => { setEditingItem(null); setShowItemForm(true); }} className="w-full sm:w-auto flex-shrink-0">
-            <PlusCircle className="mr-2 h-4 w-4" /> Añadir Nuevo Producto
-            </Button>
+          )}
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black/50" />
+        </div>
+
+        {/* Header Content */}
+        <div className="relative z-10 w-full text-white text-center">
+            {isLoadingCatalogDetails ? (
+                 <>
+                    <Skeleton className="h-10 w-3/4 mb-2 mx-auto" />
+                    <Skeleton className="h-5 w-1/2 mx-auto" />
+                 </>
+             ) : (
+                <>
+                    <h1 className="text-4xl font-bold text-white shadow-lg [text-shadow:0_2px_4px_var(--tw-shadow-color)]">
+                        {catalogDetails?.name || "Productos del Catálogo"}
+                    </h1>
+                    {catalogDetails?.description && (
+                        <p className="mt-2 text-lg text-white/90 [text-shadow:0_1px_2px_var(--tw-shadow-color)]">
+                            {catalogDetails.description}
+                        </p>
+                    )}
+                </>
+             )}
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+                <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileChange}
+                    className="hidden" 
+                    accept=".csv"
+                />
+                <Button onClick={handleExportCSV} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20", "w-full sm:w-auto flex-shrink-0")} disabled={isLoadingItems || !itemsWithTimestamp || itemsWithTimestamp.length === 0}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar
+                </Button>
+                <Button onClick={() => fileInputRef.current?.click()} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20", "w-full sm:w-auto flex-shrink-0")} disabled={isImporting}>
+                    {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                    {isImporting ? 'Importando...' : 'Importar'}
+                </Button>
+                <Button onClick={handleShareCatalog} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20", "w-full sm:w-auto flex-shrink-0")}>
+                    <Share2 className="mr-2 h-4 w-4" /> Compartir
+                </Button>
+                <Button onClick={() => { setEditingItem(null); setShowItemForm(true); }} className="w-full sm:w-auto flex-shrink-0 bg-primary hover:bg-primary/90">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Añadir Producto
+                </Button>
+            </div>
         </div>
       </div>
+
 
       <Dialog open={showItemForm} onOpenChange={(isOpen) => {
           setShowItemForm(isOpen);
@@ -451,6 +477,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             onSubmit={editingItem ? handleUpdateItem : handleAddItem}
             initialData={editingItem ? {
               ...editingItem,
+              price: editingItem.price ?? 0,
               createdAt: editingItem.createdAt ? new Date(editingItem.createdAt.seconds * 1000 + (editingItem.createdAt.nanoseconds || 0) / 1000000) : undefined,
             } as Partial<Item> : {}} 
             isLoading={addItemMutation.isPending || updateItemMutation.isPending}
@@ -582,7 +609,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         </div>
       )}
 
-      {!isLoadingItems && !itemsError && filteredRegularItems.length === 0 && (searchQuery || regularItems.length > 0) && (
+      {!isLoadingItems && !itemsError && filteredRegularItems.length === 0 && (searchQuery || (regularItems && regularItems.length > 0)) && (
          <div className="text-center py-10 border-2 border-dashed rounded-lg">
            <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
            <h3 className="text-lg font-medium text-muted-foreground">No se encontraron resultados</h3>
@@ -673,3 +700,5 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
+
+    
