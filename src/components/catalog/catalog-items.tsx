@@ -248,7 +248,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       header: true,
       skipEmptyLines: true,
       complete: async (results) => {
-        const requiredHeaders = ['name', 'description', 'price', 'imageUrl', 'tags', 'isFeatured'];
+        const requiredHeaders = ['name', 'price', 'description', 'imageUrl', 'tags', 'isFeatured'];
         const actualHeaders = results.meta.fields || [];
         const missingHeaders = requiredHeaders.filter(h => !actualHeaders.includes(h));
 
@@ -329,8 +329,8 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
     const dataToExport = itemsWithTimestamp.map(item => ({
       name: item.name,
-      description: item.description,
       price: item.price,
+      description: item.description,
       imageUrl: item.imageUrl || '',
       tags: Array.isArray(item.tags) ? item.tags.join(',') : '',
       isFeatured: item.isFeatured || false,
@@ -522,7 +522,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                                                 alt={item.name || 'Imagen del producto'}
                                                 className="object-cover w-full h-full transition-transform duration-500 ease-in-out group-hover:scale-105"
                                                 data-ai-hint="product photo"
-                                                loading="lazy"
                                                 onError={(e) => {
                                                     const target = e.target as HTMLImageElement;
                                                     target.src = `https://placehold.co/400x300.png`;
@@ -632,7 +631,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                            alt={item.name || 'Imagen del producto'}
                            className="transition-transform duration-300 group-hover:scale-105 w-full h-full object-cover"
                            data-ai-hint="product photo"
-                           loading="lazy"
                            onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.src = `https://placehold.co/400x300.png`; 
