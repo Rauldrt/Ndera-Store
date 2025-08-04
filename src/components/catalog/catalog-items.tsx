@@ -395,10 +395,10 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       
        {/* Catalog Header */}
-       <div className="relative rounded-lg overflow-hidden h-64 w-full flex items-center justify-center p-6">
+       <div className="relative rounded-lg overflow-hidden h-64 w-full flex items-center justify-center p-6 mb-4">
         {/* Background Image */}
         <div className="absolute inset-0">
           {isLoadingCatalogDetails ? (
