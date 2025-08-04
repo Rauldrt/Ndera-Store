@@ -297,11 +297,11 @@ export function CartSheet() {
                     <span>${total.toFixed(2)}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-2">
-                    <Button variant="secondary" onClick={() => openQuoteDialog('pdf')}>
+                    <Button variant="default" onClick={() => openQuoteDialog('pdf')}>
                         <Download className="mr-2 h-4 w-4" />
                         Presupuesto
                     </Button>
-                    <Button variant="secondary" onClick={() => openQuoteDialog('whatsapp')}>
+                    <Button variant="accent" onClick={() => openQuoteDialog('whatsapp')}>
                         <Send className="mr-2 h-4 w-4" />
                         WhatsApp
                     </Button>
