@@ -398,7 +398,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     <div className="space-y-4">
       
        {/* Catalog Header */}
-       <div className="relative rounded-lg overflow-hidden h-auto md:h-64 w-full flex items-center justify-center p-4 md:p-6 -mt-4 md:-mt-6">
+       <div className="relative rounded-t-lg overflow-hidden h-auto md:h-64 w-full flex items-center justify-center p-4 md:p-6">
         {/* Background Image */}
         <div className="absolute inset-0">
           {isLoadingCatalogDetails ? (
@@ -424,11 +424,11 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                  </>
              ) : (
                 <>
-                    <h1 className="text-2xl sm:text-4xl font-bold text-white shadow-lg [text-shadow:0_2px_4px_var(--tw-shadow-color)]">
+                    <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white shadow-lg [text-shadow:0_2px_4px_var(--tw-shadow-color)]">
                         {catalogDetails?.name || "Productos del Catálogo"}
                     </h1>
                     {catalogDetails?.description && (
-                        <p className="mt-2 text-sm sm:text-lg text-white/90 [text-shadow:0_1px_2px_var(--tw-shadow-color)]">
+                        <p className="mt-2 text-xs sm:text-sm md:text-lg text-white/90 [text-shadow:0_1px_2px_var(--tw-shadow-color)]">
                             {catalogDetails.description}
                         </p>
                     )}
@@ -442,18 +442,18 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                     className="hidden" 
                     accept=".csv"
                 />
-                <Button size="sm" onClick={handleExportCSV} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20", "w-full sm:w-auto flex-shrink-0")} disabled={isLoadingItems || !itemsWithTimestamp || itemsWithTimestamp.length === 0}>
+                <Button size="sm" onClick={handleExportCSV} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs sm:text-sm p-2 sm:px-3", "w-full sm:w-auto flex-shrink-0")} disabled={isLoadingItems || !itemsWithTimestamp || itemsWithTimestamp.length === 0}>
                     <Download className="mr-1.5 h-3.5 w-3.5" />
                     Exportar
                 </Button>
-                <Button size="sm" onClick={() => fileInputRef.current?.click()} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20", "w-full sm:w-auto flex-shrink-0")} disabled={isImporting}>
+                <Button size="sm" onClick={() => fileInputRef.current?.click()} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs sm:text-sm p-2 sm:px-3", "w-full sm:w-auto flex-shrink-0")} disabled={isImporting}>
                     {isImporting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-1.5 h-3.5 w-3.5" />}
                     {isImporting ? 'Importando...' : 'Importar'}
                 </Button>
-                <Button size="sm" onClick={handleShareCatalog} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20", "w-full sm:w-auto flex-shrink-0")}>
+                <Button size="sm" onClick={handleShareCatalog} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs sm:text-sm p-2 sm:px-3", "w-full sm:w-auto flex-shrink-0")}>
                     <Share2 className="mr-1.5 h-3.5 w-3.5" /> Compartir
                 </Button>
-                <Button size="sm" onClick={() => { setEditingItem(null); setShowItemForm(true); }} className="w-full sm:w-auto flex-shrink-0 bg-primary hover:bg-primary/90">
+                <Button size="sm" onClick={() => { setEditingItem(null); setShowItemForm(true); }} className="w-full sm:w-auto flex-shrink-0 bg-primary hover:bg-primary/90 text-xs sm:text-sm p-2 sm:px-3">
                     <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Añadir Producto
                 </Button>
             </div>
@@ -488,7 +488,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       
       {/* Featured Items Carousel */}
       {!isLoadingItems && featuredItems && featuredItems.length > 0 && (
-        <div className='space-y-4'>
+        <div className='space-y-4 p-4 md:p-6'>
             <div className='flex items-center gap-2'>
               <Star className="h-6 w-6 text-yellow-500" />
               <h2 className="text-2xl font-bold text-foreground">Productos Destacados</h2>
@@ -550,125 +550,127 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         </div>
       )}
       
-      {/* Search and Regular Items */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        <Input
-            type="search"
-            placeholder="Buscar en este catálogo por nombre, descripción o etiqueta..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10"
-            disabled={isLoadingItems}
-        />
-      </div>
+      <div className="p-4 md:p-6 space-y-4">
+        {/* Search and Regular Items */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+              type="search"
+              placeholder="Buscar en este catálogo por nombre, descripción o etiqueta..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10"
+              disabled={isLoadingItems}
+          />
+        </div>
 
-      {isLoadingItems && (
-         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-            {[...Array(8)].map((_, i) => (
-                 <Card key={i} className="flex flex-col">
-                    <CardHeader>
-                        <Skeleton className="aspect-video w-full mb-4" data-ai-hint="placeholder image" />
-                        <Skeleton className="h-6 w-3/4" />
-                    </CardHeader>
-                    <CardContent className="flex-grow">
-                        <Skeleton className="h-4 w-full mb-1" />
-                        <Skeleton className="h-4 w-2/3 mb-3" />
-                         <div className="flex flex-wrap gap-1">
-                            <Skeleton className="h-5 w-16 rounded-full" />
-                            <Skeleton className="h-5 w-12 rounded-full" />
-                         </div>
-                    </CardContent>
-                     <CardFooter className="flex justify-end gap-2">
-                         <Skeleton className="h-8 w-16" />
-                         <Skeleton className="h-8 w-16" />
-                    </CardFooter>
-                </Card>
-            ))}
-         </div>
-      )}
-       {itemsError && (
-         <div className="text-center text-destructive py-10">
-            <AlertTriangle className="mx-auto h-12 w-12 mb-4"/>
-            <p className="font-semibold">Error al cargar los productos.</p>
-            <p className="text-sm text-muted-foreground">Por favor, inténtalo de nuevo más tarde o revisa la consola para más detalles. Podría ser necesario un índice de Firestore.</p>
-            <Button variant="outline" size="sm" className="mt-4" onClick={() => queryClient.refetchQueries({ queryKey: ['items', catalogId] })}>
-              Intentar de Nuevo
-            </Button>
-         </div>
+        {isLoadingItems && (
+           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {[...Array(8)].map((_, i) => (
+                   <Card key={i} className="flex flex-col">
+                      <CardHeader>
+                          <Skeleton className="aspect-video w-full mb-4" data-ai-hint="placeholder image" />
+                          <Skeleton className="h-6 w-3/4" />
+                      </CardHeader>
+                      <CardContent className="flex-grow">
+                          <Skeleton className="h-4 w-full mb-1" />
+                          <Skeleton className="h-4 w-2/3 mb-3" />
+                           <div className="flex flex-wrap gap-1">
+                              <Skeleton className="h-5 w-16 rounded-full" />
+                              <Skeleton className="h-5 w-12 rounded-full" />
+                           </div>
+                      </CardContent>
+                       <CardFooter className="flex justify-end gap-2">
+                           <Skeleton className="h-8 w-16" />
+                           <Skeleton className="h-8 w-16" />
+                      </CardFooter>
+                  </Card>
+              ))}
+           </div>
+        )}
+         {itemsError && (
+           <div className="text-center text-destructive py-10">
+              <AlertTriangle className="mx-auto h-12 w-12 mb-4"/>
+              <p className="font-semibold">Error al cargar los productos.</p>
+              <p className="text-sm text-muted-foreground">Por favor, inténtalo de nuevo más tarde o revisa la consola para más detalles. Podría ser necesario un índice de Firestore.</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={() => queryClient.refetchQueries({ queryKey: ['items', catalogId] })}>
+                Intentar de Nuevo
+              </Button>
+           </div>
+          )}
+
+        {!isLoadingItems && !itemsError && itemsWithTimestamp && itemsWithTimestamp.length === 0 && !showItemForm && (
+          <div className="text-center py-10 border-2 border-dashed rounded-lg">
+            <h3 className="text-lg font-medium text-muted-foreground">Aún no hay productos</h3>
+            <p className="text-muted-foreground mb-4">¡Añade tu primer producto a este catálogo!</p>
+             <Button onClick={() => { setEditingItem(null); setShowItemForm(true); }}>
+                <PlusCircle className="mr-2 h-4 w-4" /> Añadir Producto
+              </Button>
+          </div>
         )}
 
-      {!isLoadingItems && !itemsError && itemsWithTimestamp && itemsWithTimestamp.length === 0 && !showItemForm && (
-        <div className="text-center py-10 border-2 border-dashed rounded-lg">
-          <h3 className="text-lg font-medium text-muted-foreground">Aún no hay productos</h3>
-          <p className="text-muted-foreground mb-4">¡Añade tu primer producto a este catálogo!</p>
-           <Button onClick={() => { setEditingItem(null); setShowItemForm(true); }}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Añadir Producto
-            </Button>
-        </div>
-      )}
+        {!isLoadingItems && !itemsError && filteredRegularItems.length === 0 && (searchQuery || (regularItems && regularItems.length > 0)) && (
+           <div className="text-center py-10 border-2 border-dashed rounded-lg">
+             <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+             <h3 className="text-lg font-medium text-muted-foreground">No se encontraron resultados</h3>
+             <p className="text-muted-foreground mb-4">No hay productos que coincidan con tu búsqueda.</p>
+             <Button variant="outline" onClick={() => setSearchQuery("")}>
+               Limpiar Búsqueda
+             </Button>
+           </div>
+         )}
 
-      {!isLoadingItems && !itemsError && filteredRegularItems.length === 0 && (searchQuery || (regularItems && regularItems.length > 0)) && (
-         <div className="text-center py-10 border-2 border-dashed rounded-lg">
-           <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-           <h3 className="text-lg font-medium text-muted-foreground">No se encontraron resultados</h3>
-           <p className="text-muted-foreground mb-4">No hay productos que coincidan con tu búsqueda.</p>
-           <Button variant="outline" onClick={() => setSearchQuery("")}>
-             Limpiar Búsqueda
-           </Button>
-         </div>
-       )}
-
-      {!isLoadingItems && !itemsError && filteredRegularItems.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 items-stretch">
-          {filteredRegularItems.map((item, index) => (
-            <Card key={item.id} className="group flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-               <CardHeader className="p-0">
-                <div className="aspect-video relative bg-muted overflow-hidden">
-                     {item.imageUrl ? (
-                        <img
-                           src={item.imageUrl}
-                           alt={item.name || 'Imagen del producto'}
-                           className="transition-transform duration-300 group-hover:scale-105 w-full h-full object-cover"
-                           data-ai-hint="product photo"
-                           onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = `https://placehold.co/400x300.png`; 
-                              target.dataset.aiHint = "placeholder image";
-                            }}
-                         />
-                      ) : (
-                         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-gradient-to-br from-muted via-background to-muted">
-                           <ImageOff size={48} />
-                         </div>
-                       )}
-                 </div>
-              </CardHeader>
-              <CardContent className="flex-grow p-4 flex flex-col">
-                 <CardTitle className="text-lg mb-1 line-clamp-2 font-semibold">{item.name}</CardTitle>
-                 <p className="text-md font-bold text-primary mb-2">${(item.price ?? 0).toFixed(2)}</p>
-                 <CardDescription className="text-sm mb-4 line-clamp-3 flex-grow">{item.description}</CardDescription>
-                 <div className="flex flex-wrap gap-1.5 mt-auto">
-                   {Array.isArray(item.tags) && item.tags.slice(0, 5).map((tag) => (
-                     <Badge key={tag} variant="secondary" className="text-xs font-medium">{tag}</Badge>
-                   ))}
-                   {Array.isArray(item.tags) && item.tags.length > 5 && (
-                       <Badge variant="outline" className="text-xs">...</Badge>
-                   )}
-                 </div>
-              </CardContent>
-              <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50 opacity-100 group-hover:opacity-100 transition-opacity duration-300">
-                 <Button variant="outline" size="sm" onClick={() => handleEditItem(item)} className="flex-1">
-                  <Edit className="mr-1.5 h-3.5 w-3.5" /> Editar
-                </Button>
-                <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(item.id)} className="flex-1">
-                   <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Eliminar
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-)}
+        {!isLoadingItems && !itemsError && filteredRegularItems.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 items-stretch">
+            {filteredRegularItems.map((item, index) => (
+              <Card key={item.id} className="group flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                 <CardHeader className="p-0">
+                  <div className="aspect-video relative bg-muted overflow-hidden">
+                       {item.imageUrl ? (
+                          <img
+                             src={item.imageUrl}
+                             alt={item.name || 'Imagen del producto'}
+                             className="transition-transform duration-300 group-hover:scale-105 w-full h-full object-cover"
+                             data-ai-hint="product photo"
+                             onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = `https://placehold.co/400x300.png`; 
+                                target.dataset.aiHint = "placeholder image";
+                              }}
+                           />
+                        ) : (
+                           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-gradient-to-br from-muted via-background to-muted">
+                             <ImageOff size={48} />
+                           </div>
+                         )}
+                   </div>
+                </CardHeader>
+                <CardContent className="flex-grow p-4 flex flex-col">
+                   <CardTitle className="text-lg mb-1 line-clamp-2 font-semibold">{item.name}</CardTitle>
+                   <p className="text-md font-bold text-primary mb-2">${(item.price ?? 0).toFixed(2)}</p>
+                   <CardDescription className="text-sm mb-4 line-clamp-3 flex-grow">{item.description}</CardDescription>
+                   <div className="flex flex-wrap gap-1.5 mt-auto">
+                     {Array.isArray(item.tags) && item.tags.slice(0, 5).map((tag) => (
+                       <Badge key={tag} variant="secondary" className="text-xs font-medium">{tag}</Badge>
+                     ))}
+                     {Array.isArray(item.tags) && item.tags.length > 5 && (
+                         <Badge variant="outline" className="text-xs">...</Badge>
+                     )}
+                   </div>
+                </CardContent>
+                <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50 opacity-100 group-hover:opacity-100 transition-opacity duration-300">
+                   <Button variant="outline" size="sm" onClick={() => handleEditItem(item)} className="flex-1">
+                    <Edit className="mr-1.5 h-3.5 w-3.5" /> Editar
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(item.id)} className="flex-1">
+                     <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Eliminar
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+  )}
+      </div>
 
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
