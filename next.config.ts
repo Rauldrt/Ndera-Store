@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+    // Allow data URIs for generated images
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    unoptimized: true,
   },
   devIndicators: {
     allowedDevOrigins: [

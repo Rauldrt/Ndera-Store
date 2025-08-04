@@ -20,9 +20,10 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as CardDesc } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Lightbulb, Loader2, Info, DollarSign } from "lucide-react"; 
+import { X, Lightbulb, Loader2, Info, DollarSign, Sparkles } from "lucide-react"; 
 import type { Item } from "@/types";
 import { suggestTags, type SuggestTagsInput, type SuggestTagsOutput } from '@/ai/flows/suggest-tags'; 
+import { generateProductImage, type GenerateProductImageInput } from '@/ai/flows/generate-product-image';
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -38,7 +39,7 @@ const itemFormSchema = z.object({
   name: z.string().min(1, "El nombre del producto es obligatorio").max(100, "Nombre demasiado largo (máx. 100 caracteres)"),
   description: z.string().min(1, "La descripción es obligatoria").max(1000, "Descripción demasiado larga (máx. 1000 caracteres)"),
   price: z.coerce.number().min(0, "El precio debe ser un número positivo.").refine(val => val !== null && val !== undefined, { message: "El precio es obligatorio" }),
-  imageUrl: z.string().url("Formato de URL inválido. Por favor, introduce una URL válida https:// o http://.").optional().or(z.literal("")),
+  imageUrl: z.string().url("Formato de URL inválido. Por favor, introduce una URL válida https:// o http://.").or(z.literal("")),
   tags: z.array(z.string().min(1, "La etiqueta no puede estar vacía.").max(50, "Etiqueta demasiado larga (máx. 50 caracteres).")).max(10, "Máximo 10 etiquetas permitidas."),
   isFeatured: z.boolean().default(false),
 });
@@ -68,6 +69,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   const [currentTag, setCurrentTag] = useState("");
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [isSuggestingTags, setIsSuggestingTags] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const { toast } = useToast();
 
   const tags = form.watch("tags");
@@ -147,6 +149,40 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     }
   };
 
+  const handleGenerateImage = async () => {
+    const name = form.getValues("name");
+    const description = form.getValues("description");
+
+    if (!name || name.trim().length < 3) {
+      toast({
+        title: "Nombre del Producto Requerido",
+        description: "Por favor, introduce un nombre para el producto antes de generar una imagen.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsGeneratingImage(true);
+    try {
+        const input: GenerateProductImageInput = { name, description };
+        const result = await generateProductImage(input);
+        form.setValue("imageUrl", result.imageUrl, { shouldValidate: true });
+        toast({
+            title: "¡Imagen Generada!",
+            description: "La IA ha creado una imagen para tu producto.",
+        });
+    } catch (error: any) {
+        console.error("Error al generar imagen:", error);
+        toast({
+            title: "Fallo en la Generación de Imagen",
+            description: error.message || "No se pudo generar la imagen. Por favor, inténtalo de nuevo.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsGeneratingImage(false);
+    }
+  };
+
   const handleSubmitForm: SubmitHandler<ItemFormValues> = async (data) => {
      const trimmedData = {
         ...data,
@@ -165,7 +201,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
       tags: initialData?.tags || [],
       isFeatured: initialData?.isFeatured || false,
     });
-  }, [initialData, form.reset, form]);
+  }, [initialData, form]);
 
 
   return (
@@ -226,27 +262,39 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                 )}
                 />
                 <FormField
-                control={form.control}
-                name="imageUrl"
-                render={({ field }) => (
+                  control={form.control}
+                  name="imageUrl"
+                  render={({ field }) => (
                     <FormItem className="w-full">
-                    <FormLabel className="flex items-center">
+                      <FormLabel className="flex items-center">
                         URL de la Imagen (Opcional)
                         <Tooltip delayDuration={100}>
-                        <TooltipTrigger asChild>
+                          <TooltipTrigger asChild>
                             <Info className="h-3 w-3 ml-1.5 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs">
-                            <p>Proporciona un enlace directo (URL) a una imagen del producto. Asegúrate de que empiece por http:// o https://.</p>
-                        </TooltipContent>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs">
+                            <p>Proporciona un enlace directo (URL) o genera una imagen con IA.</p>
+                          </TooltipContent>
                         </Tooltip>
-                    </FormLabel>
-                    <FormControl>
-                        <Input type="url" placeholder="https://picsum.photos/seed/example/400/300" {...field} />
-                    </FormControl>
-                    <FormMessage />
+                      </FormLabel>
+                      <div className="flex items-center gap-2">
+                        <FormControl>
+                          <Input type="url" placeholder="https://picsum.photos/seed/example/400/300" {...field} />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={handleGenerateImage}
+                          disabled={isGeneratingImage || isLoading}
+                          title="Generar imagen con IA"
+                        >
+                          {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <FormMessage />
                     </FormItem>
-                )}
+                  )}
                 />
             </div>
 
@@ -358,7 +406,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               )}
             />
 
-             <Button type="submit" disabled={isLoading || isSuggestingTags} className="w-full sm:w-auto"> 
+             <Button type="submit" disabled={isLoading || isSuggestingTags || isGeneratingImage} className="w-full sm:w-auto"> 
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -375,5 +423,3 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     </TooltipProvider>
   );
 }
-
-    
