@@ -51,7 +51,7 @@ export default function AllItemsPage() {
     queryFn: async () => {
       const itemsCollection = collection(db, 'items');
       // Only fetch visible items
-      const q = query(itemsCollection, where('isVisible', '==', true), orderBy('createdAt', 'desc'));
+      const q = query(itemsCollection, where('isVisible', '==', true));
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map((doc) => {
         const data = doc.data();
@@ -65,6 +65,7 @@ export default function AllItemsPage() {
           createdAt: data.createdAt as Timestamp,
           catalogId: data.catalogId,
           isFeatured: data.isFeatured,
+          isVisible: data.isVisible,
         } as ItemWithTimestamp;
       });
     },
@@ -97,7 +98,7 @@ export default function AllItemsPage() {
       const query = searchQuery.toLowerCase();
       regularItems = regularItems.filter(item =>
         item.name.toLowerCase().includes(query) ||
-        item.description.toLowerCase().includes(query)
+        (item.description && item.description.toLowerCase().includes(query))
       );
     }
     
@@ -391,3 +392,5 @@ export default function AllItemsPage() {
     </>
   );
 }
+
+    
