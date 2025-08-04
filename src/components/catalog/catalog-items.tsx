@@ -398,7 +398,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     <div className="space-y-4">
       
        {/* Catalog Header */}
-       <div className="relative rounded-lg overflow-hidden h-64 w-full flex items-center justify-center p-6 mb-4">
+       <div className="relative rounded-lg overflow-hidden h-auto md:h-64 w-full flex items-center justify-center p-4 md:p-6 -mt-4 md:-mt-6">
         {/* Background Image */}
         <div className="absolute inset-0">
           {isLoadingCatalogDetails ? (
@@ -424,17 +424,17 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                  </>
              ) : (
                 <>
-                    <h1 className="text-4xl font-bold text-white shadow-lg [text-shadow:0_2px_4px_var(--tw-shadow-color)]">
+                    <h1 className="text-2xl sm:text-4xl font-bold text-white shadow-lg [text-shadow:0_2px_4px_var(--tw-shadow-color)]">
                         {catalogDetails?.name || "Productos del Catálogo"}
                     </h1>
                     {catalogDetails?.description && (
-                        <p className="mt-2 text-lg text-white/90 [text-shadow:0_1px_2px_var(--tw-shadow-color)]">
+                        <p className="mt-2 text-sm sm:text-lg text-white/90 [text-shadow:0_1px_2px_var(--tw-shadow-color)]">
                             {catalogDetails.description}
                         </p>
                     )}
                 </>
              )}
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
                 <input 
                     type="file" 
                     ref={fileInputRef} 
@@ -442,19 +442,19 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                     className="hidden" 
                     accept=".csv"
                 />
-                <Button onClick={handleExportCSV} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20", "w-full sm:w-auto flex-shrink-0")} disabled={isLoadingItems || !itemsWithTimestamp || itemsWithTimestamp.length === 0}>
-                    <Download className="mr-2 h-4 w-4" />
+                <Button size="sm" onClick={handleExportCSV} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20", "w-full sm:w-auto flex-shrink-0")} disabled={isLoadingItems || !itemsWithTimestamp || itemsWithTimestamp.length === 0}>
+                    <Download className="mr-1.5 h-3.5 w-3.5" />
                     Exportar
                 </Button>
-                <Button onClick={() => fileInputRef.current?.click()} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20", "w-full sm:w-auto flex-shrink-0")} disabled={isImporting}>
-                    {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                <Button size="sm" onClick={() => fileInputRef.current?.click()} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20", "w-full sm:w-auto flex-shrink-0")} disabled={isImporting}>
+                    {isImporting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-1.5 h-3.5 w-3.5" />}
                     {isImporting ? 'Importando...' : 'Importar'}
                 </Button>
-                <Button onClick={handleShareCatalog} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20", "w-full sm:w-auto flex-shrink-0")}>
-                    <Share2 className="mr-2 h-4 w-4" /> Compartir
+                <Button size="sm" onClick={handleShareCatalog} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20", "w-full sm:w-auto flex-shrink-0")}>
+                    <Share2 className="mr-1.5 h-3.5 w-3.5" /> Compartir
                 </Button>
-                <Button onClick={() => { setEditingItem(null); setShowItemForm(true); }} className="w-full sm:w-auto flex-shrink-0 bg-primary hover:bg-primary/90">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Añadir Producto
+                <Button size="sm" onClick={() => { setEditingItem(null); setShowItemForm(true); }} className="w-full sm:w-auto flex-shrink-0 bg-primary hover:bg-primary/90">
+                    <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Añadir Producto
                 </Button>
             </div>
         </div>
