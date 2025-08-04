@@ -283,13 +283,12 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
         const itemsFromCsv = results.data as any[];
         
-        // Fetch existing items to prevent duplicates
         const existingItemsQuery = query(collection(db, "items"), where("catalogId", "==", catalogId));
         const existingItemsSnapshot = await getDocs(existingItemsQuery);
-        const existingItemNames = new Set(existingItemsSnapshot.docs.map(doc => doc.data().name.toLowerCase()));
+        const existingItemsMap = new Map(existingItemsSnapshot.docs.map(doc => [doc.data().name.toLowerCase(), doc.id]));
         
-        let importedCount = 0;
-        let skippedCount = 0;
+        let createdCount = 0;
+        let updatedCount = 0;
 
         try {
           const batch = writeBatch(db);
@@ -298,19 +297,16 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             if (!itemName) {
                 return; // Skip rows without a name
             }
+            
+            const lowercaseName = itemName.toLowerCase();
+            const existingId = existingItemsMap.get(lowercaseName);
 
-            if (existingItemNames.has(itemName.toLowerCase())) {
-                skippedCount++;
-                return; // Skip duplicate item
-            }
-
-            const itemRef = doc(collection(db, "items"));
-            const tagsArray = typeof item.tags === 'string' ? item.tags.split(',').map(t => t.trim()) : [];
+            const tagsArray = typeof item.tags === 'string' ? item.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
             const isFeaturedBool = item.isFeatured?.toLowerCase() === 'true';
-            const isVisibleBool = item.isVisible?.toLowerCase() !== 'false'; // Default to true unless explicitly 'false'
+            const isVisibleBool = item.isVisible?.toLowerCase() !== 'false';
             const priceNumber = parseFloat(item.price);
 
-            batch.set(itemRef, {
+            const itemData = {
               name: itemName,
               description: item.description || '',
               price: isNaN(priceNumber) ? 0 : priceNumber,
@@ -319,12 +315,22 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
               isFeatured: isFeaturedBool,
               isVisible: isVisibleBool,
               catalogId: catalogId,
-              createdAt: serverTimestamp(),
-            });
-            importedCount++;
+            };
+
+            if (existingId) {
+              // Update existing item
+              const itemRef = doc(db, "items", existingId);
+              batch.update(itemRef, itemData);
+              updatedCount++;
+            } else {
+              // Create new item
+              const itemRef = doc(collection(db, "items"));
+              batch.set(itemRef, { ...itemData, createdAt: serverTimestamp() });
+              createdCount++;
+            }
           });
 
-          if (importedCount > 0) {
+          if (createdCount > 0 || updatedCount > 0) {
             await batch.commit();
           }
           
@@ -332,7 +338,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
           toast({
             title: 'Importación Completada',
-            description: `${importedCount} productos importados. ${skippedCount} duplicados omitidos.`,
+            description: `${createdCount} productos creados, ${updatedCount} productos actualizados.`,
           });
 
         } catch (error) {
@@ -356,7 +362,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       },
     });
 
-    // Reset file input value to allow re-uploading the same file
     if (event.target) {
         event.target.value = '';
     }
@@ -411,7 +416,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         
         if (catalogDetails.description) {
             doc.setFontSize(12);
-            // Use splitTextToSize to handle wrapping for long descriptions
             const descriptionLines = doc.splitTextToSize(catalogDetails.description, 180);
             doc.text(descriptionLines, 14, 30);
         }
@@ -426,8 +430,8 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         autoTable(doc, {
             head: [tableColumn],
             body: tableRows,
-            startY: catalogDetails.description ? 50 : 30, // Adjust startY based on description
-            headStyles: { fillColor: [59, 130, 246] }, // A nice blue color
+            startY: catalogDetails.description ? 50 : 30, 
+            headStyles: { fillColor: [59, 130, 246] }, 
             styles: { halign: 'center' },
             columnStyles: { 
                 0: { halign: 'left' },
@@ -460,8 +464,8 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             const canvas = await html2canvas(catalogContainerRef.current, {
                 allowTaint: true,
                 useCORS: true,
-                scale: 2, // Increase resolution for better quality
-                backgroundColor: '#ffffff', // Set a background color for transparency
+                scale: 2, 
+                backgroundColor: '#ffffff', 
             });
 
             const imgData = canvas.toDataURL('image/png');
