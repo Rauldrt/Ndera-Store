@@ -281,11 +281,29 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
           return;
         }
 
-        const itemsToAdd = results.data as any[];
+        const itemsFromCsv = results.data as any[];
+        
+        // Fetch existing items to prevent duplicates
+        const existingItemsQuery = query(collection(db, "items"), where("catalogId", "==", catalogId));
+        const existingItemsSnapshot = await getDocs(existingItemsQuery);
+        const existingItemNames = new Set(existingItemsSnapshot.docs.map(doc => doc.data().name.toLowerCase()));
+        
+        let importedCount = 0;
+        let skippedCount = 0;
 
         try {
           const batch = writeBatch(db);
-          itemsToAdd.forEach(item => {
+          itemsFromCsv.forEach(item => {
+            const itemName = item.name?.trim();
+            if (!itemName) {
+                return; // Skip rows without a name
+            }
+
+            if (existingItemNames.has(itemName.toLowerCase())) {
+                skippedCount++;
+                return; // Skip duplicate item
+            }
+
             const itemRef = doc(collection(db, "items"));
             const tagsArray = typeof item.tags === 'string' ? item.tags.split(',').map(t => t.trim()) : [];
             const isFeaturedBool = item.isFeatured?.toLowerCase() === 'true';
@@ -293,7 +311,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             const priceNumber = parseFloat(item.price);
 
             batch.set(itemRef, {
-              name: item.name || '',
+              name: itemName,
               description: item.description || '',
               price: isNaN(priceNumber) ? 0 : priceNumber,
               imageUrl: item.imageUrl || '',
@@ -303,14 +321,20 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
               catalogId: catalogId,
               createdAt: serverTimestamp(),
             });
+            importedCount++;
           });
 
-          await batch.commit();
+          if (importedCount > 0) {
+            await batch.commit();
+          }
+          
           queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
+
           toast({
-            title: 'Importación Exitosa',
-            description: `${itemsToAdd.length} productos han sido añadidos al catálogo.`,
+            title: 'Importación Completada',
+            description: `${importedCount} productos importados. ${skippedCount} duplicados omitidos.`,
           });
+
         } catch (error) {
           toast({
             title: 'Error en la Importación',
