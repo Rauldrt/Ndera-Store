@@ -376,9 +376,9 @@ export default function Home() {
           </div>
         </div>
 
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto">
           {showCatalogForm ? (
-             <div className="mb-6 max-w-full md:max-w-2xl mx-auto relative">
+             <div className="mb-6 max-w-full md:max-w-2xl mx-auto relative p-4 md:p-6 lg:p-8">
              <Button variant="ghost" size="sm" onClick={handleCancelForm} className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground">Cancelar</Button>
               <CatalogForm
                  onSubmit={editingCatalog ? handleUpdateCatalog : handleCreateCatalog}
@@ -391,7 +391,7 @@ export default function Home() {
              <CatalogItems catalogId={selectedCatalogId} />
           ) : (
             // DASHBOARD VIEW
-            <>
+            <div className="p-4 md:p-6 lg:p-8">
               <div className="mb-6">
                 <h1 className="text-2xl sm:text-3xl font-bold">Dashboard de Catálogos</h1>
                 <p className="text-muted-foreground mt-1">Gestiona tus catálogos o crea uno nuevo.</p>
@@ -498,7 +498,7 @@ export default function Home() {
                     ))}
                 </div>
               )}
-            </>
+            </div>
           )}
         </main>
 
