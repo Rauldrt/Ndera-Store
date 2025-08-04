@@ -40,6 +40,7 @@ import { cn } from '@/lib/utils';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
+import { ItemDetailModal } from '@/components/item/item-detail-modal';
 
 
 interface CatalogItemsProps {
@@ -62,6 +63,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const catalogContainerRef = useRef<HTMLDivElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ItemWithTimestamp | null>(null);
 
 
   const queryClient = useQueryClient();
@@ -501,6 +503,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
 
   return (
+    <>
     <div ref={catalogContainerRef}>
        <div className="relative overflow-hidden h-auto md:h-64 w-full flex items-center justify-center">
         <div className="absolute inset-0">
@@ -623,11 +626,11 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                                 <div className="p-1 h-full">
                                     <Card className="group relative w-full h-full aspect-video overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
                                         <div className="absolute top-2 right-2 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button variant="outline" size="icon" className="h-8 w-8 bg-background/70 hover:bg-background" onClick={() => handleEditItem(item)}>
+                                            <Button variant="outline" size="icon" className="h-8 w-8 bg-background/70 hover:bg-background" onClick={(e) => { e.stopPropagation(); handleEditItem(item); }}>
                                                 <Edit className="h-4 w-4" />
                                                 <span className="sr-only">Edit Item</span>
                                             </Button>
-                                            <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => openDeleteDialog(item.id)}>
+                                            <Button variant="destructive" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openDeleteDialog(item.id); }}>
                                                 <Trash2 className="h-4 w-4" />
                                                 <span className="sr-only">Delete Item</span>
                                             </Button>
@@ -649,7 +652,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                                                 <ImageOff size={48} />
                                             </div>
                                         )}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4 flex flex-col justify-end">
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4 flex flex-col justify-end" onClick={() => setSelectedItem(item)}>
                                             <CardTitle className="text-2xl font-bold text-white shadow-black [text-shadow:0_2px_4px_var(--tw-shadow-color)] line-clamp-2">{item.name}</CardTitle>
                                             <p className="text-lg font-semibold text-white mt-1 [text-shadow:0_1px_2px_var(--tw-shadow-color)]">${(item.price ?? 0).toFixed(2)}</p>
                                         </div>
@@ -682,21 +685,16 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
               {[...Array(8)].map((_, i) => (
                    <Card key={i} className="flex flex-col">
-                      <CardHeader>
-                          <Skeleton className="aspect-video w-full mb-4" data-ai-hint="placeholder image" />
-                          <Skeleton className="h-6 w-3/4" />
+                      <CardHeader className="p-0">
+                          <Skeleton className="aspect-video w-full" data-ai-hint="placeholder image" />
                       </CardHeader>
-                      <CardContent className="flex-grow">
-                          <Skeleton className="h-4 w-full mb-1" />
-                          <Skeleton className="h-4 w-2/3 mb-3" />
-                           <div className="flex flex-wrap gap-1">
-                              <Skeleton className="h-5 w-16 rounded-full" />
-                              <Skeleton className="h-5 w-12 rounded-full" />
-                           </div>
+                      <CardContent className="flex-grow p-4">
+                          <Skeleton className="h-6 w-3/4 mb-2" />
+                          <Skeleton className="h-5 w-1/2" />
                       </CardContent>
-                       <CardFooter className="flex justify-end gap-2">
-                           <Skeleton className="h-8 w-16" />
-                           <Skeleton className="h-8 w-16" />
+                       <CardFooter className="flex justify-end gap-2 p-3">
+                           <Skeleton className="h-9 w-20" />
+                           <Skeleton className="h-9 w-20" />
                       </CardFooter>
                   </Card>
               ))}
@@ -734,7 +732,11 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         {!isLoadingItems && !itemsError && filteredRegularItems.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 items-stretch">
             {filteredRegularItems.map((item, index) => (
-              <Card key={item.id} className="group flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              <Card 
+                key={item.id} 
+                className="group flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+                onClick={() => setSelectedItem(item)}
+              >
                  <CardHeader className="p-0">
                   <div className="aspect-video relative bg-muted overflow-hidden">
                        {item.imageUrl ? (
@@ -757,23 +759,14 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                    </div>
                 </CardHeader>
                 <CardContent className="flex-grow p-4 flex flex-col">
-                   <CardTitle className="text-lg mb-1 line-clamp-2 font-semibold">{item.name}</CardTitle>
-                   <p className="text-md font-bold text-primary mb-2">${(item.price ?? 0).toFixed(2)}</p>
-                   <CardDescription className="text-sm mb-4 line-clamp-3 flex-grow">{item.description}</CardDescription>
-                   <div className="flex flex-wrap gap-1.5 mt-auto">
-                     {Array.isArray(item.tags) && item.tags.slice(0, 5).map((tag) => (
-                       <Badge key={tag} variant="secondary" className="text-xs font-medium">{tag}</Badge>
-                     ))}
-                     {Array.isArray(item.tags) && item.tags.length > 5 && (
-                         <Badge variant="outline" className="text-xs">...</Badge>
-                     )}
-                   </div>
+                   <CardTitle className="text-lg mb-1 line-clamp-2 font-semibold flex-grow">{item.name}</CardTitle>
+                   <p className="text-md font-bold text-primary mt-2">${(item.price ?? 0).toFixed(2)}</p>
                 </CardContent>
-                <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50 opacity-100 group-hover:opacity-100 transition-opacity duration-300">
-                   <Button variant="outline" size="sm" onClick={() => handleEditItem(item)} className="flex-1">
+                <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                   <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditItem(item);}} className="flex-1">
                     <Edit className="mr-1.5 h-3.5 w-3.5" /> Editar
                   </Button>
-                  <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(item.id)} className="flex-1">
+                  <Button variant="destructive" size="sm" onClick={(e) => { e.stopPropagation(); openDeleteDialog(item.id);}} className="flex-1">
                      <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Eliminar
                   </Button>
                 </CardFooter>
@@ -808,5 +801,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         </AlertDialogContent>
         </AlertDialog>
     </div>
+    <ItemDetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+    </>
   );
 }

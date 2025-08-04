@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { collection, query, where, getDocs, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { notFound, useParams } from 'next/navigation';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from '@/components/ui/separator';
+import { ItemDetailModal } from '@/components/item/item-detail-modal';
 
 
 interface ItemWithTimestamp extends Omit<Item, 'createdAt'> {
@@ -28,6 +29,7 @@ export default function CatalogPage() {
   const queryClient = useQueryClient();
   const cartContext = useCart();
   const toastContext = useToast();
+  const [selectedItem, setSelectedItem] = useState<ItemWithTimestamp | null>(null);
 
   if (!cartContext || !toastContext) {
     return <Loader2 className="w-16 h-16 text-primary animate-spin mx-auto mt-10" />;
@@ -86,12 +88,12 @@ export default function CatalogPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
                 {[...Array(5)].map((_, i) => (
                     <Card key={i}>
-                        <CardHeader>
-                            <Skeleton className="aspect-video w-full mb-4" />
-                            <Skeleton className="h-6 w-3/4" />
+                        <CardHeader className="p-0">
+                            <Skeleton className="aspect-video w-full" />
                         </CardHeader>
-                        <CardContent>
-                            <Skeleton className="h-4 w-full" />
+                        <CardContent className="p-4">
+                            <Skeleton className="h-6 w-3/4 mb-2" />
+                            <Skeleton className="h-5 w-1/2" />
                         </CardContent>
                     </Card>
                 ))}
@@ -115,7 +117,8 @@ export default function CatalogPage() {
     return null;
   }
   
-  const handleAddToCart = (item: ItemWithTimestamp) => {
+  const handleAddToCart = (item: ItemWithTimestamp, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!item.createdAt) {
         toast({
             title: "Error",
@@ -131,14 +134,16 @@ export default function CatalogPage() {
     });
   };
 
-  const handleIncreaseQuantity = (itemId: string) => {
+  const handleIncreaseQuantity = (itemId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     const itemInCart = cart.find(cartItem => cartItem.id === itemId);
     if (itemInCart) {
       updateQuantity(itemId, itemInCart.quantity + 1);
     }
   };
 
-  const handleDecreaseQuantity = (itemId: string) => {
+  const handleDecreaseQuantity = (itemId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     const itemInCart = cart.find(cartItem => cartItem.id === itemId);
     if (itemInCart) {
       updateQuantity(itemId, itemInCart.quantity - 1);
@@ -148,7 +153,11 @@ export default function CatalogPage() {
   const renderItemCard = (item: ItemWithTimestamp, index: number) => {
     const itemInCart = cart.find(cartItem => cartItem.id === item.id);
     return (
-        <Card key={item.id} className="group flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+        <Card 
+            key={item.id} 
+            className="group flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+            onClick={() => setSelectedItem(item)}
+        >
           <CardHeader className="p-0">
             <div className="aspect-video relative bg-muted overflow-hidden">
               {item.imageUrl ? (
@@ -157,7 +166,6 @@ export default function CatalogPage() {
                   alt={item.name || 'Imagen del producto'}
                   className="transition-transform duration-300 group-hover:scale-105 w-full h-full object-cover"
                   data-ai-hint="product photo"
-                  loading="lazy"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = `https://placehold.co/400x300.png`;
@@ -171,28 +179,22 @@ export default function CatalogPage() {
             </div>
           </CardHeader>
           <CardContent className="flex-grow p-4 flex flex-col">
-            <CardTitle className="text-lg mb-1 line-clamp-2 font-semibold">{item.name}</CardTitle>
-            <p className="text-md font-bold text-primary mb-2">${(item.price ?? 0).toFixed(2)}</p>
-            <CardDescription className="text-sm mb-4 line-clamp-3 flex-grow">{item.description}</CardDescription>
-            <div className="flex flex-wrap gap-1.5 mt-auto">
-              {Array.isArray(item.tags) && item.tags.slice(0, 5).map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs font-medium">{tag}</Badge>
-              ))}
-            </div>
+            <CardTitle className="text-lg mb-1 line-clamp-2 font-semibold flex-grow">{item.name}</CardTitle>
+            <p className="text-md font-bold text-primary mt-2">${(item.price ?? 0).toFixed(2)}</p>
           </CardContent>
           <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50">
             {itemInCart ? (
               <div className="flex items-center justify-center w-full gap-2">
-                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDecreaseQuantity(item.id)}>
+                <Button variant="outline" size="icon" className="h-9 w-9" onClick={(e) => handleDecreaseQuantity(item.id, e)}>
                   <Minus className="h-4 w-4" />
                 </Button>
                 <span className="font-bold text-lg w-10 text-center">{itemInCart.quantity}</span>
-                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleIncreaseQuantity(item.id)}>
+                <Button variant="outline" size="icon" className="h-9 w-9" onClick={(e) => handleIncreaseQuantity(item.id, e)}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
             ) : (
-              <Button variant="default" size="sm" onClick={() => handleAddToCart(item)} className="w-full">
+              <Button variant="default" size="sm" onClick={(e) => handleAddToCart(item, e)} className="w-full">
                 <ShoppingCart className="mr-2 h-4 w-4" />
                 Añadir al carrito
               </Button>
@@ -203,6 +205,7 @@ export default function CatalogPage() {
   };
 
   return (
+    <>
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
         <div className="mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{catalogDetails.name}</h1>
@@ -230,20 +233,23 @@ export default function CatalogPage() {
                             return (
                               <CarouselItem key={item.id} className="md:basis-1/2 lg:basis-1/3 pl-4">
                                   <div className="p-1 h-full">
-                                      <Card className="group relative w-full h-full aspect-[4/3] overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
+                                      <Card 
+                                        className="group relative w-full h-full aspect-[4/3] overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer"
+                                        onClick={() => setSelectedItem(item)}
+                                      >
                                           <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
                                           {itemInCart ? (
                                               <div className="flex items-center justify-center gap-2 rounded-full bg-background/80 p-1">
-                                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-foreground hover:bg-white/80" onClick={() => handleDecreaseQuantity(item.id)}>
+                                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-foreground hover:bg-white/80" onClick={(e) => handleDecreaseQuantity(item.id, e)}>
                                                       <Minus className="h-4 w-4" />
                                                   </Button>
                                                   <span className="font-bold text-base w-6 text-center text-foreground">{itemInCart.quantity}</span>
-                                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-foreground hover:bg-white/80" onClick={() => handleIncreaseQuantity(item.id)}>
+                                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-foreground hover:bg-white/80" onClick={(e) => handleIncreaseQuantity(item.id, e)}>
                                                       <Plus className="h-4 w-4" />
                                                   </Button>
                                               </div>
                                           ) : (
-                                              <Button variant="default" size="sm" onClick={() => handleAddToCart(item)}>
+                                              <Button variant="default" size="sm" onClick={(e) => handleAddToCart(item, e)}>
                                                   <ShoppingCart className="mr-2 h-4 w-4" />
                                                   Añadir
                                               </Button>
@@ -255,7 +261,6 @@ export default function CatalogPage() {
                                                   alt={item.name || 'Imagen del producto'}
                                                   className="object-cover w-full h-full transition-transform duration-500 ease-in-out group-hover:scale-105"
                                                   data-ai-hint="product photo"
-                                                  loading="lazy"
                                                   onError={(e) => {
                                                       const target = e.target as HTMLImageElement;
                                                       target.src = `https://placehold.co/400x300.png`;
@@ -301,5 +306,7 @@ export default function CatalogPage() {
             </>
         )}
     </div>
+    <ItemDetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+    </>
   );
 }
