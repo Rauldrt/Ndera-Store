@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { collection, addDoc, serverTimestamp, query, where, orderBy, getDocs, doc, deleteDoc, updateDoc, getDoc, Timestamp, writeBatch } from "firebase/firestore"; // Import Timestamp and writeBatch
 import { db } from "@/lib/firebase";
@@ -64,6 +64,15 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
   const catalogContainerRef = useRef<HTMLDivElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ItemWithTimestamp | null>(null);
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
 
   const queryClient = useQueryClient();
@@ -514,6 +523,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
               src={catalogDetails?.imageUrl || 'https://placehold.co/1200x400.png'}
               alt={catalogDetails?.name || ''}
               className="w-full h-full object-cover"
+              style={{ transform: `translateY(${scrollY * 0.4}px)` }}
               data-ai-hint="background image"
             />
           )}
