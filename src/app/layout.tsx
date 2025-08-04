@@ -1,3 +1,4 @@
+
 import type {Metadata} from 'next';
 import { Inter } from 'next/font/google'; // Using Inter font for better readability
 import './globals.css';
@@ -10,6 +11,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Ndera-Store',
   description: 'Gestiona tus catálogos con facilidad.',
+  icons: {
+    icon: '/logo.png', // Añadido para el favicon
+  },
 };
 
 export default function RootLayout({
