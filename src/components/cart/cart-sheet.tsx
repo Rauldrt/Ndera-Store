@@ -15,10 +15,11 @@ import autoTable from 'jspdf-autotable';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
+import { Checkbox } from '../ui/checkbox';
 
 
 const SAVED_SHIPPING_INFO_KEY = 'savedShippingInfo';
@@ -29,6 +30,7 @@ const quoteSchema = z.object({
   address: z.string().min(5, 'La dirección debe tener al menos 5 caracteres.'),
   phone: z.string().regex(/^[0-9+ ]{8,15}$/, 'Número de teléfono inválido.'),
   email: z.string().email('Dirección de correo electrónico inválida.'),
+  saveInfo: z.boolean().default(false).optional(),
 });
 
 type QuoteFormValues = z.infer<typeof quoteSchema>;
@@ -50,6 +52,7 @@ export function CartSheet() {
       address: '',
       phone: '',
       email: '',
+      saveInfo: false,
     },
   });
 
@@ -65,6 +68,7 @@ export function CartSheet() {
             address: savedInfo.address || '',
             phone: savedInfo.phone || '',
             email: savedInfo.email || '',
+            saveInfo: true, // Mark the checkbox if data is found
           });
           if (savedInfo.geolocation) {
             setGeolocation(savedInfo.geolocation);
@@ -192,15 +196,21 @@ export function CartSheet() {
   };
 
   const onQuoteSubmit = (data: QuoteFormValues) => {
-    // Save info for next time
-    const shippingInfoToSave = {
-      ...data,
-      geolocation: geolocation,
-    };
-    try {
-      localStorage.setItem(SAVED_SHIPPING_INFO_KEY, JSON.stringify(shippingInfoToSave));
-    } catch (error) {
-      console.error("Error al guardar la información de envío:", error);
+    if (data.saveInfo) {
+      const shippingInfoToSave = {
+        name: data.name,
+        address: data.address,
+        phone: data.phone,
+        email: data.email,
+        geolocation: geolocation,
+      };
+      try {
+        localStorage.setItem(SAVED_SHIPPING_INFO_KEY, JSON.stringify(shippingInfoToSave));
+      } catch (error) {
+        console.error("Error al guardar la información de envío:", error);
+      }
+    } else {
+      localStorage.removeItem(SAVED_SHIPPING_INFO_KEY);
     }
     
     if (quoteAction === 'pdf') {
@@ -388,6 +398,28 @@ export function CartSheet() {
                   </p>
                 )}
               </div>
+              <FormField
+                control={form.control}
+                name="saveInfo"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Guardar mi información para futuras compras
+                      </FormLabel>
+                      <FormDescription>
+                        Tus datos de envío se guardarán en este navegador.
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
               <DialogFooter className="pt-4">
                 <DialogClose asChild>
                   <Button type="button" variant="ghost">Cancelar</Button>
@@ -404,4 +436,3 @@ export function CartSheet() {
     </>
   );
 }
-
