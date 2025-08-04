@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -17,13 +18,17 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '../ui/textarea';
 
 
 const SAVED_SHIPPING_INFO_KEY = 'savedShippingInfo';
 
+// Use a more complete schema, similar to the checkout page
 const quoteSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
   address: z.string().min(5, 'La dirección debe tener al menos 5 caracteres.'),
+  phone: z.string().regex(/^[0-9+ ]{8,15}$/, 'Número de teléfono inválido.'),
+  email: z.string().email('Dirección de correo electrónico inválida.'),
 });
 
 type QuoteFormValues = z.infer<typeof quoteSchema>;
@@ -34,6 +39,7 @@ export function CartSheet() {
   const { toast } = useToast();
   const total = getCartTotal();
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+  const [quoteAction, setQuoteAction] = useState<'pdf' | 'whatsapp' | null>(null);
   const [geolocation, setGeolocation] = useState<{ latitude: number, longitude: number } | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
@@ -42,9 +48,12 @@ export function CartSheet() {
     defaultValues: {
       name: '',
       address: '',
+      phone: '',
+      email: '',
     },
   });
 
+  // Load saved info when the dialog opens
   React.useEffect(() => {
     if (isQuoteDialogOpen) {
       try {
@@ -54,6 +63,8 @@ export function CartSheet() {
           form.reset({
             name: savedInfo.name || '',
             address: savedInfo.address || '',
+            phone: savedInfo.phone || '',
+            email: savedInfo.email || '',
           });
           if (savedInfo.geolocation) {
             setGeolocation(savedInfo.geolocation);
@@ -80,8 +91,23 @@ export function CartSheet() {
     }
   };
 
-  const generateQuotePDF = () => {
+  const generateQuotePDF = (data: QuoteFormValues) => {
     const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(22);
+    doc.text('Presupuesto de Productos', 105, 20, { align: 'center' });
+
+    // Customer Info
+    doc.setFontSize(12);
+    doc.text('Información del Cliente:', 14, 40);
+    doc.setFontSize(10);
+    doc.text(`Nombre: ${data.name}`, 14, 48);
+    doc.text(`Dirección: ${data.address}`, 14, 54);
+    doc.text(`Email: ${data.email}`, 14, 60);
+    doc.text(`Teléfono: ${data.phone}`, 14, 66);
+    
+    // Items Table
     const tableColumn = ["Producto", "Cantidad", "Precio Unitario", "Subtotal"];
     const tableRows = cart.map(item => [
       item.name,
@@ -90,20 +116,47 @@ export function CartSheet() {
       `$${(item.price * item.quantity).toFixed(2)}`
     ]);
 
-    doc.setFontSize(18);
-    doc.text('Presupuesto de Productos', 14, 22);
-    
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 30,
+      startY: 75,
+      headStyles: { fillColor: [22, 163, 74] },
     });
     
-    const finalY = (doc as any).lastAutoTable.finalY || 30;
-    doc.setFontSize(12);
-    doc.text(`Total: $${total.toFixed(2)}`, 14, finalY + 10);
+    const finalY = (doc as any).lastAutoTable.finalY || 75;
+    doc.setFontSize(14);
+    doc.text(`Total del Presupuesto: $${total.toFixed(2)}`, 14, finalY + 15);
+
     doc.save(`presupuesto-${new Date().getTime()}.pdf`);
+    setIsQuoteDialogOpen(false);
   };
+  
+  const sendQuoteWhatsApp = (data: QuoteFormValues) => {
+    let message = `¡Hola! Quisiera solicitar un presupuesto para los siguientes productos:\n\n`;
+    message += `*Cliente:* ${data.name}\n`;
+    message += `*Dirección de Envío:* ${data.address}\n`;
+    message += `*Email:* ${data.email}\n`;
+    message += `*Teléfono:* ${data.phone}\n`;
+
+    if (geolocation) {
+        const { latitude, longitude } = geolocation;
+        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+        message += `*Ubicación:* ${mapsUrl}\n`;
+    }
+    message += `\n------------------------\n\n`;
+
+    cart.forEach(item => {
+      message += `*${item.name}*\n`;
+      message += `  - Cantidad: ${item.quantity}\n`;
+      message += `  - Precio: $${(item.price * item.quantity).toFixed(2)}\n\n`;
+    });
+    message += `*Total estimado: $${total.toFixed(2)}*`;
+    
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    setIsQuoteDialogOpen(false);
+  }
+
 
   const handleGetGeolocation = () => {
     if (navigator.geolocation) {
@@ -139,6 +192,7 @@ export function CartSheet() {
   };
 
   const onQuoteSubmit = (data: QuoteFormValues) => {
+    // Save info for next time
     const shippingInfoToSave = {
       ...data,
       geolocation: geolocation,
@@ -148,28 +202,18 @@ export function CartSheet() {
     } catch (error) {
       console.error("Error al guardar la información de envío:", error);
     }
-
-    let message = `¡Hola! Quisiera solicitar un presupuesto para los siguientes productos:\n\n`;
-    message += `*Cliente:* ${data.name}\n`;
-    message += `*Dirección:* ${data.address}\n`;
-    if (geolocation) {
-        const { latitude, longitude } = geolocation;
-        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-        message += `*Ubicación:* ${mapsUrl}\n`;
-    }
-    message += `\n------------------------\n\n`;
-
-    cart.forEach(item => {
-      message += `*${item.name}*\n`;
-      message += `Cantidad: ${item.quantity}\n`;
-      message += `Precio: $${(item.price * item.quantity).toFixed(2)}\n\n`;
-    });
-    message += `*Total estimado: $${total.toFixed(2)}*`;
     
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-    setIsQuoteDialogOpen(false);
+    if (quoteAction === 'pdf') {
+        generateQuotePDF(data);
+    } else if (quoteAction === 'whatsapp') {
+        sendQuoteWhatsApp(data);
+    }
   };
+
+  const openQuoteDialog = (action: 'pdf' | 'whatsapp') => {
+      setQuoteAction(action);
+      setIsQuoteDialogOpen(true);
+  }
 
 
   return (
@@ -236,20 +280,12 @@ export function CartSheet() {
                     <span>Total</span>
                     <span>${total.toFixed(2)}</span>
                   </div>
-                  <SheetClose asChild>
-                    <Link href="/checkout">
-                      <Button className="w-full mt-2">
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        Ir a Pagar
-                      </Button>
-                    </Link>
-                  </SheetClose>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button variant="secondary" onClick={generateQuotePDF}>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <Button variant="secondary" onClick={() => openQuoteDialog('pdf')}>
                         <Download className="mr-2 h-4 w-4" />
                         Presupuesto
                     </Button>
-                    <Button variant="secondary" onClick={() => setIsQuoteDialogOpen(true)}>
+                    <Button variant="secondary" onClick={() => openQuoteDialog('whatsapp')}>
                         <Send className="mr-2 h-4 w-4" />
                         WhatsApp
                     </Button>
@@ -281,14 +317,14 @@ export function CartSheet() {
       <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Completar para Enviar Presupuesto</DialogTitle>
+            <DialogTitle>Completar para Continuar</DialogTitle>
             <DialogDescription>
-              Necesitamos algunos datos para generar el mensaje de WhatsApp.
+              Necesitamos tus datos para generar el presupuesto o el mensaje.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onQuoteSubmit)} className="space-y-4 pt-4">
-              <FormField
+               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
@@ -301,6 +337,32 @@ export function CartSheet() {
                   </FormItem>
                 )}
               />
+               <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Correo Electrónico</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="Ej: juan.perez@email.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono</FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="Ej: +54 9 11 12345678" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="address"
@@ -308,7 +370,7 @@ export function CartSheet() {
                   <FormItem>
                     <FormLabel>Dirección</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ej: Calle Falsa 123, Springfield" {...field} />
+                       <Textarea placeholder="Ej: Calle Falsa 123, Springfield" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -331,8 +393,8 @@ export function CartSheet() {
                   <Button type="button" variant="ghost">Cancelar</Button>
                 </DialogClose>
                 <Button type="submit">
-                  <Send className="mr-2 h-4 w-4" />
-                  Enviar por WhatsApp
+                  {quoteAction === 'pdf' ? <Download className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
+                  {quoteAction === 'pdf' ? 'Generar PDF' : 'Enviar por WhatsApp'}
                 </Button>
               </DialogFooter>
             </form>
@@ -342,3 +404,4 @@ export function CartSheet() {
     </>
   );
 }
+
