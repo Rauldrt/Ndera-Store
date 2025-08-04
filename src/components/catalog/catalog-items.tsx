@@ -10,7 +10,7 @@ import { ItemForm, type ItemFormValues } from '@/components/item/item-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star, Share2, Upload, Download } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star, Share2, Upload, Download, MoreVertical } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Input } from '@/components/ui/input';
 import {
@@ -23,6 +23,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -398,7 +405,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     <div>
       
        {/* Catalog Header */}
-       <div className="relative overflow-hidden h-auto md:h-64 w-full flex items-center justify-center p-4 md:p-6">
+       <div className="relative overflow-hidden h-auto md:h-64 w-full flex items-center justify-center p-4">
         {/* Background Image */}
         <div className="absolute inset-0">
           {isLoadingCatalogDetails ? (
@@ -442,20 +449,31 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                     className="hidden" 
                     accept=".csv"
                 />
-                <Button size="sm" onClick={handleExportCSV} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs sm:text-sm p-2 sm:px-3", "w-full sm:w-auto flex-shrink-0")} disabled={isLoadingItems || !itemsWithTimestamp || itemsWithTimestamp.length === 0}>
-                    <Upload className="mr-1.5 h-3.5 w-3.5" />
-                    Exportar
-                </Button>
-                <Button size="sm" onClick={() => fileInputRef.current?.click()} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs sm:text-sm p-2 sm:px-3", "w-full sm:w-auto flex-shrink-0")} disabled={isImporting}>
-                    {isImporting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
-                    {isImporting ? 'Importando...' : 'Importar'}
-                </Button>
-                <Button size="sm" onClick={handleShareCatalog} variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs sm:text-sm p-2 sm:px-3", "w-full sm:w-auto flex-shrink-0")}>
-                    <Share2 className="mr-1.5 h-3.5 w-3.5" /> Compartir
-                </Button>
                 <Button size="sm" onClick={() => { setEditingItem(null); setShowItemForm(true); }} className="w-full sm:w-auto flex-shrink-0 bg-primary hover:bg-primary/90 text-xs sm:text-sm p-2 sm:px-3">
                     <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Añadir Producto
                 </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="outline" className={cn("bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs sm:text-sm p-2 sm:px-3", "w-full sm:w-auto flex-shrink-0")}>
+                        <MoreVertical className="h-4 w-4" />
+                        <span className="sr-only">Más opciones</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleShareCatalog}>
+                      <Share2 className="mr-2 h-4 w-4" />
+                      <span>Compartir</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
+                       {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                       <span>{isImporting ? 'Importando...' : 'Importar CSV'}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportCSV} disabled={isLoadingItems || !itemsWithTimestamp || itemsWithTimestamp.length === 0}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      <span>Exportar CSV</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </div>
       </div>
@@ -700,3 +718,4 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
+
