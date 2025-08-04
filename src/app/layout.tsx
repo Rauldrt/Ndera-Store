@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: 'Gestiona tus catálogos con facilidad.',
   icons: {
     icon: [
-      { url: '/logo.png', type: 'image/png' },
+      { url: '/logo.png', type: 'image/png', sizes: 'any' },
     ],
     shortcut: ['/logo.png'],
     apple: [
@@ -36,6 +36,8 @@ export default function RootLayout({
             <Toaster /> {/* Add Toaster component */}
           </CartProvider>
         </Providers>
+        {/* Hidden image for PDF generation */}
+        <img id="app-logo" src="/logo.png" alt="Ndera-Store Logo" style={{ display: 'none' }} />
       </body>
     </html>
   );

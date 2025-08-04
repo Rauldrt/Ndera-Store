@@ -97,19 +97,25 @@ export function CartSheet() {
 
   const generateQuotePDF = (data: QuoteFormValues) => {
     const doc = new jsPDF();
+    
+    // Add logo
+    const logoImg = document.getElementById('app-logo') as HTMLImageElement;
+    if (logoImg) {
+        doc.addImage(logoImg, 'PNG', 14, 15, 40, 15);
+    }
 
     // Header
     doc.setFontSize(22);
-    doc.text('Presupuesto de Productos', 105, 20, { align: 'center' });
+    doc.text('Presupuesto de Productos', 105, 25, { align: 'center' });
 
     // Customer Info
     doc.setFontSize(12);
-    doc.text('Información del Cliente:', 14, 40);
+    doc.text('Información del Cliente:', 14, 45);
     doc.setFontSize(10);
-    doc.text(`Nombre: ${data.name}`, 14, 48);
-    doc.text(`Dirección: ${data.address}`, 14, 54);
-    doc.text(`Email: ${data.email}`, 14, 60);
-    doc.text(`Teléfono: ${data.phone}`, 14, 66);
+    doc.text(`Nombre: ${data.name}`, 14, 53);
+    doc.text(`Dirección: ${data.address}`, 14, 59);
+    doc.text(`Email: ${data.email}`, 14, 65);
+    doc.text(`Teléfono: ${data.phone}`, 14, 71);
     
     // Items Table
     const tableColumn = ["Producto", "Cantidad", "Precio Unitario", "Subtotal"];
@@ -123,11 +129,11 @@ export function CartSheet() {
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 75,
+      startY: 80,
       headStyles: { fillColor: [22, 163, 74] },
     });
     
-    const finalY = (doc as any).lastAutoTable.finalY || 75;
+    const finalY = (doc as any).lastAutoTable.finalY || 80;
     doc.setFontSize(14);
     doc.text(`Total del Presupuesto: $${total.toFixed(2)}`, 14, finalY + 15);
 

@@ -411,13 +411,21 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
         const doc = new jsPDF();
         
-        doc.setFontSize(22);
-        doc.text(catalogDetails.name, 105, 20, { align: 'center' });
+        // Add logo
+        const logoImg = document.getElementById('app-logo') as HTMLImageElement;
+        if (logoImg) {
+            doc.addImage(logoImg, 'PNG', 14, 15, 40, 15);
+        }
         
+        doc.setFontSize(22);
+        doc.text(catalogDetails.name, 105, 25, { align: 'center' });
+        
+        let startY = 40;
         if (catalogDetails.description) {
             doc.setFontSize(12);
             const descriptionLines = doc.splitTextToSize(catalogDetails.description, 180);
-            doc.text(descriptionLines, 14, 30);
+            doc.text(descriptionLines, 14, startY);
+            startY += descriptionLines.length * 5 + 10;
         }
 
         const tableColumn = ["Producto", "Descripción", "Precio"];
@@ -430,7 +438,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         autoTable(doc, {
             head: [tableColumn],
             body: tableRows,
-            startY: catalogDetails.description ? 50 : 30, 
+            startY: startY, 
             headStyles: { fillColor: [59, 130, 246] }, 
             styles: { halign: 'center' },
             columnStyles: { 

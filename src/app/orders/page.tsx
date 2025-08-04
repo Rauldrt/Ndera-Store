@@ -77,22 +77,28 @@ export default function OrdersPage() {
     const doc = new jsPDF();
     const { customerInfo, items, total, createdAt, paymentMethod } = order;
 
+    // Add logo
+    const logoImg = document.getElementById('app-logo') as HTMLImageElement;
+    if (logoImg) {
+        doc.addImage(logoImg, 'PNG', 14, 15, 40, 15);
+    }
+
     doc.setFontSize(22);
-    doc.text('Comprobante de Pedido', 105, 20, { align: 'center' });
+    doc.text('Comprobante de Pedido', 105, 25, { align: 'center' });
 
     doc.setFontSize(12);
-    doc.text('Información del Cliente:', 14, 40);
+    doc.text('Información del Cliente:', 14, 45);
     doc.setFontSize(10);
-    doc.text(`Nombre: ${customerInfo.name}`, 14, 48);
-    doc.text(`Email: ${customerInfo.email}`, 14, 54);
+    doc.text(`Nombre: ${customerInfo.name}`, 14, 53);
+    doc.text(`Email: ${customerInfo.email}`, 14, 59);
 
     doc.setFontSize(12);
-    doc.text('Detalles del Pedido:', 105, 40);
+    doc.text('Detalles del Pedido:', 105, 45);
     doc.setFontSize(10);
-    doc.text(`Fecha: ${new Date(createdAt.seconds * 1000).toLocaleDateString()}`, 105, 48);
-    doc.text(`Total: $${total.toFixed(2)}`, 105, 54);
+    doc.text(`Fecha: ${new Date(createdAt.seconds * 1000).toLocaleDateString()}`, 105, 53);
+    doc.text(`Total: $${total.toFixed(2)}`, 105, 59);
     const paymentMethodText = getPaymentMethodText(paymentMethod);
-    doc.text(`Método de Pago: ${paymentMethodText}`, 105, 60);
+    doc.text(`Método de Pago: ${paymentMethodText}`, 105, 65);
 
     const tableColumn = ["Producto", "Cantidad", "Precio Unitario", "Subtotal"];
     const tableRows = items.map(item => [
