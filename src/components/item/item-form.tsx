@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as CardDesc } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Lightbulb, Loader2, Info, DollarSign, Sparkles } from "lucide-react"; 
+import { X, Lightbulb, Loader2, Info, DollarSign, Sparkles, Search } from "lucide-react"; 
 import type { Item } from "@/types";
 import { suggestTags, type SuggestTagsInput, type SuggestTagsOutput } from '@/ai/flows/suggest-tags'; 
 import { generateProductImage, type GenerateProductImageInput, type GenerateProductImageOutput } from '@/ai/flows/generate-product-image';
@@ -73,6 +73,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   const { toast } = useToast();
 
   const tags = form.watch("tags");
+  const itemName = form.watch("name");
   const itemDescription = form.watch("description"); // Watch description for enabling suggest button
 
   const handleAddTag = (tagToAdd: string) => {
@@ -193,6 +194,21 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     }
   };
 
+  const handleSearchImage = () => {
+    const name = form.getValues("name");
+    if (!name || name.trim().length < 1) {
+      toast({
+        title: "Nombre del Producto Requerido",
+        description: "Por favor, introduce un nombre para el producto para poder buscar una imagen.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const query = encodeURIComponent(name);
+    const url = `https://www.google.com/search?tbm=isch&q=${query}`;
+    window.open(url, '_blank');
+  };
+
   const handleSubmitForm: SubmitHandler<ItemFormValues> = async (data) => {
      const trimmedData = {
         ...data,
@@ -283,7 +299,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                             <Info className="h-3 w-3 ml-1.5 text-muted-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent side="top" className="max-w-xs">
-                            <p>Proporciona un enlace directo (URL) o genera una imagen con IA.</p>
+                            <p>Proporciona un enlace directo (URL), genera una imagen con IA o búscala en la web.</p>
                           </TooltipContent>
                         </Tooltip>
                       </FormLabel>
@@ -295,8 +311,18 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                           type="button"
                           variant="outline"
                           size="icon"
+                          onClick={handleSearchImage}
+                          disabled={!itemName || isLoading}
+                          title="Buscar imagen en la web"
+                        >
+                           <Search className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
                           onClick={handleGenerateImage}
-                          disabled={isGeneratingImage || isLoading}
+                          disabled={isGeneratingImage || !itemName || isLoading}
                           title="Generar imagen con IA"
                         >
                           {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
