@@ -10,7 +10,7 @@ import { ItemForm, type ItemFormValues } from '@/components/item/item-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star, Share2, Upload, Download, MoreVertical } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star, Share2, Upload, Download, MoreVertical, FileText } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Input } from '@/components/ui/input';
 import {
@@ -37,6 +37,9 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Separator } from "@/components/ui/separator";
 import Papa from 'papaparse';
 import { cn } from '@/lib/utils';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 
 interface CatalogItemsProps {
   catalogId: string;
@@ -354,6 +357,52 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     link.click();
     document.body.removeChild(link);
   };
+  
+    const handleExportPDF = () => {
+        if (!itemsWithTimestamp || !catalogDetails) {
+            toast({
+                title: 'No hay datos para exportar',
+                description: 'El catálogo o los productos no están disponibles.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        const doc = new jsPDF();
+        
+        doc.setFontSize(22);
+        doc.text(catalogDetails.name, 105, 20, { align: 'center' });
+        
+        if (catalogDetails.description) {
+            doc.setFontSize(12);
+            // Use splitTextToSize to handle wrapping for long descriptions
+            const descriptionLines = doc.splitTextToSize(catalogDetails.description, 180);
+            doc.text(descriptionLines, 14, 30);
+        }
+
+        const tableColumn = ["Producto", "Descripción", "Precio"];
+        const tableRows = itemsWithTimestamp.map(item => [
+            item.name,
+            item.description,
+            `$${(item.price ?? 0).toFixed(2)}`
+        ]);
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: catalogDetails.description ? 50 : 30, // Adjust startY based on description
+            headStyles: { fillColor: [59, 130, 246] }, // A nice blue color
+            styles: { halign: 'center' },
+            columnStyles: { 
+                0: { halign: 'left' },
+                1: { halign: 'left' },
+                2: { halign: 'right' }
+            }
+        });
+
+        const catalogName = catalogDetails.name.replace(/ /g, '_') || 'catalogo';
+        doc.save(`${catalogName}_${new Date().toISOString().split('T')[0]}.pdf`);
+    };
 
 
    const handleAddItem = async (data: ItemFormValues) => {
@@ -464,13 +513,18 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                       <Share2 className="mr-2 h-4 w-4" />
                       <span>Compartir</span>
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
                        {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                        <span>{isImporting ? 'Importando...' : 'Importar CSV'}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleExportCSV} disabled={isLoadingItems || !itemsWithTimestamp || itemsWithTimestamp.length === 0}>
                       <Upload className="mr-2 h-4 w-4" />
-                      <span>Exportar CSV</span>
+                      <span>Exportar a CSV</span>
+                    </DropdownMenuItem>
+                     <DropdownMenuItem onClick={handleExportPDF} disabled={isLoadingItems || !itemsWithTimestamp || itemsWithTimestamp.length === 0}>
+                        <FileText className="mr-2 h-4 w-4" />
+                        <span>Descargar PDF</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -718,4 +772,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
+
+
 
