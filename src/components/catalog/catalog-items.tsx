@@ -329,7 +329,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
     const dataToExport = itemsWithTimestamp.map(item => ({
       name: item.name,
-      price: item.price,
+      price: item.price ?? 0,
       description: item.description,
       imageUrl: item.imageUrl || '',
       tags: Array.isArray(item.tags) ? item.tags.join(',') : '',
@@ -395,7 +395,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
 
   return (
-    <div className="space-y-4">
+    <div>
       
        {/* Catalog Header */}
        <div className="relative rounded-t-lg overflow-hidden h-auto md:h-64 w-full flex items-center justify-center p-4 md:p-6">
