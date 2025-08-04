@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { ShoppingCart, Trash2, Plus, Minus, PackageX, CreditCard, Download, Send, LocateFixed, Loader2 } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, PackageX, CreditCard, Download, Send, LocateFixed, Loader2, Save } from 'lucide-react';
 import Link from 'next/link';
 import type { CartItem } from '@/types';
 import { jsPDF } from 'jspdf';
@@ -20,6 +20,8 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
+import { collection, query, where, getDocs, addDoc, updateDoc, serverTimestamp, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 
 const SAVED_SHIPPING_INFO_KEY = 'savedShippingInfo';
@@ -41,9 +43,10 @@ export function CartSheet() {
   const { toast } = useToast();
   const total = getCartTotal();
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
-  const [quoteAction, setQuoteAction] = useState<'pdf' | 'whatsapp' | null>(null);
+  const [quoteAction, setQuoteAction] = useState<'pdf' | 'whatsapp' | 'save' | null>(null);
   const [geolocation, setGeolocation] = useState<{ latitude: number, longitude: number } | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   const form = useForm<QuoteFormValues>({
     resolver: zodResolver(quoteSchema),
@@ -167,6 +170,75 @@ export function CartSheet() {
     setIsQuoteDialogOpen(false);
   }
 
+  const handleSaveOrder = async (data: QuoteFormValues) => {
+    setIsSavingOrder(true);
+    try {
+        // 1. Save or update customer
+        const customersRef = collection(db, 'customers');
+        const q = query(customersRef, where("email", "==", data.email));
+        const querySnapshot = await getDocs(q);
+        let customerId: string;
+
+        const customerData: any = {
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            address: data.address,
+            lastOrderDate: serverTimestamp(),
+        };
+
+        if (geolocation) {
+          customerData.geolocation = geolocation;
+        }
+
+        if (querySnapshot.empty) {
+            const customerDocRef = await addDoc(customersRef, {
+                ...customerData,
+                createdAt: serverTimestamp(),
+            });
+            customerId = customerDocRef.id;
+        } else {
+            const customerDocRef = doc(db, 'customers', querySnapshot.docs[0].id);
+            await updateDoc(customerDocRef, customerData);
+            customerId = customerDocRef.id;
+        }
+
+        // 2. Create the order
+        const ordersRef = collection(db, 'orders');
+        await addDoc(ordersRef, {
+            customerId: customerId,
+            customerInfo: { name: data.name, email: data.email },
+            items: cart.map(item => ({
+                id: item.id,
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price,
+            })),
+            total: total,
+            paymentMethod: 'saved', // Mark as saved from cart
+            createdAt: serverTimestamp(),
+        });
+        
+        // 3. Clear cart and show success
+        clearCart();
+        setIsQuoteDialogOpen(false);
+        toast({
+            title: "Pedido Guardado",
+            description: "El pedido ha sido guardado y puede ser consultado en el historial.",
+        });
+
+    } catch (error) {
+        console.error("Error al guardar el pedido:", error);
+        toast({
+            title: 'Error Inesperado',
+            description: 'No se pudo guardar el pedido. Por favor, inténtalo de nuevo.',
+            variant: 'destructive',
+        });
+    } finally {
+        setIsSavingOrder(false);
+    }
+  };
+
 
   const handleGetGeolocation = () => {
     if (navigator.geolocation) {
@@ -223,10 +295,12 @@ export function CartSheet() {
         generateQuotePDF(data);
     } else if (quoteAction === 'whatsapp') {
         sendQuoteWhatsApp(data);
+    } else if (quoteAction === 'save') {
+        handleSaveOrder(data);
     }
   };
 
-  const openQuoteDialog = (action: 'pdf' | 'whatsapp') => {
+  const openQuoteDialog = (action: 'pdf' | 'whatsapp' | 'save') => {
       setQuoteAction(action);
       setIsQuoteDialogOpen(true);
   }
@@ -296,6 +370,10 @@ export function CartSheet() {
                     <span>Total</span>
                     <span>${total.toFixed(2)}</span>
                   </div>
+                   <Button variant="outline" onClick={() => openQuoteDialog('save')}>
+                        <Save className="mr-2 h-4 w-4" />
+                        Guardar Pedido
+                    </Button>
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     <Button variant="default" onClick={() => openQuoteDialog('pdf')}>
                         <Download className="mr-2 h-4 w-4" />
@@ -306,7 +384,7 @@ export function CartSheet() {
                         WhatsApp
                     </Button>
                   </div>
-                  <Button variant="outline" className="w-full" onClick={clearCart}>
+                  <Button variant="destructive" className="w-full" onClick={clearCart}>
                     <Trash2 className="mr-2 h-4 w-4" />
                     Vaciar Carrito
                   </Button>
@@ -430,9 +508,17 @@ export function CartSheet() {
                 <DialogClose asChild>
                   <Button type="button" variant="ghost">Cancelar</Button>
                 </DialogClose>
-                <Button type="submit">
-                  {quoteAction === 'pdf' ? <Download className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
-                  {quoteAction === 'pdf' ? 'Generar PDF' : 'Enviar por WhatsApp'}
+                <Button type="submit" disabled={isSavingOrder}>
+                   {isSavingOrder ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> :
+                    quoteAction === 'pdf' ? <Download className="mr-2 h-4 w-4" /> :
+                    quoteAction === 'whatsapp' ? <Send className="mr-2 h-4 w-4" /> :
+                    <Save className="mr-2 h-4 w-4" />
+                   }
+                  {isSavingOrder ? 'Guardando...' :
+                    quoteAction === 'pdf' ? 'Generar PDF' :
+                    quoteAction === 'whatsapp' ? 'Enviar por WhatsApp' :
+                    'Guardar Pedido'
+                  }
                 </Button>
               </DialogFooter>
             </form>
@@ -442,3 +528,5 @@ export function CartSheet() {
     </>
   );
 }
+
+    
