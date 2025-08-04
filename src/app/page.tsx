@@ -234,7 +234,7 @@ export default function Home() {
       <Sidebar collapsible="icon"> 
         <SidebarHeader className="items-center justify-between p-2">
           <Link href="/" onClick={handleBackToDashboard} className="text-lg font-semibold text-sidebar-primary group-data-[collapsible=icon]:hidden">
-            Catalogify
+            Ndera-Store
           </Link>
           <div className="flex items-center gap-1">
              <CartSheet />
@@ -428,7 +428,7 @@ export default function Home() {
               {!isLoadingCatalogs && !catalogsError && catalogs && catalogs.length === 0 && (
                  <div className="flex flex-col items-center justify-center h-full text-center py-10 border-2 border-dashed rounded-lg">
                     <PackageSearch className="w-12 h-12 md:w-16 md:h-16 text-primary mb-4" />
-                    <h2 className="text-lg md:text-xl font-semibold text-foreground">¡Bienvenido a Catalogify!</h2>
+                    <h2 className="text-lg md:text-xl font-semibold text-foreground">¡Bienvenido a Ndera-Store!</h2>
                     <p className="text-muted-foreground text-sm md:text-base">Comienza creando tu primer catálogo para añadir productos.</p>
                      <Button onClick={handleOpenCreateForm} className="mt-6">
                         <PlusCircle className="mr-2 h-4 w-4" /> Crea tu Primer Catálogo

@@ -8,7 +8,7 @@ import { CartProvider } from '@/context/cart-context';
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Catalogify',
+  title: 'Ndera-Store',
   description: 'Gestiona tus catálogos con facilidad.',
 };
 

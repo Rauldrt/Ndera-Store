@@ -1,4 +1,4 @@
-# Firebase Studio - Catalogify
+# Firebase Studio - Ndera-Store
 
 This is a Next.js application built with Firebase and Genkit for managing catalogs and leveraging AI features like tag suggestions.
 

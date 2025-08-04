@@ -35,7 +35,7 @@ export default function CheckoutLayout({
       <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href={backUrl} className="text-xl font-bold text-primary">
-            Catalogify
+            Ndera-Store
           </Link>
           <Link href={backUrl}>
             {isCatalogContext ? (
@@ -56,7 +56,7 @@ export default function CheckoutLayout({
       </main>
       <footer className="border-t bg-background">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center text-sm text-muted-foreground">
-              <p>&copy; {new Date().getFullYear()} Catalogify. Todos los derechos reservados.</p>
+              <p>&copy; {new Date().getFullYear()} Ndera-Store. Todos los derechos reservados.</p>
           </div>
       </footer>
     </div>
