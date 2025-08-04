@@ -234,7 +234,7 @@ export default function Home() {
       <Sidebar collapsible="icon"> 
         <SidebarHeader className="items-center justify-between p-2">
           <Link href="/" onClick={handleBackToDashboard} className="text-lg font-semibold text-sidebar-primary group-data-[collapsible=icon]:hidden">
-            Ndera-Store
+             <img src="/logo.png" alt="Ndera-Store Logo" className="h-8 w-auto" />
           </Link>
           <div className="flex items-center gap-1">
              <CartSheet />
