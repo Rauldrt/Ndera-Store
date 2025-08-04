@@ -10,6 +10,8 @@ export const ai = genkit({
         // Explicitly specifying the API key (optional, but good practice)
         // Reads from process.env.GOOGLE_API_KEY
         apiKey: process.env.GOOGLE_API_KEY,
+        // Preview models require specifying the v1beta API version.
+        apiVersion: 'v1beta',
     }),
 ],
   model: 'googleai/gemini-2.0-flash', // Default model for general tasks
