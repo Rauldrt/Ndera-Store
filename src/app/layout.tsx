@@ -12,7 +12,13 @@ export const metadata: Metadata = {
   title: 'Ndera-Store',
   description: 'Gestiona tus catálogos con facilidad.',
   icons: {
-    icon: '/logo.png', // Añadido para el favicon
+    icon: [
+      { url: '/logo.png', type: 'image/png' },
+    ],
+    shortcut: ['/logo.png'],
+    apple: [
+      { url: '/logo.png', type: 'image/png' },
+    ],
   },
 };
 
