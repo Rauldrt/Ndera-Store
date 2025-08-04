@@ -502,10 +502,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
   return (
     <div ref={catalogContainerRef}>
-      
-       {/* Catalog Header */}
        <div className="relative overflow-hidden h-auto md:h-64 w-full flex items-center justify-center">
-        {/* Background Image */}
         <div className="absolute inset-0">
           {isLoadingCatalogDetails ? (
             <Skeleton className="w-full h-full" />
@@ -517,11 +514,8 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
               data-ai-hint="background image"
             />
           )}
-          {/* Overlay */}
           <div className="absolute inset-0 bg-black/50" />
         </div>
-
-        {/* Header Content */}
         <div className="relative z-10 w-full text-white text-center p-4">
             {isLoadingCatalogDetails ? (
                  <>
@@ -585,8 +579,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             </div>
         </div>
       </div>
-
-
       <Dialog open={showItemForm} onOpenChange={(isOpen) => {
           setShowItemForm(isOpen);
           if (!isOpen) handleCancelForm();
@@ -611,8 +603,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
           />
         </DialogContent>
       </Dialog>
-      
-      {/* Featured Items Carousel */}
       {!isLoadingItems && featuredItems && featuredItems.length > 0 && (
         <div className='space-y-4 p-4 md:p-6'>
             <div className='flex items-center gap-2'>
@@ -677,7 +667,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       )}
       
       <div className="p-4 md:p-6 space-y-4">
-        {/* Search and Regular Items */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
@@ -689,7 +678,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
               disabled={isLoadingItems}
           />
         </div>
-
         {isLoadingItems && (
            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
               {[...Array(8)].map((_, i) => (
@@ -724,7 +712,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
               </Button>
            </div>
           )}
-
         {!isLoadingItems && !itemsError && itemsWithTimestamp && itemsWithTimestamp.length === 0 && !showItemForm && (
           <div className="text-center py-10 border-2 border-dashed rounded-lg">
             <h3 className="text-lg font-medium text-muted-foreground">Aún no hay productos</h3>
@@ -734,7 +721,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
               </Button>
           </div>
         )}
-
         {!isLoadingItems && !itemsError && filteredRegularItems.length === 0 && (searchQuery || (regularItems && regularItems.length > 0)) && (
            <div className="text-center py-10 border-2 border-dashed rounded-lg">
              <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -745,7 +731,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
              </Button>
            </div>
          )}
-
         {!isLoadingItems && !itemsError && filteredRegularItems.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 items-stretch">
             {filteredRegularItems.map((item, index) => (
@@ -797,7 +782,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
           </div>
   )}
       </div>
-
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
            <AlertDialogHeader>
@@ -826,9 +810,3 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
-
-
-
-
-
-
