@@ -18,6 +18,7 @@ export interface Item {
   tags: string[];
   createdAt: Timestamp; // Use Firestore Timestamp
   isFeatured?: boolean; // To mark item as featured
+  isVisible?: boolean; // To control visibility in the store
 }
 
 // Defines the structure for an item inside the shopping cart

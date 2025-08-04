@@ -63,7 +63,8 @@ export default function CatalogPage() {
     queryKey: ['items', catalogId],
     queryFn: async () => {
         const itemsCollection = collection(db, 'items');
-        const q = query(itemsCollection, where('catalogId', '==', catalogId));
+        // Only fetch visible items for public view
+        const q = query(itemsCollection, where('catalogId', '==', catalogId), where('isVisible', '==', true));
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => {
             const data = doc.data();

@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { collection, query, orderBy, getDocs, Timestamp, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, Timestamp, doc, getDoc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Item, Catalog } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,7 +50,8 @@ export default function AllItemsPage() {
     queryKey: ['allItems'],
     queryFn: async () => {
       const itemsCollection = collection(db, 'items');
-      const q = query(itemsCollection, orderBy('createdAt', 'desc'));
+      // Only fetch visible items
+      const q = query(itemsCollection, where('isVisible', '==', true), orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map((doc) => {
         const data = doc.data();

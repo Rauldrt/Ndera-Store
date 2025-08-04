@@ -42,6 +42,7 @@ const itemFormSchema = z.object({
   imageUrl: z.string().url("Formato de URL inválido. Por favor, introduce una URL válida https:// o http://.").or(z.literal("")),
   tags: z.array(z.string().min(1, "La etiqueta no puede estar vacía.").max(50, "Etiqueta demasiado larga (máx. 50 caracteres).")).max(10, "Máximo 10 etiquetas permitidas."),
   isFeatured: z.boolean().default(false),
+  isVisible: z.boolean().default(true),
 });
 
 export type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -63,6 +64,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
       imageUrl: initialData?.imageUrl || "",
       tags: initialData?.tags || [],
       isFeatured: initialData?.isFeatured || false,
+      isVisible: initialData?.isVisible === false ? false : true, // Default to true if undefined
     },
   });
 
@@ -226,6 +228,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
       imageUrl: initialData?.imageUrl || "",
       tags: initialData?.tags || [],
       isFeatured: initialData?.isFeatured || false,
+      isVisible: initialData?.isVisible === false ? false : true,
     });
   }, [initialData, form]);
 
@@ -420,27 +423,50 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="isFeatured"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                  <div className="space-y-0.5">
-                    <FormLabel>Producto Destacado</FormLabel>
-                    <FormDescription>
-                      Los productos destacados se mostrarán en un carrusel.
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={isLoading}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="isFeatured"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Producto Destacado</FormLabel>
+                      <FormDescription>
+                        Los productos destacados se mostrarán en un carrusel.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="isVisible"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Visible en Tienda</FormLabel>
+                      <FormDescription>
+                        Controla si este producto aparece en la tienda pública.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
 
              <Button type="submit" disabled={isLoading || isSuggestingTags || isGeneratingImage} className="w-full sm:w-auto"> 
               {isLoading ? (

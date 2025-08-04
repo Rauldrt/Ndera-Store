@@ -10,7 +10,7 @@ import { ItemForm, type ItemFormValues } from '@/components/item/item-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star, Share2, Upload, Download, MoreVertical, FileText, Camera } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star, Share2, Upload, Download, MoreVertical, FileText, Camera, Eye, EyeOff } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Input } from '@/components/ui/input';
 import {
@@ -85,6 +85,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       if (!catalogId) {
         return undefined;
       }
+      // No 'isVisible' filter here to show all items to admin
       const q = query(collection(db, "items"), where("catalogId", "==", catalogId), orderBy("createdAt", "desc"));
       try {
         const querySnapshot = await getDocs(q);
@@ -101,6 +102,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                createdAt: data.createdAt as Timestamp,
                catalogId: data.catalogId,
                isFeatured: data.isFeatured,
+               isVisible: data.isVisible,
            } as ItemWithTimestamp;
         });
       } catch (error) {
@@ -169,6 +171,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             tags: Array.isArray(data.tags) ? data.tags : [],
             catalogId: currentCatalogId,
             isFeatured: data.isFeatured,
+            isVisible: data.isVisible,
         };
         const docRef = await addDoc(collection(db, "items"), {
            ...newItemData,
@@ -201,24 +204,16 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
   // Mutation for updating an item
     const updateItemMutation = useMutation({
-        mutationFn: async ({ id, data }: { id: string, data: ItemFormValues }) => { 
+        mutationFn: async ({ id, data }: { id: string, data: Partial<ItemFormValues> }) => { 
             const itemRef = doc(db, "items", id);
-             const updateData: Partial<Omit<Item, 'id' | 'createdAt' | 'catalogId'>> = {
-                name: data.name,
-                description: data.description,
-                price: data.price,
-                imageUrl: data.imageUrl,
-                tags: Array.isArray(data.tags) ? data.tags : [],
-                isFeatured: data.isFeatured,
-            };
-            await updateDoc(itemRef, updateData);
+            await updateDoc(itemRef, data);
         },
-        onSuccess: () => { 
+        onSuccess: (_, variables) => { 
             queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
             toast({
-                title: "Producto Actualizado",
-                description: "El producto ha sido guardado.",
-                 variant: "default",
+                title: variables.data.isVisible === undefined ? "Producto Actualizado" : "Visibilidad Actualizada",
+                description: variables.data.isVisible === undefined ? "El producto ha sido guardado." : `El producto ahora es ${variables.data.isVisible ? 'visible' : 'oculto'}.`,
+                variant: "default",
             });
             setShowItemForm(false);
             setEditingItem(null);
@@ -272,7 +267,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       header: true,
       skipEmptyLines: true,
       complete: async (results) => {
-        const requiredHeaders = ['name', 'price', 'description', 'imageUrl', 'tags', 'isFeatured'];
+        const requiredHeaders = ['name', 'price', 'description', 'imageUrl', 'tags', 'isFeatured', 'isVisible'];
         const actualHeaders = results.meta.fields || [];
         const missingHeaders = requiredHeaders.filter(h => !actualHeaders.includes(h));
 
@@ -294,6 +289,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             const itemRef = doc(collection(db, "items"));
             const tagsArray = typeof item.tags === 'string' ? item.tags.split(',').map(t => t.trim()) : [];
             const isFeaturedBool = item.isFeatured?.toLowerCase() === 'true';
+            const isVisibleBool = item.isVisible?.toLowerCase() !== 'false'; // Default to true unless explicitly 'false'
             const priceNumber = parseFloat(item.price);
 
             batch.set(itemRef, {
@@ -303,6 +299,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
               imageUrl: item.imageUrl || '',
               tags: tagsArray,
               isFeatured: isFeaturedBool,
+              isVisible: isVisibleBool,
               catalogId: catalogId,
               createdAt: serverTimestamp(),
             });
@@ -358,6 +355,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       imageUrl: item.imageUrl || '',
       tags: Array.isArray(item.tags) ? item.tags.join(',') : '',
       isFeatured: item.isFeatured || false,
+      isVisible: item.isVisible === false ? false : true,
     }));
 
     const csv = Papa.unparse(dataToExport);
@@ -475,6 +473,11 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             await updateItemMutation.mutateAsync({ id: editingItem.id, data });
         }
     };
+    
+    const handleToggleVisibility = (item: ItemWithTimestamp) => {
+      const newVisibility = !(item.isVisible === false ? false : true);
+      updateItemMutation.mutate({ id: item.id, data: { isVisible: newVisibility } });
+    }
 
     const handleEditItem = (item: ItemWithTimestamp) => {
         setEditingItem(item);
@@ -631,11 +634,19 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                     className="w-full"
                 >
                     <CarouselContent className="-ml-4">
-                        {featuredItems.map((item, index) => (
+                        {featuredItems.map((item, index) => {
+                            const isVisible = item.isVisible === false ? false : true;
+                            return (
                             <CarouselItem key={item.id} className="md:basis-1/2 lg:basis-1/3 pl-4">
                                 <div className="p-1 h-full">
-                                    <Card className="group relative w-full h-full aspect-video overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl">
+                                    <Card className={cn(
+                                        "group relative w-full h-full aspect-video overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl",
+                                        !isVisible && "opacity-50"
+                                    )}>
                                         <div className="absolute top-2 right-2 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="outline" size="icon" className="h-8 w-8 bg-background/70 hover:bg-background" onClick={(e) => { e.stopPropagation(); handleToggleVisibility(item); }} title={isVisible ? "Ocultar producto" : "Mostrar producto"}>
+                                                {isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                            </Button>
                                             <Button variant="outline" size="icon" className="h-8 w-8 bg-background/70 hover:bg-background" onClick={(e) => { e.stopPropagation(); handleEditItem(item); }}>
                                                 <Edit className="h-4 w-4" />
                                                 <span className="sr-only">Edit Item</span>
@@ -645,6 +656,13 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                                                 <span className="sr-only">Delete Item</span>
                                             </Button>
                                         </div>
+                                        {!isVisible && (
+                                          <div className="absolute top-2 left-2 z-10">
+                                            <Badge variant="secondary" className="bg-background/70">
+                                              <EyeOff className="mr-1.5 h-3 w-3"/> Oculto
+                                            </Badge>
+                                          </div>
+                                        )}
                                         {item.imageUrl ? (
                                             <img
                                                 src={item.imageUrl}
@@ -669,7 +687,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                                     </Card>
                                 </div>
                             </CarouselItem>
-                        ))}
+                        )})}
                     </CarouselContent>
                     <CarouselPrevious className="hidden sm:flex" />
                     <CarouselNext className="hidden sm:flex" />
@@ -741,14 +759,24 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
          )}
         {!isLoadingItems && !itemsError && filteredRegularItems.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 items-stretch">
-            {filteredRegularItems.map((item, index) => (
+            {filteredRegularItems.map((item, index) => {
+              const isVisible = item.isVisible === false ? false : true;
+              return (
               <Card 
                 key={item.id} 
-                className="group flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+                className={cn(
+                  "group flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer",
+                  !isVisible && "opacity-60 hover:opacity-100"
+                )}
                 onClick={() => setSelectedItem(item)}
               >
                  <CardHeader className="p-0">
                   <div className="aspect-video relative bg-muted overflow-hidden">
+                       {!isVisible && (
+                          <Badge variant="secondary" className="absolute top-2 left-2 z-10 bg-black/60 text-white border-none">
+                            <EyeOff className="mr-1.5 h-3 w-3"/> Oculto
+                          </Badge>
+                       )}
                        {item.imageUrl ? (
                           <img
                              src={item.imageUrl}
@@ -773,6 +801,10 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                    <p className="text-md font-bold text-primary mt-2">${(item.price ?? 0).toFixed(2)}</p>
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2 p-3 border-t bg-background/50 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleToggleVisibility(item);}} className="flex-1" title={isVisible ? "Ocultar producto" : "Mostrar producto"}>
+                      {isVisible ? <Eye className="mr-1.5 h-3.5 w-3.5" /> : <EyeOff className="mr-1.5 h-3.5 w-3.5" />}
+                      {isVisible ? 'Ocultar' : 'Mostrar'}
+                   </Button>
                    <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleEditItem(item);}} className="flex-1">
                     <Edit className="mr-1.5 h-3.5 w-3.5" /> Editar
                   </Button>
@@ -781,7 +813,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                   </Button>
                 </CardFooter>
               </Card>
-            ))}
+            )})}
           </div>
   )}
       </div>
