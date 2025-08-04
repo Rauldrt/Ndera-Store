@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, Lightbulb, Loader2, Info, DollarSign, Sparkles } from "lucide-react"; 
 import type { Item } from "@/types";
 import { suggestTags, type SuggestTagsInput, type SuggestTagsOutput } from '@/ai/flows/suggest-tags'; 
-import { generateProductImage, type GenerateProductImageInput } from '@/ai/flows/generate-product-image';
+import { generateProductImage, type GenerateProductImageInput, type GenerateProductImageOutput } from '@/ai/flows/generate-product-image';
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -165,12 +165,22 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     setIsGeneratingImage(true);
     try {
         const input: GenerateProductImageInput = { name, description };
-        const result = await generateProductImage(input);
+        const result: GenerateProductImageOutput = await generateProductImage(input);
         form.setValue("imageUrl", result.imageUrl, { shouldValidate: true });
-        toast({
-            title: "¡Imagen Generada!",
-            description: "La IA ha creado una imagen para tu producto.",
-        });
+
+        if (result.wasGenerated) {
+            toast({
+                title: "¡Imagen Generada!",
+                description: "La IA ha creado una imagen para tu producto.",
+            });
+        } else {
+            toast({
+                title: "Fallo en la Generación",
+                description: "No se pudo generar una imagen con IA. Se ha asignado una imagen de respaldo.",
+                variant: "default", 
+            });
+        }
+
     } catch (error: any) {
         console.error("Error al generar imagen:", error);
         toast({
