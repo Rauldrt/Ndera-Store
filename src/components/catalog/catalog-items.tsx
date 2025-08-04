@@ -398,7 +398,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     <div>
       
        {/* Catalog Header */}
-       <div className="relative rounded-t-lg overflow-hidden h-auto md:h-64 w-full flex items-center justify-center p-4 md:p-6">
+       <div className="relative overflow-hidden h-auto md:h-64 w-full flex items-center justify-center p-4 md:p-6">
         {/* Background Image */}
         <div className="absolute inset-0">
           {isLoadingCatalogDetails ? (
