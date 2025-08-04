@@ -4,12 +4,10 @@
  * @fileOverview AI-powered product image generation.
  *
  * - generateProductImage - A function that generates a product image based on its name and description.
- * - GenerateProductImageInput - The input type for the generateProductImage function.
  * - GenerateProductImageOutput - The return type for the generateProductImage function.
  */
 
 import { ai } from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/googleai'; // Import googleAI explicitly
 import { z } from 'genkit';
 
 const GenerateProductImageInputSchema = z.object({
@@ -35,8 +33,8 @@ const generateProductImageFlow = ai.defineFlow(
   },
   async (input) => {
     const { media } = await ai.generate({
-      // IMPORTANT: ONLY this model can generate images. Use the model constructor.
-      model: googleAI.model('gemini-2.0-flash-preview-image-generation'),
+      // IMPORTANT: ONLY this model can generate images.
+      model: 'googleai/gemini-2.0-flash-preview-image-generation',
       prompt: `Generate a photorealistic image of the following product. 
 The product should be on a clean, neutral background.
 Product Name: ${input.name}
