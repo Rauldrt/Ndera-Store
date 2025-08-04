@@ -10,7 +10,7 @@ import { ItemForm, type ItemFormValues } from '@/components/item/item-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star, Share2, Upload, Download, MoreVertical, FileText } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, AlertTriangle, ImageOff, Loader2, Search, Star, Share2, Upload, Download, MoreVertical, FileText, Camera } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Input } from '@/components/ui/input';
 import {
@@ -39,6 +39,7 @@ import Papa from 'papaparse';
 import { cn } from '@/lib/utils';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 
 
 interface CatalogItemsProps {
@@ -59,6 +60,8 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const catalogContainerRef = useRef<HTMLDivElement>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
 
 
   const queryClient = useQueryClient();
@@ -404,6 +407,53 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         doc.save(`${catalogName}_${new Date().toISOString().split('T')[0]}.pdf`);
     };
 
+    const handleCaptureAndDownload = async () => {
+        if (!catalogContainerRef.current) {
+            toast({
+                title: 'Error de Captura',
+                description: 'No se pudo encontrar el contenido del catálogo para capturar.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        setIsCapturing(true);
+        toast({
+            title: 'Capturando Catálogo...',
+            description: 'Esto puede tardar unos segundos.',
+        });
+
+        try {
+            const canvas = await html2canvas(catalogContainerRef.current, {
+                allowTaint: true,
+                useCORS: true,
+                scale: 2, // Increase resolution for better quality
+                backgroundColor: '#ffffff', // Set a background color for transparency
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'px',
+                format: [canvas.width, canvas.height],
+            });
+
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+            const catalogName = catalogDetails?.name.replace(/ /g, '_') || 'catalogo';
+            pdf.save(`${catalogName}_captura_${new Date().toISOString().split('T')[0]}.pdf`);
+
+        } catch (error) {
+            console.error("Error al capturar PDF:", error);
+            toast({
+                title: 'Error al Generar PDF',
+                description: 'No se pudo crear la captura del catálogo.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsCapturing(false);
+        }
+    };
+
 
    const handleAddItem = async (data: ItemFormValues) => {
         await addItemMutation.mutateAsync({ data, catalogId });
@@ -451,10 +501,10 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
 
 
   return (
-    <div>
+    <div ref={catalogContainerRef}>
       
        {/* Catalog Header */}
-       <div className="relative overflow-hidden h-auto md:h-64 w-full flex items-center justify-center p-4">
+       <div className="relative overflow-hidden h-auto md:h-64 w-full flex items-center justify-center">
         {/* Background Image */}
         <div className="absolute inset-0">
           {isLoadingCatalogDetails ? (
@@ -472,7 +522,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         </div>
 
         {/* Header Content */}
-        <div className="relative z-10 w-full text-white text-center">
+        <div className="relative z-10 w-full text-white text-center p-4">
             {isLoadingCatalogDetails ? (
                  <>
                     <Skeleton className="h-10 w-3/4 mb-2 mx-auto" />
@@ -511,7 +561,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={handleShareCatalog}>
                       <Share2 className="mr-2 h-4 w-4" />
-                      <span>Compartir</span>
+                      <span>Compartir Link</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
@@ -525,6 +575,10 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
                      <DropdownMenuItem onClick={handleExportPDF} disabled={isLoadingItems || !itemsWithTimestamp || itemsWithTimestamp.length === 0}>
                         <FileText className="mr-2 h-4 w-4" />
                         <span>Descargar PDF</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleCaptureAndDownload} disabled={isCapturing}>
+                        {isCapturing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
+                        <span>{isCapturing ? 'Capturando...' : 'Capturar y Descargar'}</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -772,6 +826,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </div>
   );
 }
+
 
 
 
