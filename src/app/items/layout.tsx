@@ -5,6 +5,7 @@ import { CartSheet } from "@/components/cart/cart-sheet";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import Link from 'next/link';
+import { AuthButton } from "@/components/auth/auth-button";
 
 export default function ItemsLayout({
   children,
@@ -23,19 +24,7 @@ export default function ItemsLayout({
           </Link>
           <div className="flex items-center gap-2">
              <CartSheet />
-             {!user ? (
-                <Link href="/login">
-                    <Button variant="default">
-                        Iniciar Sesión
-                    </Button>
-                </Link>
-             ) : (user.role === 'admin' || user.role === 'usuario') ? (
-                <Link href="/">
-                    <Button variant="outline">
-                        Volver a Gestión
-                    </Button>
-                </Link>
-             ) : null}
+             <AuthButton />
           </div>
         </div>
       </header>
