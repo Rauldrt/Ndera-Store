@@ -260,22 +260,6 @@ export default function Home() {
     );
   }
 
-  if (user && user.role !== 'admin') {
-      return (
-          <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
-              <AlertTriangle className="w-16 h-16 text-destructive mb-4" />
-              <h1 className="text-2xl font-bold">Acceso Restringido</h1>
-              <p className="text-muted-foreground mt-2">No tienes permiso para acceder a esta página.</p>
-              <div className="mt-6 flex gap-4">
-                  <Button onClick={signOutUser} variant="outline">Cerrar Sesión</Button>
-                  <Link href="/items">
-                      <Button>Ir a la Tienda</Button>
-                  </Link>
-              </div>
-          </div>
-      );
-  }
-
    
   return (
     <SidebarProvider>
@@ -332,6 +316,18 @@ export default function Home() {
                     <Link href="/customers">
                       <Users />
                       <span>Clientes</span>
+                    </Link>
+                 </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+                 <SidebarMenuButton
+                     asChild
+                     tooltip={{ children: "Usuarios", side: 'right', align: 'center' }}
+                     className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
+                 >
+                    <Link href="/users">
+                      <Users />
+                      <span>Usuarios</span>
                     </Link>
                  </SidebarMenuButton>
             </SidebarMenuItem>
