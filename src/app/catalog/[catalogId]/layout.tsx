@@ -5,6 +5,7 @@ import type { Metadata, ResolvingMetadata } from 'next';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Catalog } from '@/types';
+import { AuthButton } from "@/components/auth/auth-button";
 
 type Props = {
     params: { catalogId: string }
@@ -57,10 +58,11 @@ export default function CatalogLayout({
     <div>
       <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          <span className="text-xl font-bold text-primary">
+          <Link href="/items" className="text-xl font-bold text-primary">
             Ndera-Store
-          </span>
+          </Link>
           <div className="flex items-center gap-2">
+             <AuthButton />
              <CartSheet />
           </div>
         </div>

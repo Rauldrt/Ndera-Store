@@ -7,6 +7,7 @@ export interface Catalog {
   description: string;
   imageUrl?: string; // Optional image for the catalog card background
   createdAt: Timestamp; // Use Firestore Timestamp
+  userId: string; // ID of the user who owns this catalog
 }
 
 export interface Item {
@@ -60,4 +61,21 @@ export interface Order {
     total: number;
     paymentMethod: string;
     createdAt: Timestamp;
+}
+
+// User-related types
+export interface AppUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  role: 'admin' | 'client';
+}
+
+export interface AuthContextType {
+  user: AppUser | null;
+  loading: boolean;
+  signIn: (email: string, pass: string) => Promise<any>;
+  signUp: (email: string, pass: string, name: string) => Promise<any>;
+  signOutUser: () => Promise<void>;
 }

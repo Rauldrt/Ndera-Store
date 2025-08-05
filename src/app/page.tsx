@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, HomeIcon, Boxes, Library, Eye, Users, ClipboardList, Share2, LogOut } from "lucide-react";
 import { CatalogForm } from "@/components/catalog/catalog-form";
-import type { Catalog } from "@/types";
+import type { Catalog, AppUser } from "@/types";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, query, orderBy, deleteDoc, doc, updateDoc, getDocs, Timestamp, writeBatch, where, getDoc } from "firebase/firestore";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -42,6 +42,8 @@ import { CartSheet } from '@/components/cart/cart-sheet';
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
 
 
 export default function Home() {
@@ -53,10 +55,22 @@ export default function Home() {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, loading, signOutUser } = useAuth();
+  const router = useRouter();
+
+
+  useEffect(() => {
+    if (!loading && (!user || user.role !== 'admin')) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
 
   const { data: catalogs, isLoading: isLoadingCatalogs, error: catalogsError } = useQuery<Catalog[]>({
-    queryKey: ['catalogs'],
+    queryKey: ['catalogs', user?.uid], // Depend on user ID
     queryFn: async () => {
+        if (!user || user.role !== 'admin') return [];
+
         const catalogsQuery = query(
             collection(db, "catalogs"), 
             orderBy("createdAt", "desc")
@@ -74,6 +88,7 @@ export default function Home() {
             } as Catalog;
         });
     },
+    enabled: !loading && !!user && user.role === 'admin', // Only fetch if user is admin
   });
 
   const addCatalogMutation = useMutation({
@@ -81,11 +96,12 @@ export default function Home() {
         const docRef = await addDoc(collection(db, "catalogs"), {
             ...newCatalogData,
             createdAt: serverTimestamp(),
+            userId: user?.uid, // Associate catalog with user
         });
         return docRef.id;
     },
     onSuccess: (newId) => {
-      queryClient.invalidateQueries({ queryKey: ['catalogs'] });
+      queryClient.invalidateQueries({ queryKey: ['catalogs', user?.uid] });
       toast({
         title: "Catálogo Creado",
         description: "Tu nuevo catálogo ha sido añadido.",
@@ -110,7 +126,7 @@ export default function Home() {
           await updateDoc(catalogRef, data);
       },
       onSuccess: (_, variables) => {
-          queryClient.invalidateQueries({ queryKey: ['catalogs'] });
+          queryClient.invalidateQueries({ queryKey: ['catalogs', user?.uid] });
           queryClient.invalidateQueries({ queryKey: ['catalog', variables.id] });
           toast({
               title: "Catálogo Actualizado",
@@ -143,7 +159,7 @@ export default function Home() {
        return catalogIdToDelete;
     },
     onSuccess: (deletedId) => {
-      queryClient.invalidateQueries({ queryKey: ['catalogs'] });
+      queryClient.invalidateQueries({ queryKey: ['catalogs', user?.uid] });
       queryClient.removeQueries({ queryKey: ['items', deletedId] }); 
       queryClient.removeQueries({ queryKey: ['catalog', deletedId] });
       if (selectedCatalogId === deletedId) {
@@ -235,6 +251,31 @@ export default function Home() {
        setShowCatalogForm(false);
        setEditingCatalog(null);
    }
+
+  if (loading || (!user && !loading)) {
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+            <Loader2 className="w-16 h-16 text-primary animate-spin" />
+        </div>
+    );
+  }
+
+  if (user && user.role !== 'admin') {
+      return (
+          <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
+              <AlertTriangle className="w-16 h-16 text-destructive mb-4" />
+              <h1 className="text-2xl font-bold">Acceso Restringido</h1>
+              <p className="text-muted-foreground mt-2">No tienes permiso para acceder a esta página.</p>
+              <div className="mt-6 flex gap-4">
+                  <Button onClick={signOutUser} variant="outline">Cerrar Sesión</Button>
+                  <Link href="/items">
+                      <Button>Ir a la Tienda</Button>
+                  </Link>
+              </div>
+          </div>
+      );
+  }
+
    
   return (
     <SidebarProvider>
@@ -369,7 +410,28 @@ export default function Home() {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-           {/* User popover removed */}
+           {user && (
+            <Popover>
+                <PopoverTrigger asChild>
+                     <Button variant="ghost" className="w-full justify-start gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:aspect-square">
+                        <Avatar className="h-8 w-8">
+                            <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'Usuario'} />
+                            <AvatarFallback>{user.displayName?.charAt(0) || 'U'}</AvatarFallback>
+                        </Avatar>
+                        <div className="text-left group-data-[collapsible=icon]:hidden">
+                            <p className="font-semibold text-sm truncate">{user.displayName}</p>
+                            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                        </div>
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56" align="start">
+                    <Button variant="ghost" className="w-full justify-start" onClick={signOutUser}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Cerrar Sesión
+                    </Button>
+                </PopoverContent>
+            </Popover>
+           )}
         </SidebarFooter>
       </Sidebar>
 
@@ -427,7 +489,7 @@ export default function Home() {
                     <AlertTriangle className="w-12 h-12 md:w-16 md:h-16 mb-4" />
                     <h2 className="text-lg md:text-xl font-semibold">Error al Cargar Catálogos</h2>
                     <p className="text-sm md:text-base">No se pudieron obtener tus catálogos. Por favor, revisa tu conexión e inténtalo de nuevo.</p>
-                     <Button onClick={() => queryClient.refetchQueries({ queryKey: ['catalogs'] })} variant="outline" className="mt-4">
+                     <Button onClick={() => queryClient.refetchQueries({ queryKey: ['catalogs', user?.uid] })} variant="outline" className="mt-4">
                         Intentar de Nuevo
                     </Button>
                 </div>

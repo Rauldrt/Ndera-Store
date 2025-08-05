@@ -3,6 +3,7 @@
 
 import { CartSheet } from "@/components/cart/cart-sheet";
 import Link from 'next/link';
+import { AuthButton } from "@/components/auth/auth-button";
 
 export default function ItemsLayout({
   children,
@@ -19,6 +20,7 @@ export default function ItemsLayout({
             Ndera-Store
           </Link>
           <div className="flex items-center gap-2">
+             <AuthButton />
              <CartSheet />
           </div>
         </div>
