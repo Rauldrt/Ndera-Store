@@ -7,6 +7,7 @@ export interface Catalog {
   description: string;
   imageUrl?: string; // Optional image for the catalog card background
   createdAt: Timestamp; // Use Firestore Timestamp
+  userId: string; // ID of the user who owns the catalog
 }
 
 export interface Item {

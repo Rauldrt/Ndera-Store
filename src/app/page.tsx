@@ -62,14 +62,35 @@ export default function Home() {
     if (!loading && !user) {
       router.push('/login');
     }
-  }, [user, loading, router]);
+    // If user is just a client, redirect them to the shop view
+    if (!loading && user && user.role === 'cliente') {
+        toast({
+            title: 'Acceso Restringido',
+            description: 'Redirigiendo a la tienda.',
+        });
+        router.push('/items');
+    }
+  }, [user, loading, router, toast]);
 
 
   const { data: catalogs, isLoading: isLoadingCatalogs, error: catalogsError } = useQuery<Catalog[]>({
-    queryKey: ['catalogs'],
+    queryKey: ['catalogs', user?.uid], // Add user.uid to queryKey to refetch on user change
     queryFn: async () => {
-        const q = query(collection(db, "catalogs"), orderBy("createdAt", "desc"));
-        const querySnapshot = await getDocs(q);
+        if (!user) return [];
+
+        let catalogsQuery;
+        // Admins can see all catalogs, other users can only see their own
+        if (user.role === 'admin') {
+            catalogsQuery = query(collection(db, "catalogs"), orderBy("createdAt", "desc"));
+        } else {
+            catalogsQuery = query(
+                collection(db, "catalogs"), 
+                where("userId", "==", user.uid),
+                orderBy("createdAt", "desc")
+            );
+        }
+        
+        const querySnapshot = await getDocs(catalogsQuery);
         return querySnapshot.docs.map(doc => {
              const data = doc.data();
              return {
@@ -78,6 +99,7 @@ export default function Home() {
                 description: data.description,
                 imageUrl: data.imageUrl,
                 createdAt: data.createdAt as Timestamp,
+                userId: data.userId,
             } as Catalog;
         });
     },
@@ -86,14 +108,16 @@ export default function Home() {
 
   const addCatalogMutation = useMutation({
     mutationFn: async (newCatalogData: Pick<Catalog, 'name' | 'description' | 'imageUrl'>): Promise<string> => {
+        if (!user) throw new Error("Debes iniciar sesión para crear un catálogo.");
         const docRef = await addDoc(collection(db, "catalogs"), {
             ...newCatalogData,
+            userId: user.uid, // Associate catalog with the current user
             createdAt: serverTimestamp(),
         });
         return docRef.id;
     },
     onSuccess: (newId) => {
-      queryClient.invalidateQueries({ queryKey: ['catalogs'] });
+      queryClient.invalidateQueries({ queryKey: ['catalogs', user?.uid] });
       toast({
         title: "Catálogo Creado",
         description: "Tu nuevo catálogo ha sido añadido.",
@@ -118,7 +142,7 @@ export default function Home() {
           await updateDoc(catalogRef, data);
       },
       onSuccess: (_, variables) => {
-          queryClient.invalidateQueries({ queryKey: ['catalogs'] });
+          queryClient.invalidateQueries({ queryKey: ['catalogs', user?.uid] });
           queryClient.invalidateQueries({ queryKey: ['catalog', variables.id] });
           toast({
               title: "Catálogo Actualizado",
@@ -151,7 +175,7 @@ export default function Home() {
        return catalogIdToDelete;
     },
     onSuccess: (deletedId) => {
-      queryClient.invalidateQueries({ queryKey: ['catalogs'] });
+      queryClient.invalidateQueries({ queryKey: ['catalogs', user?.uid] });
       queryClient.removeQueries({ queryKey: ['items', deletedId] }); 
       queryClient.removeQueries({ queryKey: ['catalog', deletedId] });
       if (selectedCatalogId === deletedId) {
@@ -244,7 +268,7 @@ export default function Home() {
        setEditingCatalog(null);
    }
    
-  if (loading || !user) {
+  if (loading || !user || user.role === 'cliente') {
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
