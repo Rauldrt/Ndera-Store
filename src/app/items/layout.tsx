@@ -23,16 +23,16 @@ export default function ItemsLayout({
           </Link>
           <div className="flex items-center gap-2">
              <CartSheet />
-             {user && (user.role === 'admin' || user.role === 'usuario') ? (
-                <Link href="/">
-                    <Button variant="outline">
-                        Volver a Gestión
-                    </Button>
-                </Link>
-             ) : !user ? (
+             {!user ? (
                 <Link href="/login">
                     <Button variant="default">
                         Iniciar Sesión
+                    </Button>
+                </Link>
+             ) : (user.role === 'admin' || user.role === 'usuario') ? (
+                <Link href="/">
+                    <Button variant="outline">
+                        Volver a Gestión
                     </Button>
                 </Link>
              ) : null}
