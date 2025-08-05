@@ -62,14 +62,6 @@ export default function Home() {
     if (!loading && !user) {
       router.push('/login');
     }
-    // If user is just a client, redirect them to the shop view
-    if (!loading && user && user.role === 'cliente') {
-        toast({
-            title: 'Acceso Restringido',
-            description: 'Redirigiendo a la tienda.',
-        });
-        router.push('/items');
-    }
   }, [user, loading, router, toast]);
 
 
@@ -268,7 +260,7 @@ export default function Home() {
        setEditingCatalog(null);
    }
    
-  if (loading || !user || user.role === 'cliente') {
+  if (loading || !user) {
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -624,5 +616,3 @@ export default function Home() {
     </SidebarProvider>
   );
 }
-
-    
