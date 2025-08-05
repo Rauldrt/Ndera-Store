@@ -16,7 +16,7 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, HomeIcon, Boxes, Library, Eye, Users, ClipboardList, Share2, LogIn, LogOut } from "lucide-react";
+import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, HomeIcon, Boxes, Library, Eye, Users, ClipboardList, Share2, LogOut } from "lucide-react";
 import { CatalogForm } from "@/components/catalog/catalog-form";
 import type { Catalog } from "@/types";
 import { db } from "@/lib/firebase";
@@ -43,6 +43,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from '@/context/auth-context';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useRouter } from 'next/navigation';
 
 
 export default function Home() {
@@ -51,10 +52,18 @@ export default function Home() {
   const [editingCatalog, setEditingCatalog] = useState<Catalog | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [catalogToDelete, setCatalogToDelete] = useState<string | null>(null);
-  const { user, loading, signInWithGoogle, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
+  const router = useRouter();
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
 
   const { data: catalogs, isLoading: isLoadingCatalogs, error: catalogsError } = useQuery<Catalog[]>({
     queryKey: ['catalogs'],
@@ -234,6 +243,14 @@ export default function Home() {
        setShowCatalogForm(false);
        setEditingCatalog(null);
    }
+   
+  if (loading || !user) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -407,17 +424,7 @@ export default function Home() {
         </div>
 
         <main className="flex-1 overflow-y-auto">
-          {!user ? (
-            <div className="p-4 md:p-6 lg:p-8 flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center">
-              <PackageSearch className="w-16 h-16 text-primary mb-4" />
-              <h1 className="text-2xl sm:text-3xl font-bold">Bienvenido a Ndera-Store</h1>
-              <p className="text-muted-foreground mt-2 max-w-md">Para empezar a gestionar tus catálogos y productos, por favor, inicia sesión.</p>
-              <Button onClick={signInWithGoogle} className="mt-6" disabled={loading}>
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
-                {loading ? 'Iniciando...' : 'Iniciar Sesión con Google'}
-              </Button>
-            </div>
-          ) : showCatalogForm ? (
+          {showCatalogForm ? (
              <div className="mb-6 max-w-full md:max-w-2xl mx-auto relative p-4 md:p-6 lg:p-8">
              <Button variant="ghost" size="sm" onClick={handleCancelForm} className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground">Cancelar</Button>
               <CatalogForm

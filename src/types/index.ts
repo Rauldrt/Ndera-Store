@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface Catalog {
@@ -68,4 +69,10 @@ export interface AppUser {
     displayName: string | null;
     photoURL: string | null;
     role: 'admin' | 'usuario' | 'cliente';
+}
+
+// Defines the structure for authentication credentials
+export interface AuthCredentials {
+    email: string;
+    password: string;
 }

@@ -2,16 +2,24 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, User as FirebaseUser, signOut as firebaseSignOut } from 'firebase/auth';
+import { 
+  onAuthStateChanged, 
+  User as FirebaseUser, 
+  signOut as firebaseSignOut,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile
+} from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import type { AppUser } from '@/types';
+import type { AppUser, AuthCredentials } from '@/types';
 import { Loader2 } from 'lucide-react';
 
 interface AuthContextType {
   user: AppUser | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signIn: (credentials: AuthCredentials) => Promise<void>;
+  signUp: (credentials: AuthCredentials & { displayName: string }) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -37,13 +45,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (docSnap.exists()) {
           setUser(docSnap.data() as AppUser);
         } else {
-          // If user doesn't exist in Firestore, create them with default role
+          // This case might happen if user is created but firestore doc fails.
+          // Or for users who existed before firestore user collection was implemented.
           const newUser: AppUser = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL,
-            role: 'cliente', // Default role for new sign-ups
+            role: 'cliente',
           };
           await setDoc(userDocRef, { ...newUser, createdAt: serverTimestamp() });
           setUser(newUser);
@@ -57,17 +66,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signIn = async ({ email, password }: AuthCredentials) => {
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      // The onAuthStateChanged listener will handle setting the user state
+      await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged will handle the rest
     } catch (error) {
-      console.error("Error signing in with Google: ", error);
+      console.error("Error signing in: ", error);
       setLoading(false);
+      // Re-throw the error to be caught in the component
+      throw error;
     }
   };
+  
+  const signUp = async ({ email, password, displayName }: AuthCredentials & { displayName: string }) => {
+    setLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+      
+      // Update Firebase Auth profile
+      await updateProfile(firebaseUser, { displayName });
+      
+      // Create user document in Firestore
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      const newUser: AppUser = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: displayName, // Use the provided displayName
+        photoURL: null, // No photoURL for email signup by default
+        role: 'cliente', // Default role for new sign-ups
+      };
+      await setDoc(userDocRef, { ...newUser, createdAt: serverTimestamp() });
+      
+      // onAuthStateChanged will set the user, but we can set it here to speed up UI
+      setUser(newUser);
+
+    } catch (error) {
+        console.error("Error signing up: ", error);
+        setLoading(false);
+        throw error;
+    }
+  };
+
 
   const signOut = async () => {
     try {
@@ -78,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  if (loading) {
+  if (loading && !user) { // Only show global loader on initial load, not on re-auth
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -87,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
