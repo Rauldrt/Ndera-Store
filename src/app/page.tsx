@@ -62,11 +62,11 @@ export default function Home() {
     if (!loading && !user) {
       router.push('/login');
     }
-  }, [user, loading, router, toast]);
+  }, [user, loading, router]);
 
 
   const { data: catalogs, isLoading: isLoadingCatalogs, error: catalogsError } = useQuery<Catalog[]>({
-    queryKey: ['catalogs', user?.uid], // Add user.uid to queryKey to refetch on user change
+    queryKey: ['catalogs', user?.uid],
     queryFn: async () => {
         if (!user) return [];
 
@@ -95,7 +95,7 @@ export default function Home() {
             } as Catalog;
         });
     },
-    enabled: !!user, // Only fetch if user is logged in
+    enabled: !!user,
   });
 
   const addCatalogMutation = useMutation({
@@ -260,7 +260,7 @@ export default function Home() {
        setEditingCatalog(null);
    }
    
-  if (loading || !user) {
+  if (loading) {
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
