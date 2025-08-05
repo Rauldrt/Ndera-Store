@@ -23,10 +23,20 @@ export default function ItemsLayout({
           </Link>
           <div className="flex items-center gap-2">
              <CartSheet />
-             {user && (user.role === 'admin' || user.role === 'usuario') && (
-                <Link href="/" className="hidden sm:inline-flex">
-                    <Button variant="outline">
-                        Volver a Gestión
+             {user ? (
+                // If user is logged in, show "Volver a Gestión" only for admin/usuario roles
+                (user.role === 'admin' || user.role === 'usuario') && (
+                    <Link href="/" className="hidden sm:inline-flex">
+                        <Button variant="outline">
+                            Volver a Gestión
+                        </Button>
+                    </Link>
+                )
+             ) : (
+                // If no user is logged in, show "Iniciar Sesión" button
+                <Link href="/login" className="hidden sm:inline-flex">
+                    <Button variant="default">
+                        Iniciar Sesión
                     </Button>
                 </Link>
              )}
