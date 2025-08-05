@@ -482,7 +482,7 @@ export default function Home() {
                     <AlertTriangle className="w-12 h-12 md:w-16 md:h-16 mb-4" />
                     <h2 className="text-lg md:text-xl font-semibold">Error al Cargar Catálogos</h2>
                     <p className="text-sm md:text-base">No se pudieron obtener tus catálogos. Por favor, revisa tu conexión e inténtalo de nuevo.</p>
-                     <Button onClick={() => queryClient.refetchQueries({ queryKey: ['catalogs'] })} variant="outline" className="mt-4">
+                     <Button onClick={() => queryClient.refetchQueries({ queryKey: ['catalogs', user?.uid] })} variant="outline" className="mt-4">
                         Intentar de Nuevo
                     </Button>
                 </div>
