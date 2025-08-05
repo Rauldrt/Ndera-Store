@@ -2,17 +2,13 @@
 'use client';
 
 import { CartSheet } from "@/components/cart/cart-sheet";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/auth-context";
 import Link from 'next/link';
-import { AuthButton } from "@/components/auth/auth-button";
 
 export default function ItemsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user } = useAuth();
 
   return (
     // Simplified layout without the sidebar for the client view
@@ -24,7 +20,6 @@ export default function ItemsLayout({
           </Link>
           <div className="flex items-center gap-2">
              <CartSheet />
-             <AuthButton />
           </div>
         </div>
       </header>

@@ -5,7 +5,6 @@ import type { Metadata, ResolvingMetadata } from 'next';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Catalog } from '@/types';
-import { AuthButton } from '@/components/auth/auth-button';
 
 type Props = {
     params: { catalogId: string }
@@ -63,7 +62,6 @@ export default function CatalogLayout({
           </span>
           <div className="flex items-center gap-2">
              <CartSheet />
-             <AuthButton />
           </div>
         </div>
       </header>

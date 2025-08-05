@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -40,10 +40,8 @@ import { FabMenu } from '@/components/ui/fab';
 import Link from 'next/link';
 import { CartSheet } from '@/components/cart/cart-sheet';
 import { cn } from "@/lib/utils";
-import { useAuth } from '@/context/auth-context';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useRouter } from 'next/navigation';
 
 
 export default function Home() {
@@ -52,27 +50,15 @@ export default function Home() {
   const [editingCatalog, setEditingCatalog] = useState<Catalog | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [catalogToDelete, setCatalogToDelete] = useState<string | null>(null);
-  const { user, loading, signOut } = useAuth();
-  const router = useRouter();
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
-
-
   const { data: catalogs, isLoading: isLoadingCatalogs, error: catalogsError } = useQuery<Catalog[]>({
-    queryKey: ['catalogs', user?.uid],
+    queryKey: ['catalogs'],
     queryFn: async () => {
-        if (!user) return [];
-
         const catalogsQuery = query(
             collection(db, "catalogs"), 
-            where("userId", "==", user.uid),
             orderBy("createdAt", "desc")
         );
         
@@ -85,25 +71,21 @@ export default function Home() {
                 description: data.description,
                 imageUrl: data.imageUrl,
                 createdAt: data.createdAt as Timestamp,
-                userId: data.userId,
             } as Catalog;
         });
     },
-    enabled: !!user,
   });
 
   const addCatalogMutation = useMutation({
     mutationFn: async (newCatalogData: Pick<Catalog, 'name' | 'description' | 'imageUrl'>): Promise<string> => {
-        if (!user) throw new Error("Debes iniciar sesión para crear un catálogo.");
         const docRef = await addDoc(collection(db, "catalogs"), {
             ...newCatalogData,
-            userId: user.uid, // Associate catalog with the current user
             createdAt: serverTimestamp(),
         });
         return docRef.id;
     },
     onSuccess: (newId) => {
-      queryClient.invalidateQueries({ queryKey: ['catalogs', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['catalogs'] });
       toast({
         title: "Catálogo Creado",
         description: "Tu nuevo catálogo ha sido añadido.",
@@ -128,7 +110,7 @@ export default function Home() {
           await updateDoc(catalogRef, data);
       },
       onSuccess: (_, variables) => {
-          queryClient.invalidateQueries({ queryKey: ['catalogs', user?.uid] });
+          queryClient.invalidateQueries({ queryKey: ['catalogs'] });
           queryClient.invalidateQueries({ queryKey: ['catalog', variables.id] });
           toast({
               title: "Catálogo Actualizado",
@@ -161,7 +143,7 @@ export default function Home() {
        return catalogIdToDelete;
     },
     onSuccess: (deletedId) => {
-      queryClient.invalidateQueries({ queryKey: ['catalogs', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['catalogs'] });
       queryClient.removeQueries({ queryKey: ['items', deletedId] }); 
       queryClient.removeQueries({ queryKey: ['catalog', deletedId] });
       if (selectedCatalogId === deletedId) {
@@ -254,14 +236,6 @@ export default function Home() {
        setEditingCatalog(null);
    }
    
-  if (loading) {
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        </div>
-    );
-  }
-
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon"> 
@@ -275,7 +249,6 @@ export default function Home() {
           </div>
         </SidebarHeader>
         <SidebarContent className="p-2">
-          {user && (
             <Button
               variant="default"
               className="w-full mb-4 hidden md:flex"
@@ -285,7 +258,6 @@ export default function Home() {
               <PlusCircle className="mr-2 h-4 w-4 group-data-[collapsible=icon]:mr-0" />
               <span className="group-data-[collapsible=icon]:hidden">Crear Catálogo</span>
             </Button>
-          )}
           <SidebarMenu>
              <SidebarMenuItem>
                  <SidebarMenuButton
@@ -335,19 +307,19 @@ export default function Home() {
                  </SidebarMenuButton>
             </SidebarMenuItem>
             
-            {isLoadingCatalogs && user && (
+            {isLoadingCatalogs && (
                <>
                  <SidebarMenuSkeleton showIcon />
                  <SidebarMenuSkeleton showIcon />
                  <SidebarMenuSkeleton showIcon />
                </>
             )}
-            {catalogsError && user && (
+            {catalogsError && (
               <SidebarMenuItem className="text-destructive px-2 py-1 text-xs">
                 <AlertTriangle className="inline-block mr-2 h-4 w-4"/> Error al cargar.
               </SidebarMenuItem>
             )}
-            {user && catalogs && catalogs.map((catalog) => (
+            {catalogs && catalogs.map((catalog) => (
               <SidebarMenuItem key={catalog.id}>
                  <div className="relative group/menu-item flex items-center">
                     <SidebarMenuButton
@@ -391,34 +363,13 @@ export default function Home() {
                  </div>
               </SidebarMenuItem>
             ))}
-             {user && catalogs && catalogs.length === 0 && !isLoadingCatalogs && !showCatalogForm && (
+             {catalogs && catalogs.length === 0 && !isLoadingCatalogs && !showCatalogForm && (
                 <p className="px-2 text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">Aún no hay catálogos. ¡Crea uno!</p>
             )}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          {user && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start gap-2 p-2 h-auto group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:size-9 group-data-[collapsible=icon]:p-0">
-                  <Avatar className="h-7 w-7">
-                    <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
-                    <AvatarFallback>{user.displayName?.charAt(0) || 'U'}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col items-start truncate group-data-[collapsible=icon]:hidden">
-                    <span className="font-semibold text-sm">{user.displayName}</span>
-                    <span className="text-xs text-muted-foreground">{user.email}</span>
-                  </div>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56" align="start">
-                <Button variant="ghost" className="w-full justify-start" onClick={signOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Cerrar Sesión
-                </Button>
-              </PopoverContent>
-            </Popover>
-          )}
+           {/* User popover removed */}
         </SidebarFooter>
       </Sidebar>
 
@@ -476,7 +427,7 @@ export default function Home() {
                     <AlertTriangle className="w-12 h-12 md:w-16 md:h-16 mb-4" />
                     <h2 className="text-lg md:text-xl font-semibold">Error al Cargar Catálogos</h2>
                     <p className="text-sm md:text-base">No se pudieron obtener tus catálogos. Por favor, revisa tu conexión e inténtalo de nuevo.</p>
-                     <Button onClick={() => queryClient.refetchQueries({ queryKey: ['catalogs', user?.uid] })} variant="outline" className="mt-4">
+                     <Button onClick={() => queryClient.refetchQueries({ queryKey: ['catalogs'] })} variant="outline" className="mt-4">
                         Intentar de Nuevo
                     </Button>
                 </div>
