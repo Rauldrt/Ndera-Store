@@ -35,7 +35,7 @@ export default function ItemsLayout({
              ) : (
                 // If no user is logged in, show "Iniciar Sesión" button
                 <Link href="/login">
-                    <Button variant="default" className="hidden sm:inline-flex">
+                    <Button variant="default">
                         Iniciar Sesión
                     </Button>
                 </Link>
