@@ -16,7 +16,7 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, HomeIcon, Boxes, Library, Eye, Users, ClipboardList, Share2 } from "lucide-react";
+import { PlusCircle, LayoutGrid, Trash2, AlertTriangle, Edit, Loader2, Plus, PackageSearch, HomeIcon, Boxes, Library, Eye, Users, ClipboardList, Share2, LogIn, LogOut } from "lucide-react";
 import { CatalogForm } from "@/components/catalog/catalog-form";
 import type { Catalog } from "@/types";
 import { db } from "@/lib/firebase";
@@ -40,6 +40,9 @@ import { FabMenu } from '@/components/ui/fab';
 import Link from 'next/link';
 import { CartSheet } from '@/components/cart/cart-sheet';
 import { cn } from "@/lib/utils";
+import { useAuth } from '@/context/auth-context';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 
 export default function Home() {
@@ -48,6 +51,7 @@ export default function Home() {
   const [editingCatalog, setEditingCatalog] = useState<Catalog | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [catalogToDelete, setCatalogToDelete] = useState<string | null>(null);
+  const { user, loading, signInWithGoogle, signOut } = useAuth();
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -68,6 +72,7 @@ export default function Home() {
             } as Catalog;
         });
     },
+    enabled: !!user, // Only fetch if user is logged in
   });
 
   const addCatalogMutation = useMutation({
@@ -243,15 +248,17 @@ export default function Home() {
           </div>
         </SidebarHeader>
         <SidebarContent className="p-2">
-          <Button
-            variant="default"
-            className="w-full mb-4 hidden md:flex"
-            onClick={handleOpenCreateForm}
-            title="Crear Nuevo Catálogo"
-          >
-            <PlusCircle className="mr-2 h-4 w-4 group-data-[collapsible=icon]:mr-0" />
-             <span className="group-data-[collapsible=icon]:hidden">Crear Catálogo</span>
-          </Button>
+          {user && (
+            <Button
+              variant="default"
+              className="w-full mb-4 hidden md:flex"
+              onClick={handleOpenCreateForm}
+              title="Crear Nuevo Catálogo"
+            >
+              <PlusCircle className="mr-2 h-4 w-4 group-data-[collapsible=icon]:mr-0" />
+              <span className="group-data-[collapsible=icon]:hidden">Crear Catálogo</span>
+            </Button>
+          )}
           <SidebarMenu>
              <SidebarMenuItem>
                  <SidebarMenuButton
@@ -301,19 +308,19 @@ export default function Home() {
                  </SidebarMenuButton>
             </SidebarMenuItem>
             
-            {isLoadingCatalogs && (
+            {isLoadingCatalogs && user && (
                <>
                  <SidebarMenuSkeleton showIcon />
                  <SidebarMenuSkeleton showIcon />
                  <SidebarMenuSkeleton showIcon />
                </>
             )}
-            {catalogsError && (
+            {catalogsError && user && (
               <SidebarMenuItem className="text-destructive px-2 py-1 text-xs">
                 <AlertTriangle className="inline-block mr-2 h-4 w-4"/> Error al cargar.
               </SidebarMenuItem>
             )}
-            {catalogs && catalogs.map((catalog) => (
+            {user && catalogs && catalogs.map((catalog) => (
               <SidebarMenuItem key={catalog.id}>
                  <div className="relative group/menu-item flex items-center">
                     <SidebarMenuButton
@@ -357,12 +364,34 @@ export default function Home() {
                  </div>
               </SidebarMenuItem>
             ))}
-             {catalogs && catalogs.length === 0 && !isLoadingCatalogs && !showCatalogForm && (
+             {user && catalogs && catalogs.length === 0 && !isLoadingCatalogs && !showCatalogForm && (
                 <p className="px-2 text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">Aún no hay catálogos. ¡Crea uno!</p>
             )}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
+          {user && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start gap-2 p-2 h-auto group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:size-9 group-data-[collapsible=icon]:p-0">
+                  <Avatar className="h-7 w-7">
+                    <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
+                    <AvatarFallback>{user.displayName?.charAt(0) || 'U'}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col items-start truncate group-data-[collapsible=icon]:hidden">
+                    <span className="font-semibold text-sm">{user.displayName}</span>
+                    <span className="text-xs text-muted-foreground">{user.email}</span>
+                  </div>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56" align="start">
+                <Button variant="ghost" className="w-full justify-start" onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Cerrar Sesión
+                </Button>
+              </PopoverContent>
+            </Popover>
+          )}
         </SidebarFooter>
       </Sidebar>
 
@@ -378,7 +407,17 @@ export default function Home() {
         </div>
 
         <main className="flex-1 overflow-y-auto">
-          {showCatalogForm ? (
+          {!user ? (
+            <div className="p-4 md:p-6 lg:p-8 flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center">
+              <PackageSearch className="w-16 h-16 text-primary mb-4" />
+              <h1 className="text-2xl sm:text-3xl font-bold">Bienvenido a Ndera-Store</h1>
+              <p className="text-muted-foreground mt-2 max-w-md">Para empezar a gestionar tus catálogos y productos, por favor, inicia sesión.</p>
+              <Button onClick={signInWithGoogle} className="mt-6" disabled={loading}>
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+                {loading ? 'Iniciando...' : 'Iniciar Sesión con Google'}
+              </Button>
+            </div>
+          ) : showCatalogForm ? (
              <div className="mb-6 max-w-full md:max-w-2xl mx-auto relative p-4 md:p-6 lg:p-8">
              <Button variant="ghost" size="sm" onClick={handleCancelForm} className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground">Cancelar</Button>
               <CatalogForm

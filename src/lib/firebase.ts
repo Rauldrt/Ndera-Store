@@ -1,6 +1,7 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp, FirebaseApp } from "firebase/app";
+import { initializeApp, FirebaseApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 /**
  * @fileoverview This file initializes the Firebase app and Firestore database.
@@ -31,19 +32,17 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app: FirebaseApp = initializeApp(firebaseConfig);
+const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app); // Initialize Firestore
+const auth = getAuth(app); // Initialize Firebase Auth
 
-try {
 
-  console.log("Firebase initialized successfully.");
-} catch (error) {
-  console.error("Error al inicializar Firebase:", error);
-}
+console.log("Firebase initialized successfully.");
+
 
 console.log("app is defined:", typeof app !== 'undefined');
 console.log("db is defined:", typeof db !== 'undefined');
 
 console.log(firebaseConfig)
 
-export { app, db, firebaseConfig };
+export { app, db, auth, firebaseConfig };

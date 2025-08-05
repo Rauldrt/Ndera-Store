@@ -60,3 +60,12 @@ export interface Order {
     paymentMethod: string;
     createdAt: Timestamp;
 }
+
+// Defines the structure for a user with roles
+export interface AppUser {
+    uid: string;
+    email: string | null;
+    displayName: string | null;
+    photoURL: string | null;
+    role: 'admin' | 'usuario' | 'cliente';
+}
