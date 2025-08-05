@@ -43,10 +43,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         const docSnap = await getDoc(userDocRef);
         if (docSnap.exists()) {
-          setUser(docSnap.data() as AppUser);
+          const userData = docSnap.data() as AppUser;
+           // Ensure local user object has latest info from both auth and firestore
+          setUser({
+            ...userData,
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: userData.displayName || firebaseUser.displayName, // Prioritize Firestore display name
+          });
         } else {
-          // This case might happen if user is created but firestore doc fails.
-          // Or for users who existed before firestore user collection was implemented.
+          // This case is for users who might have been created via another method
+          // or if the Firestore doc creation failed during signup.
           const newUser: AppUser = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
@@ -70,11 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // onAuthStateChanged will handle the rest
+      // onAuthStateChanged will handle setting the user state.
     } catch (error) {
       console.error("Error signing in: ", error);
       setLoading(false);
-      // Re-throw the error to be caught in the component
       throw error;
     }
   };
@@ -85,21 +91,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
       
-      // Update Firebase Auth profile
       await updateProfile(firebaseUser, { displayName });
       
-      // Create user document in Firestore
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       const newUser: AppUser = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        displayName: displayName, // Use the provided displayName
-        photoURL: null, // No photoURL for email signup by default
-        role: 'cliente', // Default role for new sign-ups
+        displayName: displayName,
+        photoURL: null,
+        role: 'cliente',
       };
       await setDoc(userDocRef, { ...newUser, createdAt: serverTimestamp() });
       
-      // onAuthStateChanged will set the user, but we can set it here to speed up UI
       setUser(newUser);
 
     } catch (error) {
@@ -119,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  if (loading && !user) { // Only show global loader on initial load, not on re-auth
+  if (loading && !user) {
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
