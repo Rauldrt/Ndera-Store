@@ -50,14 +50,6 @@ export default function LoginPage() {
     }
   }, [user, router]);
   
-  if (user) {
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        </div>
-    );
-  }
-
   const handleLogin = async (data: z.infer<typeof loginSchema>) => {
     setIsSubmitting(true);
     try {
@@ -92,7 +84,7 @@ export default function LoginPage() {
     }
   };
   
-  if (loading && !user) {
+  if (loading) {
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
