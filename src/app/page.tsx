@@ -70,17 +70,11 @@ export default function Home() {
     queryFn: async () => {
         if (!user) return [];
 
-        let catalogsQuery;
-        // Admins can see all catalogs, other users can only see their own
-        if (user.role === 'admin') {
-            catalogsQuery = query(collection(db, "catalogs"), orderBy("createdAt", "desc"));
-        } else {
-            catalogsQuery = query(
-                collection(db, "catalogs"), 
-                where("userId", "==", user.uid),
-                orderBy("createdAt", "desc")
-            );
-        }
+        const catalogsQuery = query(
+            collection(db, "catalogs"), 
+            where("userId", "==", user.uid),
+            orderBy("createdAt", "desc")
+        );
         
         const querySnapshot = await getDocs(catalogsQuery);
         return querySnapshot.docs.map(doc => {

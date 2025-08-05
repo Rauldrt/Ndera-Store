@@ -63,13 +63,12 @@ export interface Order {
     createdAt: Timestamp;
 }
 
-// Defines the structure for a user with roles
+// Defines the structure for a user
 export interface AppUser {
     uid: string;
     email: string | null;
     displayName: string | null;
     photoURL: string | null;
-    role: 'admin' | 'usuario' | 'cliente';
 }
 
 // Defines the structure for authentication credentials
@@ -77,5 +76,3 @@ export interface AuthCredentials {
     email: string;
     password: string;
 }
-
-    

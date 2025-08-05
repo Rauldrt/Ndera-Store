@@ -15,11 +15,6 @@ import { auth, db } from '@/lib/firebase';
 import type { AppUser, AuthCredentials } from '@/types';
 import { Loader2 } from 'lucide-react';
 
-// --- Hardcoded Admin Email ---
-// For simplicity, we'll define the admin's email address here.
-// In a real-world scenario, this might come from environment variables
-// or a more sophisticated role management system in Firestore.
-const ADMIN_EMAIL = 'admin@example.com';
 
 interface AuthContextType {
   user: AppUser | null;
@@ -51,24 +46,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (docSnap.exists()) {
           // User exists, just update the state with their data
-          const userData = docSnap.data() as AppUser;
+          const userData = docSnap.data();
            setUser({
-            ...userData,
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: userData.displayName || firebaseUser.displayName,
+            photoURL: userData.photoURL || firebaseUser.photoURL,
           });
         } else {
           // New user registration or first-time login for an existing auth user
-          // Determine role based on email
-          const role = firebaseUser.email === ADMIN_EMAIL ? 'admin' : 'cliente';
-          
           const newUser: AppUser = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL,
-            role: role,
           };
           
           // Create their document in Firestore
@@ -109,14 +100,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await updateProfile(firebaseUser, { displayName });
       
       const userDocRef = doc(db, 'users', firebaseUser.uid);
-      const role = email === ADMIN_EMAIL ? 'admin' : 'cliente'; // Assign role on sign up
       
       const newUser: AppUser = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         displayName: displayName,
         photoURL: null,
-        role: role,
       };
       await setDoc(userDocRef, { ...newUser, createdAt: serverTimestamp() });
       
