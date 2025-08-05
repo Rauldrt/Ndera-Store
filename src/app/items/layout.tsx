@@ -26,16 +26,16 @@ export default function ItemsLayout({
              {user ? (
                 // If user is logged in, show "Volver a Gestión" only for admin/usuario roles
                 (user.role === 'admin' || user.role === 'usuario') && (
-                    <Link href="/" className="hidden sm:inline-flex">
-                        <Button variant="outline">
+                    <Link href="/">
+                        <Button variant="outline" className="hidden sm:inline-flex">
                             Volver a Gestión
                         </Button>
                     </Link>
                 )
              ) : (
                 // If no user is logged in, show "Iniciar Sesión" button
-                <Link href="/login" className="hidden sm:inline-flex">
-                    <Button variant="default">
+                <Link href="/login">
+                    <Button variant="default" className="hidden sm:inline-flex">
                         Iniciar Sesión
                     </Button>
                 </Link>
