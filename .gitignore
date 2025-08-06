@@ -4,30 +4,58 @@
 /node_modules
 /.pnp
 .pnp.js
+.pnp.loader.mjs
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
 
-# Build artifacts
+# Testing
+/coverage
+
+# Next.js build output
 /.next/
 /out/
 
-# Local Environment Variables
-.env
-.env*.local
+# Production
+/build
 
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Static exports
+/export
 
-# Test output
-/coverage
-
-# Misc
+# Miscellaneous
 .DS_Store
 *.pem
 
-# Vercel
-.vercel
-.output
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# IDE config
-.vscode/
+# Environment variables
+.env
+.env*.local
+!/.env.example
+!/.env.production
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Genkit
+.genkit/
+genkit.log
+
+# Firebase
+.firebase
+firebase-debug.log
+database-debug.log
