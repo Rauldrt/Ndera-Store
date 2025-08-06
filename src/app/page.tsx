@@ -60,21 +60,33 @@ export default function Home() {
 
 
   useEffect(() => {
-    if (!loading && (!user || user.role !== 'admin')) {
+    // Redirect non-authenticated users to login page
+    if (!loading && !user) {
       router.push('/login');
     }
   }, [user, loading, router]);
 
 
   const { data: catalogs, isLoading: isLoadingCatalogs, error: catalogsError } = useQuery<Catalog[]>({
-    queryKey: ['catalogs', user?.uid], // Depend on user ID
+    queryKey: ['catalogs', user?.uid], // Depend on user ID to refetch on login/logout
     queryFn: async () => {
-        if (!user || user.role !== 'admin') return [];
+        if (!user) return []; // If no user, return empty array
 
-        const catalogsQuery = query(
-            collection(db, "catalogs"), 
-            orderBy("createdAt", "desc")
-        );
+        let catalogsQuery;
+        if (user.role === 'admin') {
+            // Admin sees all catalogs
+            catalogsQuery = query(
+                collection(db, "catalogs"), 
+                orderBy("createdAt", "desc")
+            );
+        } else {
+            // Client sees only their own catalogs
+            catalogsQuery = query(
+                collection(db, "catalogs"),
+                where("userId", "==", user.uid), 
+                orderBy("createdAt", "desc")
+            );
+        }
         
         const querySnapshot = await getDocs(catalogsQuery);
         return querySnapshot.docs.map(doc => {
@@ -85,18 +97,20 @@ export default function Home() {
                 description: data.description,
                 imageUrl: data.imageUrl,
                 createdAt: data.createdAt as Timestamp,
+                userId: data.userId,
             } as Catalog;
         });
     },
-    enabled: !loading && !!user && user.role === 'admin', // Only fetch if user is admin
+    enabled: !loading && !!user, // Only fetch if user is logged in
   });
 
   const addCatalogMutation = useMutation({
     mutationFn: async (newCatalogData: Pick<Catalog, 'name' | 'description' | 'imageUrl'>): Promise<string> => {
+        if (!user) throw new Error("Debes iniciar sesión para crear un catálogo.");
         const docRef = await addDoc(collection(db, "catalogs"), {
             ...newCatalogData,
             createdAt: serverTimestamp(),
-            userId: user?.uid, // Associate catalog with user
+            userId: user.uid, // Associate catalog with user
         });
         return docRef.id;
     },
@@ -295,42 +309,46 @@ export default function Home() {
                     <span>Dashboard</span>
                  </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-                 <SidebarMenuButton
-                     asChild
-                     tooltip={{ children: "Pedidos", side: 'right', align: 'center' }}
-                     className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
-                 >
-                    <Link href="/orders">
-                      <ClipboardList />
-                      <span>Pedidos</span>
-                    </Link>
-                 </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-                 <SidebarMenuButton
-                     asChild
-                     tooltip={{ children: "Clientes", side: 'right', align: 'center' }}
-                     className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
-                 >
-                    <Link href="/customers">
-                      <Users />
-                      <span>Clientes</span>
-                    </Link>
-                 </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-                 <SidebarMenuButton
-                     asChild
-                     tooltip={{ children: "Usuarios", side: 'right', align: 'center' }}
-                     className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
-                 >
-                    <Link href="/users">
-                      <Users />
-                      <span>Usuarios</span>
-                    </Link>
-                 </SidebarMenuButton>
-            </SidebarMenuItem>
+            {user?.role === 'admin' && (
+              <>
+                <SidebarMenuItem>
+                     <SidebarMenuButton
+                         asChild
+                         tooltip={{ children: "Pedidos", side: 'right', align: 'center' }}
+                         className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
+                     >
+                        <Link href="/orders">
+                          <ClipboardList />
+                          <span>Pedidos</span>
+                        </Link>
+                     </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                     <SidebarMenuButton
+                         asChild
+                         tooltip={{ children: "Clientes", side: 'right', align: 'center' }}
+                         className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
+                     >
+                        <Link href="/customers">
+                          <Users />
+                          <span>Clientes</span>
+                        </Link>
+                     </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                     <SidebarMenuButton
+                         asChild
+                         tooltip={{ children: "Usuarios", side: 'right', align: 'center' }}
+                         className="flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
+                     >
+                        <Link href="/users">
+                          <Users />
+                          <span>Usuarios</span>
+                        </Link>
+                     </SidebarMenuButton>
+                </SidebarMenuItem>
+              </>
+            )}
             <SidebarMenuItem>
                  <SidebarMenuButton
                      asChild

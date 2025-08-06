@@ -12,7 +12,8 @@ export function AuthButton() {
     return null; // Or a skeleton button
   }
 
-  if (user && user.role === 'admin') {
+  // Any logged-in user can go to the management dashboard
+  if (user) {
     return (
       <Link href="/">
         <Button variant="outline">Volver a Gestión</Button>
@@ -20,6 +21,7 @@ export function AuthButton() {
     );
   }
 
+  // If not logged in, show the login button
   return (
     <Link href="/login">
       <Button variant="default">Iniciar Sesión</Button>
