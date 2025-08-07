@@ -12,6 +12,7 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Ndera-Store',
   description: 'Gestiona tus catálogos con facilidad.',
+  manifest: '/manifest.webmanifest',
   icons: {
     icon: [
       { url: '/logo.png', type: 'image/png' },
@@ -31,6 +32,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
+       <head>
+         <meta name="theme-color" content="#f9fafb" />
+       </head>
       <body className={`${inter.className} antialiased`}>
         <Providers>
           <AuthProvider>
