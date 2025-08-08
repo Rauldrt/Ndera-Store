@@ -25,7 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { jsPDF } from 'jspdf';
+import { jsPDF as JSPDF } from 'jspdf'; // Renamed import to avoid conflict
 import autoTable from 'jspdf-autotable';
 import Papa from 'papaparse';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -127,31 +127,31 @@ export default function OrdersPage() {
   }
 
   const generateOrderPDF = (order: OrderFromDB) => {
-    const doc = new jsPDF();
+    const pdfDoc = new JSPDF(); // Use renamed import
     const { customerInfo, items, total, createdAt, paymentMethod } = order;
 
     // Add logo
     const logoImg = document.getElementById('app-logo') as HTMLImageElement;
     if (logoImg) {
-        doc.addImage(logoImg, 'PNG', 14, 15, 40, 15);
+        pdfDoc.addImage(logoImg, 'PNG', 14, 15, 40, 15);
     }
 
-    doc.setFontSize(22);
-    doc.text('Comprobante de Pedido', 105, 25, { align: 'center' });
+    pdfDoc.setFontSize(22);
+    pdfDoc.text('Comprobante de Pedido', 105, 25, { align: 'center' });
 
-    doc.setFontSize(12);
-    doc.text('Información del Cliente:', 14, 45);
-    doc.setFontSize(10);
-    doc.text(`Nombre: ${customerInfo.name}`, 14, 53);
-    doc.text(`Email: ${customerInfo.email}`, 14, 59);
+    pdfDoc.setFontSize(12);
+    pdfDoc.text('Información del Cliente:', 14, 45);
+    pdfDoc.setFontSize(10);
+    pdfDoc.text(`Nombre: ${customerInfo.name}`, 14, 53);
+    pdfDoc.text(`Email: ${customerInfo.email}`, 14, 59);
 
-    doc.setFontSize(12);
-    doc.text('Detalles del Pedido:', 105, 45);
-    doc.setFontSize(10);
-    doc.text(`Fecha: ${new Date(createdAt.seconds * 1000).toLocaleDateString()}`, 105, 53);
-    doc.text(`Total: $${total.toFixed(2)}`, 105, 59);
+    pdfDoc.setFontSize(12);
+    pdfDoc.text('Detalles del Pedido:', 105, 45);
+    pdfDoc.setFontSize(10);
+    pdfDoc.text(`Fecha: ${new Date(createdAt.seconds * 1000).toLocaleDateString()}`, 105, 53);
+    pdfDoc.text(`Total: $${total.toFixed(2)}`, 105, 59);
     const paymentMethodText = getPaymentMethodText(paymentMethod);
-    doc.text(`Método de Pago: ${paymentMethodText}`, 105, 65);
+    pdfDoc.text(`Método de Pago: ${paymentMethodText}`, 105, 65);
 
     const tableColumn = ["Producto", "Cantidad", "Precio Unitario", "Subtotal"];
     const tableRows = items.map(item => [
@@ -161,7 +161,7 @@ export default function OrdersPage() {
       `$${(item.price * item.quantity).toFixed(2)}`
     ]);
 
-    autoTable(doc, {
+    autoTable(pdfDoc, {
       head: [tableColumn],
       body: tableRows,
       startY: 75,
@@ -170,14 +170,14 @@ export default function OrdersPage() {
       columnStyles: { 0: { halign: 'left' } }
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY || 75;
-    doc.setFontSize(14);
-    doc.text(`Total del Pedido: $${total.toFixed(2)}`, 14, finalY + 15);
+    const finalY = (pdfDoc as any).lastAutoTable.finalY || 75;
+    pdfDoc.setFontSize(14);
+    pdfDoc.text(`Total del Pedido: $${total.toFixed(2)}`, 14, finalY + 15);
 
-    doc.setFontSize(10);
-    doc.text('¡Gracias por la compra!', 105, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    pdfDoc.setFontSize(10);
+    pdfDoc.text('¡Gracias por la compra!', 105, pdfDoc.internal.pageSize.getHeight() - 10, { align: 'center' });
 
-    doc.save(`comprobante-pedido-${order.id}.pdf`);
+    pdfDoc.save(`comprobante-pedido-${order.id}.pdf`);
   };
 
   const handleBulkExportCSV = () => {
@@ -228,24 +228,24 @@ export default function OrdersPage() {
     }
 
     const selectedOrders = orders.filter(o => selectedRowIds.includes(o.id));
-    const doc = new jsPDF();
+    const pdfDoc = new JSPDF(); // Use renamed import
     const logoImg = document.getElementById('app-logo') as HTMLImageElement;
 
     selectedOrders.forEach((order, index) => {
       if (index > 0) {
-        doc.addPage();
+        pdfDoc.addPage();
       }
 
       if (logoImg) {
-        doc.addImage(logoImg, 'PNG', 14, 15, 40, 15);
+        pdfDoc.addImage(logoImg, 'PNG', 14, 15, 40, 15);
       }
-      doc.setFontSize(20);
-      doc.text(`Comprobante Pedido: ${order.id}`, 105, 25, { align: 'center' });
+      pdfDoc.setFontSize(20);
+      pdfDoc.text(`Comprobante Pedido: ${order.id}`, 105, 25, { align: 'center' });
 
-      doc.setFontSize(10);
-      doc.text(`Fecha: ${new Date(order.createdAt.seconds * 1000).toLocaleDateString()}`, 14, 45);
-      doc.text(`Cliente: ${order.customerInfo.name} (${order.customerInfo.email})`, 14, 51);
-      doc.text(`Método de Pago: ${getPaymentMethodText(order.paymentMethod)}`, 14, 57);
+      pdfDoc.setFontSize(10);
+      pdfDoc.text(`Fecha: ${new Date(order.createdAt.seconds * 1000).toLocaleDateString()}`, 14, 45);
+      pdfDoc.text(`Cliente: ${order.customerInfo.name} (${order.customerInfo.email})`, 14, 51);
+      pdfDoc.text(`Método de Pago: ${getPaymentMethodText(order.paymentMethod)}`, 14, 57);
 
       const tableColumn = ["Producto", "Cantidad", "Precio Unit.", "Subtotal"];
       const tableRows = order.items.map(item => [
@@ -255,19 +255,19 @@ export default function OrdersPage() {
         `$${(item.price * item.quantity).toFixed(2)}`
       ]);
 
-      autoTable(doc, {
+      autoTable(pdfDoc, {
         head: [tableColumn],
         body: tableRows,
         startY: 65,
         headStyles: { fillColor: [22, 163, 74] },
       });
 
-      const finalY = (doc as any).lastAutoTable.finalY || 65;
-      doc.setFontSize(12);
-      doc.text(`Total del Pedido: $${order.total.toFixed(2)}`, 14, finalY + 10);
+      const finalY = (pdfDoc as any).lastAutoTable.finalY || 65;
+      pdfDoc.setFontSize(12);
+      pdfDoc.text(`Total del Pedido: $${order.total.toFixed(2)}`, 14, finalY + 10);
     });
 
-    doc.save(`pedidos_export_${new Date().toISOString().split('T')[0]}.pdf`);
+    pdfDoc.save(`pedidos_export_${new Date().toISOString().split('T')[0]}.pdf`);
     toast({ title: "Exportación a PDF iniciada." });
   };
 
@@ -305,81 +305,81 @@ export default function OrdersPage() {
             });
         });
 
-        const doc = new jsPDF();
+        const pdfDoc = new JSPDF(); // Use renamed import
         const logoImg = document.getElementById('app-logo') as HTMLImageElement;
         let finalY = 10;
 
         // --- PDF Header ---
-        if (logoImg) doc.addImage(logoImg, 'PNG', 14, 15, 40, 15);
-        doc.setFontSize(22);
-        doc.text('Hoja de Reparto', 105, 25, { align: 'center' });
-        doc.setFontSize(12);
-        doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 40);
-        doc.text(`Total de Paradas: ${selectedOrders.length}`, 105, 40);
+        if (logoImg) pdfDoc.addImage(logoImg, 'PNG', 14, 15, 40, 15);
+        pdfDoc.setFontSize(22);
+        pdfDoc.text('Hoja de Reparto', 105, 25, { align: 'center' });
+        pdfDoc.setFontSize(12);
+        pdfDoc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 40);
+        pdfDoc.text(`Total de Paradas: ${selectedOrders.length}`, 105, 40);
         finalY = 45;
 
         // --- Product Summary Table ---
-        doc.setFontSize(16);
-        doc.text('Resumen de Carga', 14, finalY + 10);
-        autoTable(doc, {
+        pdfDoc.setFontSize(16);
+        pdfDoc.text('Resumen de Carga', 14, finalY + 10);
+        autoTable(pdfDoc, {
             head: [['Producto', 'Cantidad Total']],
             body: Object.values(productSummary).map(p => [p.name, p.quantity]),
             startY: finalY + 15,
             headStyles: { fillColor: [59, 130, 246] },
         });
-        finalY = (doc as any).lastAutoTable.finalY;
+        finalY = (pdfDoc as any).lastAutoTable.finalY;
 
         // --- Delivery Stops ---
-        doc.setFontSize(16);
-        doc.text('Paradas de Entrega', 14, finalY + 15);
+        pdfDoc.setFontSize(16);
+        pdfDoc.text('Paradas de Entrega', 14, finalY + 15);
         finalY += 20;
 
         selectedOrders.forEach((order, index) => {
             const customer = customersMap.get(order.id);
             if (index > 0) {
                  finalY += 5;
-                 doc.line(14, finalY, 196, finalY); // Separator line
+                 pdfDoc.line(14, finalY, 196, finalY); // Separator line
                  finalY += 10;
             }
             if (finalY > 260) { // Manual page break
-                doc.addPage();
+                pdfDoc.addPage();
                 finalY = 20;
             }
 
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
-            doc.text(`Parada ${index + 1}: ${order.customerInfo.name}`, 14, finalY);
-            doc.setFont(undefined, 'normal');
+            pdfDoc.setFontSize(12);
+            pdfDoc.setFont(undefined, 'bold');
+            pdfDoc.text(`Parada ${index + 1}: ${order.customerInfo.name}`, 14, finalY);
+            pdfDoc.setFont(undefined, 'normal');
 
             finalY += 6;
             let addressText = customer?.address || 'Dirección no disponible';
-            doc.text(`Dirección: ${addressText}`, 14, finalY);
+            pdfDoc.text(`Dirección: ${addressText}`, 14, finalY);
             if (customer?.geolocation) {
                 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${customer.geolocation.latitude},${customer.geolocation.longitude}`;
-                doc.setTextColor(6, 69, 173); // Blue link color
-                doc.textWithLink('Ver en Mapa', 14, finalY + 6, { url: mapsUrl });
-                doc.setTextColor(0, 0, 0);
+                pdfDoc.setTextColor(6, 69, 173); // Blue link color
+                pdfDoc.textWithLink('Ver en Mapa', 14, finalY + 6, { url: mapsUrl });
+                pdfDoc.setTextColor(0, 0, 0);
                 finalY += 6;
             }
 
             finalY += 6;
-            doc.text(`Teléfono: ${customer?.phone || 'No disponible'}`, 14, finalY);
+            pdfDoc.text(`Teléfono: ${customer?.phone || 'No disponible'}`, 14, finalY);
 
-            autoTable(doc, {
+            autoTable(pdfDoc, {
                 head: [['Producto', 'Cantidad', 'Precio']],
                 body: order.items.map(item => [item.name, item.quantity, `$${item.price.toFixed(2)}`]),
                 startY: finalY + 5,
                 theme: 'striped',
                 headStyles: { fillColor: [100, 116, 139] },
             });
-            finalY = (doc as any).lastAutoTable.finalY;
+            finalY = (pdfDoc as any).lastAutoTable.finalY;
 
-            doc.setFont(undefined, 'bold');
-            doc.text(`Total: $${order.total.toFixed(2)}`, 14, finalY + 8);
-            doc.text(`Pago: ${getPaymentMethodText(order.paymentMethod)}`, 105, finalY + 8);
+            pdfDoc.setFont(undefined, 'bold');
+            pdfDoc.text(`Total: $${order.total.toFixed(2)}`, 14, finalY + 8);
+            pdfDoc.text(`Pago: ${getPaymentMethodText(order.paymentMethod)}`, 105, finalY + 8);
         });
 
-        doc.save(`hoja_reparto_${new Date().toISOString().split('T')[0]}.pdf`);
+        pdfDoc.save(`hoja_reparto_${new Date().toISOString().split('T')[0]}.pdf`);
 
     } catch (e) {
         console.error("Error creating delivery route PDF:", e);
@@ -642,3 +642,4 @@ export default function OrdersPage() {
     
 
     
+
