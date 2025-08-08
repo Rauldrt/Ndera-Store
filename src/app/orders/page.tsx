@@ -3,14 +3,14 @@
 
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, query, orderBy, getDocs, Timestamp, doc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, Timestamp, doc, deleteDoc, writeBatch, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Order } from '@/types';
+import type { Order, Customer } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, ShoppingCart, Eye, Trash2, Download, Loader2, MoreVertical, FileText, FileUp } from 'lucide-react';
+import { AlertTriangle, ShoppingCart, Eye, Trash2, Download, Loader2, MoreVertical, FileText, FileUp, Truck } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -271,6 +271,122 @@ export default function OrdersPage() {
     toast({ title: "Exportación a PDF iniciada." });
   };
 
+  const handleCreateDeliveryRoute = async () => {
+    if (!orders || selectedRowIds.length === 0) {
+        toast({ title: "Selecciona pedidos para crear un reparto." });
+        return;
+    }
+
+    toast({ title: "Generando hoja de reparto...", description: "Esto puede tardar unos segundos." });
+
+    try {
+        const selectedOrders = orders.filter(o => selectedRowIds.includes(o.id));
+
+        // Fetch full customer data for selected orders
+        const customerDataPromises = selectedOrders.map(async (order) => {
+            if (!order.customerId) return null;
+            const customerRef = doc(db, 'customers', order.customerId);
+            const customerSnap = await getDoc(customerRef);
+            return customerSnap.exists() ? { orderId: order.id, customer: customerSnap.data() as Customer } : null;
+        });
+
+        const customerResults = await Promise.all(customerDataPromises);
+        const customersMap = new Map(customerResults.filter(Boolean).map(res => [res!.orderId, res!.customer]));
+        
+        // 1. Consolidate all products
+        const productSummary: { [key: string]: { name: string, quantity: number } } = {};
+        selectedOrders.forEach(order => {
+            order.items.forEach(item => {
+                if (productSummary[item.id]) {
+                    productSummary[item.id].quantity += item.quantity;
+                } else {
+                    productSummary[item.id] = { name: item.name, quantity: item.quantity };
+                }
+            });
+        });
+
+        const doc = new jsPDF();
+        const logoImg = document.getElementById('app-logo') as HTMLImageElement;
+        let finalY = 10;
+
+        // --- PDF Header ---
+        if (logoImg) doc.addImage(logoImg, 'PNG', 14, 15, 40, 15);
+        doc.setFontSize(22);
+        doc.text('Hoja de Reparto', 105, 25, { align: 'center' });
+        doc.setFontSize(12);
+        doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 40);
+        doc.text(`Total de Paradas: ${selectedOrders.length}`, 105, 40);
+        finalY = 45;
+
+        // --- Product Summary Table ---
+        doc.setFontSize(16);
+        doc.text('Resumen de Carga', 14, finalY + 10);
+        autoTable(doc, {
+            head: [['Producto', 'Cantidad Total']],
+            body: Object.values(productSummary).map(p => [p.name, p.quantity]),
+            startY: finalY + 15,
+            headStyles: { fillColor: [59, 130, 246] },
+        });
+        finalY = (doc as any).lastAutoTable.finalY;
+
+        // --- Delivery Stops ---
+        doc.setFontSize(16);
+        doc.text('Paradas de Entrega', 14, finalY + 15);
+        finalY += 20;
+
+        selectedOrders.forEach((order, index) => {
+            const customer = customersMap.get(order.id);
+            if (index > 0) {
+                 finalY += 5;
+                 doc.line(14, finalY, 196, finalY); // Separator line
+                 finalY += 10;
+            }
+            if (finalY > 260) { // Manual page break
+                doc.addPage();
+                finalY = 20;
+            }
+
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Parada ${index + 1}: ${order.customerInfo.name}`, 14, finalY);
+            doc.setFont(undefined, 'normal');
+
+            finalY += 6;
+            let addressText = customer?.address || 'Dirección no disponible';
+            doc.text(`Dirección: ${addressText}`, 14, finalY);
+            if (customer?.geolocation) {
+                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${customer.geolocation.latitude},${customer.geolocation.longitude}`;
+                doc.setTextColor(6, 69, 173); // Blue link color
+                doc.textWithLink('Ver en Mapa', 14, finalY + 6, { url: mapsUrl });
+                doc.setTextColor(0, 0, 0);
+                finalY += 6;
+            }
+
+            finalY += 6;
+            doc.text(`Teléfono: ${customer?.phone || 'No disponible'}`, 14, finalY);
+
+            autoTable(doc, {
+                head: [['Producto', 'Cantidad', 'Precio']],
+                body: order.items.map(item => [item.name, item.quantity, `$${item.price.toFixed(2)}`]),
+                startY: finalY + 5,
+                theme: 'striped',
+                headStyles: { fillColor: [100, 116, 139] },
+            });
+            finalY = (doc as any).lastAutoTable.finalY;
+
+            doc.setFont(undefined, 'bold');
+            doc.text(`Total: $${order.total.toFixed(2)}`, 14, finalY + 8);
+            doc.text(`Pago: ${getPaymentMethodText(order.paymentMethod)}`, 105, finalY + 8);
+        });
+
+        doc.save(`hoja_reparto_${new Date().toISOString().split('T')[0]}.pdf`);
+
+    } catch (e) {
+        console.error("Error creating delivery route PDF:", e);
+        toast({ title: "Error al generar el PDF", description: "No se pudo crear la hoja de reparto.", variant: "destructive" });
+    }
+  }
+
 
   const numSelected = selectedRowIds.length;
   const rowCount = orders?.length ?? 0;
@@ -288,6 +404,10 @@ export default function OrdersPage() {
               <p className="text-sm font-medium text-muted-foreground flex-grow">
                 {numSelected} de {rowCount} fila(s) seleccionadas.
               </p>
+               <Button variant="outline" size="sm" onClick={handleCreateDeliveryRoute}>
+                    <Truck className="mr-2 h-4 w-4" />
+                    Crear Reparto
+                </Button>
                <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
