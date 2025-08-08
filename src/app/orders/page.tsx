@@ -25,7 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { jsPDF as JSPDF } from 'jspdf'; // Renamed import to avoid conflict
+import { jsPDF as JSPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Papa from 'papaparse';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -127,7 +127,7 @@ export default function OrdersPage() {
   }
 
   const generateOrderPDF = (order: OrderFromDB) => {
-    const pdfDoc = new JSPDF(); // Use renamed import
+    const pdfDoc = new JSPDF();
     const { customerInfo, items, total, createdAt, paymentMethod } = order;
 
     // Add logo
@@ -228,7 +228,7 @@ export default function OrdersPage() {
     }
 
     const selectedOrders = orders.filter(o => selectedRowIds.includes(o.id));
-    const pdfDoc = new JSPDF(); // Use renamed import
+    const pdfDoc = new JSPDF();
     const logoImg = document.getElementById('app-logo') as HTMLImageElement;
 
     selectedOrders.forEach((order, index) => {
@@ -305,7 +305,7 @@ export default function OrdersPage() {
             });
         });
 
-        const pdfDoc = new JSPDF(); // Use renamed import
+        const pdfDoc = new JSPDF();
         const logoImg = document.getElementById('app-logo') as HTMLImageElement;
         let finalY = 10;
 
@@ -385,7 +385,49 @@ export default function OrdersPage() {
         console.error("Error creating delivery route PDF:", e);
         toast({ title: "Error al generar el PDF", description: "No se pudo crear la hoja de reparto.", variant: "destructive" });
     }
-  }
+  };
+
+  const handleBulkExportProductSummaryCSV = () => {
+    if (!orders || selectedRowIds.length === 0) {
+        toast({ title: "Selecciona pedidos para exportar un resumen." });
+        return;
+    }
+
+    const selectedOrders = orders.filter(o => selectedRowIds.includes(o.id));
+
+    // Consolidate all products into a summary
+    const productSummary: { [key: string]: { name: string, quantity: number } } = {};
+    selectedOrders.forEach(order => {
+        order.items.forEach(item => {
+            if (productSummary[item.id]) {
+                productSummary[item.id].quantity += item.quantity;
+            } else {
+                productSummary[item.id] = { name: item.name, quantity: item.quantity };
+            }
+        });
+    });
+
+    const dataToExport = Object.values(productSummary);
+
+    if (dataToExport.length === 0) {
+        toast({ title: "Los pedidos seleccionados no tienen productos." });
+        return;
+    }
+
+    const csv = Papa.unparse(dataToExport, {
+        columns: ['name', 'quantity'],
+        header: true,
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `resumen_productos_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast({ title: "Exportación del Resumen de Productos iniciada." });
+  };
 
 
   const numSelected = selectedRowIds.length;
@@ -418,7 +460,11 @@ export default function OrdersPage() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={handleBulkExportCSV}>
                         <FileText className="mr-2 h-4 w-4" />
-                        Exportar a CSV
+                        Exportar Pedidos (CSV)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleBulkExportProductSummaryCSV}>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Exportar Resumen de Productos (CSV)
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleBulkExportPDF}>
                         <Download className="mr-2 h-4 w-4" />
@@ -642,4 +688,3 @@ export default function OrdersPage() {
     
 
     
-
