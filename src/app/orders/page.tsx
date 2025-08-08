@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, ShoppingCart, Eye, Trash2, Download, Loader2, MoreVertical, FileText, FileUp, Truck } from 'lucide-react';
+import { AlertTriangle, ShoppingCart, Eye, Trash2, Download, Loader2, MoreVertical, FileText, FileUp, Truck, Search, ArrowUp, ArrowDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -25,10 +25,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { jsPDF as JSPDF } from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Papa from 'papaparse';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +40,8 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 
 // Explicitly type the order data fetched from Firestore
@@ -47,6 +50,9 @@ interface OrderFromDB extends Omit<Order, 'createdAt'> {
   createdAt: Timestamp;
 }
 
+type SortableKeys = 'createdAt' | 'total' | 'paymentMethod' | 'customerInfo.name';
+
+
 export default function OrdersPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -54,6 +60,9 @@ export default function OrdersPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState<string[]>([]);
+  const [sortConfig, setSortConfig] = useState<{ key: SortableKeys, direction: 'asc' | 'desc' }>({ key: 'createdAt', direction: 'desc' });
 
 
   const { data: orders, isLoading, error } = useQuery<OrderFromDB[]>({
@@ -65,6 +74,66 @@ export default function OrdersPage() {
       return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as OrderFromDB));
     },
   });
+
+  const filteredAndSortedOrders = useMemo(() => {
+    if (!orders) return [];
+
+    let filtered = [...orders];
+
+    // Apply search query filter
+    if (searchQuery) {
+        const lowercasedQuery = searchQuery.toLowerCase();
+        filtered = filtered.filter(order =>
+            order.customerInfo.name.toLowerCase().includes(lowercasedQuery) ||
+            order.customerInfo.email.toLowerCase().includes(lowercasedQuery)
+        );
+    }
+    
+    // Apply payment method filter
+    if (paymentFilter.length > 0) {
+        filtered = filtered.filter(order => paymentFilter.includes(order.paymentMethod));
+    }
+
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        if (sortConfig.key === 'customerInfo.name') {
+            aValue = a.customerInfo.name;
+            bValue = b.customerInfo.name;
+        } else {
+            aValue = a[sortConfig.key];
+            bValue = b[sortConfig.key];
+        }
+        
+        // Handle Timestamps for date sorting
+        if (aValue instanceof Timestamp && bValue instanceof Timestamp) {
+            aValue = aValue.toMillis();
+            bValue = bValue.toMillis();
+        }
+
+        if (aValue < bValue) {
+            return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+            return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+    });
+
+    return filtered;
+  }, [orders, searchQuery, paymentFilter, sortConfig]);
+
+  const requestSort = (key: SortableKeys) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
 
   const deleteOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
@@ -127,7 +196,7 @@ export default function OrdersPage() {
   }
 
   const generateOrderPDF = (order: OrderFromDB) => {
-    const pdfDoc = new JSPDF();
+    const pdfDoc = new jsPDF();
     const { customerInfo, items, total, createdAt, paymentMethod } = order;
 
     // Add logo
@@ -228,7 +297,7 @@ export default function OrdersPage() {
     }
 
     const selectedOrders = orders.filter(o => selectedRowIds.includes(o.id));
-    const pdfDoc = new JSPDF();
+    const pdfDoc = new jsPDF();
     const logoImg = document.getElementById('app-logo') as HTMLImageElement;
 
     selectedOrders.forEach((order, index) => {
@@ -305,7 +374,7 @@ export default function OrdersPage() {
             });
         });
 
-        const pdfDoc = new JSPDF();
+        const pdfDoc = new jsPDF();
         const logoImg = document.getElementById('app-logo') as HTMLImageElement;
         let finalY = 10;
 
@@ -429,9 +498,14 @@ export default function OrdersPage() {
     toast({ title: "Exportación del Resumen de Productos iniciada." });
   };
 
+  const paymentMethods = [
+    { value: 'cash', label: 'Efectivo' },
+    { value: 'transfer', label: 'Transferencia' },
+    { value: 'saved', label: 'Guardado' },
+  ];
 
   const numSelected = selectedRowIds.length;
-  const rowCount = orders?.length ?? 0;
+  const rowCount = filteredAndSortedOrders?.length ?? 0;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -441,6 +515,44 @@ export default function OrdersPage() {
           <CardDescription>Aquí puedes ver el historial completo de pedidos y realizar acciones.</CardDescription>
         </CardHeader>
         <CardContent>
+            <div className="mb-4 flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-grow">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Buscar por cliente..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10"
+                        disabled={isLoading}
+                    />
+                </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="w-full sm:w-auto">
+                            Filtrar por pago
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Método de Pago</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {paymentMethods.map(method => (
+                            <DropdownMenuCheckboxItem
+                                key={method.value}
+                                checked={paymentFilter.includes(method.value)}
+                                onCheckedChange={(checked) => {
+                                    setPaymentFilter(prev => 
+                                        checked 
+                                            ? [...prev, method.value] 
+                                            : prev.filter(p => p !== method.value)
+                                    )
+                                }}
+                            >
+                                {method.label}
+                            </DropdownMenuCheckboxItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
           {numSelected > 0 && (
             <div className="mb-4 flex items-center gap-4 rounded-md bg-muted p-3">
               <p className="text-sm font-medium text-muted-foreground flex-grow">
@@ -490,22 +602,38 @@ export default function OrdersPage() {
                 <TableRow>
                   <TableHead className="w-[50px]">
                      <Checkbox
-                        checked={numSelected === rowCount && rowCount > 0}
+                        checked={rowCount > 0 && numSelected === rowCount}
                         onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedRowIds(orders?.map(o => o.id) ?? []);
-                          } else {
-                            setSelectedRowIds([]);
-                          }
+                          setSelectedRowIds(checked ? filteredAndSortedOrders.map(o => o.id) : []);
                         }}
                         aria-label="Seleccionar todo"
                         data-state={numSelected > 0 && numSelected < rowCount ? 'indeterminate' : undefined}
                       />
                   </TableHead>
-                  <TableHead className="w-[120px]">Fecha</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead className="hidden sm:table-cell w-[150px]">Forma de Pago</TableHead>
-                  <TableHead className="hidden md:table-cell text-right w-[120px]">Total</TableHead>
+                  <TableHead className="w-[120px]">
+                    <Button variant="ghost" onClick={() => requestSort('createdAt')}>
+                        Fecha
+                        {sortConfig.key === 'createdAt' && (sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />)}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                     <Button variant="ghost" onClick={() => requestSort('customerInfo.name')}>
+                        Cliente
+                        {sortConfig.key === 'customerInfo.name' && (sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />)}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="hidden sm:table-cell w-[150px]">
+                      <Button variant="ghost" onClick={() => requestSort('paymentMethod')}>
+                        Forma de Pago
+                        {sortConfig.key === 'paymentMethod' && (sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />)}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell text-right w-[120px]">
+                     <Button variant="ghost" onClick={() => requestSort('total')}>
+                        Total
+                        {sortConfig.key === 'total' && (sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />)}
+                    </Button>
+                  </TableHead>
                   <TableHead className="text-right w-[100px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -532,18 +660,18 @@ export default function OrdersPage() {
                     </TableCell>
                   </TableRow>
                 )}
-                {!isLoading && !error && orders?.length === 0 && (
+                {!isLoading && !error && filteredAndSortedOrders.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <ShoppingCart className="h-8 w-8 text-muted-foreground" />
-                        <p className="font-medium">No hay pedidos todavía.</p>
-                        <p className="text-sm text-muted-foreground">Los nuevos pedidos aparecerán aquí.</p>
+                        <p className="font-medium">No se encontraron pedidos.</p>
+                        <p className="text-sm text-muted-foreground">Ajusta los filtros o espera a que lleguen nuevos pedidos.</p>
                       </div>
                     </TableCell>
                   </TableRow>
                 )}
-                {!isLoading && !error && orders?.map(order => (
+                {!isLoading && !error && filteredAndSortedOrders.map(order => (
                   <TableRow 
                     key={order.id}
                     data-state={selectedRowIds.includes(order.id) && "selected"}
@@ -688,3 +816,4 @@ export default function OrdersPage() {
     
 
     
+
