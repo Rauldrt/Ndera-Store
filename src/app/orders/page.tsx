@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -10,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, ShoppingCart, Eye, Trash2, Download, Loader2, MoreVertical, FileText, FileUp, Truck, Search, ArrowUp, ArrowDown } from 'lucide-react';
+import { AlertTriangle, ShoppingCart, Eye, Trash2, Download, Loader2, MoreVertical, FileText, FileUp, Truck, Search, ArrowUp, ArrowDown, Calendar as CalendarIcon, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -43,6 +42,11 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { DateRange } from 'react-day-picker';
+import { format, addDays } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 // Explicitly type the order data fetched from Firestore
 interface OrderFromDB extends Omit<Order, 'createdAt'> {
@@ -62,6 +66,7 @@ export default function OrdersPage() {
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentFilter, setPaymentFilter] = useState<string[]>([]);
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
   const [sortConfig, setSortConfig] = useState<{ key: SortableKeys, direction: 'asc' | 'desc' }>({ key: 'createdAt', direction: 'desc' });
 
 
@@ -94,6 +99,26 @@ export default function OrdersPage() {
         filtered = filtered.filter(order => paymentFilter.includes(order.paymentMethod));
     }
 
+    // Apply date range filter
+    if (dateRange?.from) {
+        filtered = filtered.filter(order => {
+            const orderDate = order.createdAt.toDate();
+            // Start of the day for 'from'
+            const fromDate = new Date(dateRange.from!);
+            fromDate.setHours(0, 0, 0, 0);
+            
+            if (orderDate < fromDate) return false;
+            
+            // End of the day for 'to'
+            if (dateRange.to) {
+                const toDate = new Date(dateRange.to);
+                toDate.setHours(23, 59, 59, 999);
+                if (orderDate > toDate) return false;
+            }
+
+            return true;
+        });
+    }
 
     // Apply sorting
     filtered.sort((a, b) => {
@@ -124,7 +149,7 @@ export default function OrdersPage() {
     });
 
     return filtered;
-  }, [orders, searchQuery, paymentFilter, sortConfig]);
+  }, [orders, searchQuery, paymentFilter, sortConfig, dateRange]);
 
   const requestSort = (key: SortableKeys) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -133,6 +158,12 @@ export default function OrdersPage() {
     }
     setSortConfig({ key, direction });
   };
+  
+  const clearFilters = () => {
+    setSearchQuery('');
+    setPaymentFilter([]);
+    setDateRange(undefined);
+  }
 
 
   const deleteOrderMutation = useMutation({
@@ -506,6 +537,7 @@ export default function OrdersPage() {
 
   const numSelected = selectedRowIds.length;
   const rowCount = filteredAndSortedOrders?.length ?? 0;
+  const areFiltersActive = searchQuery || paymentFilter.length > 0 || dateRange;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -526,32 +558,76 @@ export default function OrdersPage() {
                         disabled={isLoading}
                     />
                 </div>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full sm:w-auto">
-                            Filtrar por pago
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Método de Pago</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {paymentMethods.map(method => (
-                            <DropdownMenuCheckboxItem
-                                key={method.value}
-                                checked={paymentFilter.includes(method.value)}
-                                onCheckedChange={(checked) => {
-                                    setPaymentFilter(prev => 
-                                        checked 
-                                            ? [...prev, method.value] 
-                                            : prev.filter(p => p !== method.value)
-                                    )
-                                }}
+                <div className="flex items-center gap-2">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                id="date"
+                                variant={"outline"}
+                                className={cn(
+                                "w-full sm:w-[260px] justify-start text-left font-normal",
+                                !dateRange && "text-muted-foreground"
+                                )}
                             >
-                                {method.label}
-                            </DropdownMenuCheckboxItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {dateRange?.from ? (
+                                dateRange.to ? (
+                                    <>
+                                    {format(dateRange.from, "LLL dd, y")} -{" "}
+                                    {format(dateRange.to, "LLL dd, y")}
+                                    </>
+                                ) : (
+                                    format(dateRange.from, "LLL dd, y")
+                                )
+                                ) : (
+                                <span>Seleccionar fecha</span>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={dateRange?.from}
+                                selected={dateRange}
+                                onSelect={setDateRange}
+                                numberOfMonths={2}
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="w-full sm:w-auto">
+                                Filtrar por pago
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Método de Pago</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {paymentMethods.map(method => (
+                                <DropdownMenuCheckboxItem
+                                    key={method.value}
+                                    checked={paymentFilter.includes(method.value)}
+                                    onCheckedChange={(checked) => {
+                                        setPaymentFilter(prev => 
+                                            checked 
+                                                ? [...prev, method.value] 
+                                                : prev.filter(p => p !== method.value)
+                                        )
+                                    }}
+                                >
+                                    {method.label}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                     {areFiltersActive && (
+                        <Button variant="ghost" onClick={clearFilters}>
+                            <X className="mr-2 h-4 w-4" />
+                            Limpiar
+                        </Button>
+                    )}
+                </div>
             </div>
           {numSelected > 0 && (
             <div className="mb-4 flex items-center gap-4 rounded-md bg-muted p-3">
@@ -817,3 +893,4 @@ export default function OrdersPage() {
 
     
 
+    
