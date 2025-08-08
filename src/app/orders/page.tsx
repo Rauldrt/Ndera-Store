@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, ShoppingCart, Eye, Trash2, Download, Loader2, MoreVertical } from 'lucide-react';
+import { AlertTriangle, ShoppingCart, Eye, Trash2, Download, Loader2, MoreVertical, FileText, FileUp } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -27,6 +27,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import Papa from 'papaparse';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
@@ -34,6 +35,10 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu"
 
 // Explicitly type the order data fetched from Firestore
@@ -103,6 +108,23 @@ export default function OrdersPage() {
     setOrderToDelete(orderId);
     setShowDeleteDialog(true);
   };
+  
+  const getPaymentMethodVariant = (method: string): 'default' | 'secondary' => {
+    switch (method) {
+      case 'transfer': return 'default';
+      case 'cash': return 'secondary';
+      default: return 'default';
+    }
+  }
+
+  const getPaymentMethodText = (method: string): string => {
+    switch (method) {
+      case 'transfer': return 'Transferencia';
+      case 'cash': return 'Efectivo';
+      case 'saved': return 'Guardado';
+      default: return 'Desconocido';
+    }
+  }
 
   const generateOrderPDF = (order: OrderFromDB) => {
     const doc = new jsPDF();
@@ -158,22 +180,97 @@ export default function OrdersPage() {
     doc.save(`comprobante-pedido-${order.id}.pdf`);
   };
 
-  const getPaymentMethodVariant = (method: string): 'default' | 'secondary' => {
-    switch (method) {
-      case 'transfer': return 'default';
-      case 'cash': return 'secondary';
-      default: return 'default';
+  const handleBulkExportCSV = () => {
+    if (!orders || selectedRowIds.length === 0) {
+      toast({ title: "No hay pedidos seleccionados para exportar." });
+      return;
     }
-  }
 
-  const getPaymentMethodText = (method: string): string => {
-    switch (method) {
-      case 'transfer': return 'Transferencia';
-      case 'cash': return 'Efectivo';
-      case 'saved': return 'Guardado';
-      default: return 'Desconocido';
+    const selectedOrders = orders.filter(o => selectedRowIds.includes(o.id));
+    
+    // Flatten data: one row per item in an order
+    const flattenedData = selectedOrders.flatMap(order => 
+      order.items.map(item => ({
+        'ID Pedido': order.id,
+        'Fecha Pedido': new Date(order.createdAt.seconds * 1000).toISOString(),
+        'Cliente Nombre': order.customerInfo.name,
+        'Cliente Email': order.customerInfo.email,
+        'ID Producto': item.id,
+        'Producto Nombre': item.name,
+        'Cantidad': item.quantity,
+        'Precio Unitario': item.price,
+        'Subtotal Producto': item.price * item.quantity,
+        'Total Pedido': order.total,
+        'Metodo de Pago': getPaymentMethodText(order.paymentMethod),
+      }))
+    );
+
+    if (flattenedData.length === 0) {
+      toast({ title: "Los pedidos seleccionados no tienen productos." });
+      return;
     }
-  }
+
+    const csv = Papa.unparse(flattenedData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `pedidos_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast({ title: "Exportación a CSV iniciada." });
+  };
+  
+  const handleBulkExportPDF = () => {
+    if (!orders || selectedRowIds.length === 0) {
+      toast({ title: "No hay pedidos seleccionados para exportar." });
+      return;
+    }
+
+    const selectedOrders = orders.filter(o => selectedRowIds.includes(o.id));
+    const doc = new jsPDF();
+    const logoImg = document.getElementById('app-logo') as HTMLImageElement;
+
+    selectedOrders.forEach((order, index) => {
+      if (index > 0) {
+        doc.addPage();
+      }
+
+      if (logoImg) {
+        doc.addImage(logoImg, 'PNG', 14, 15, 40, 15);
+      }
+      doc.setFontSize(20);
+      doc.text(`Comprobante Pedido: ${order.id}`, 105, 25, { align: 'center' });
+
+      doc.setFontSize(10);
+      doc.text(`Fecha: ${new Date(order.createdAt.seconds * 1000).toLocaleDateString()}`, 14, 45);
+      doc.text(`Cliente: ${order.customerInfo.name} (${order.customerInfo.email})`, 14, 51);
+      doc.text(`Método de Pago: ${getPaymentMethodText(order.paymentMethod)}`, 14, 57);
+
+      const tableColumn = ["Producto", "Cantidad", "Precio Unit.", "Subtotal"];
+      const tableRows = order.items.map(item => [
+        item.name,
+        item.quantity,
+        `$${item.price.toFixed(2)}`,
+        `$${(item.price * item.quantity).toFixed(2)}`
+      ]);
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 65,
+        headStyles: { fillColor: [22, 163, 74] },
+      });
+
+      const finalY = (doc as any).lastAutoTable.finalY || 65;
+      doc.setFontSize(12);
+      doc.text(`Total del Pedido: $${order.total.toFixed(2)}`, 14, finalY + 10);
+    });
+
+    doc.save(`pedidos_export_${new Date().toISOString().split('T')[0]}.pdf`);
+    toast({ title: "Exportación a PDF iniciada." });
+  };
+
 
   const numSelected = selectedRowIds.length;
   const rowCount = orders?.length ?? 0;
@@ -191,6 +288,25 @@ export default function OrdersPage() {
               <p className="text-sm font-medium text-muted-foreground flex-grow">
                 {numSelected} de {rowCount} fila(s) seleccionadas.
               </p>
+               <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                       <FileUp className="mr-2 h-4 w-4" />
+                       Exportar
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleBulkExportCSV}>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Exportar a CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleBulkExportPDF}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Exportar a PDF
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
               <Button 
                 variant="destructive" 
                 size="sm"
@@ -198,7 +314,7 @@ export default function OrdersPage() {
                 disabled={bulkDeleteMutation.isPending}
               >
                 {bulkDeleteMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                Eliminar Seleccionados
+                Eliminar
               </Button>
             </div>
           )}
@@ -400,4 +516,7 @@ export default function OrdersPage() {
 
     </div>
   );
+    
+
+
     
