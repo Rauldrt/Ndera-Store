@@ -33,7 +33,7 @@ import { Badge } from '@/components/ui/badge';
 // Extending AppUser to include what we get from Firestore
 interface UserFromDB extends AppUser {
   id: string; // The doc ID
-  createdAt: Timestamp;
+  createdAt?: Timestamp;
 }
 
 export default function UsersPage() {
@@ -47,7 +47,8 @@ export default function UsersPage() {
     queryKey: ['users'],
     queryFn: async () => {
       const usersCollection = collection(db, 'users');
-      const q = query(usersCollection, orderBy('createdAt', 'desc'));
+      // Simplified query to fetch all users without ordering to avoid issues with missing fields.
+      const q = query(usersCollection); 
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as Omit<UserFromDB, 'id'>) }));
     },
@@ -220,3 +221,4 @@ export default function UsersPage() {
     </div>
   );
 }
+

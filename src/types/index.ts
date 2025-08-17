@@ -71,6 +71,7 @@ export interface AppUser {
   displayName: string | null;
   photoURL: string | null;
   role: 'admin' | 'client';
+  createdAt?: Timestamp; // Make createdAt optional
 }
 
 export interface AuthContextType {
