@@ -4,13 +4,13 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { collection, query, orderBy, getDocs, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db, auth as adminAuth } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import type { AppUser } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, Users, Trash2, Loader2, MoreVertical, ShieldCheck, UserCog, PlusCircle } from 'lucide-react';
+import { AlertTriangle, Users, Trash2, Loader2, MoreVertical, ShieldCheck, UserCog, Info } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,13 +27,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/context/auth-context';
-import { UserForm, type UserFormValues } from '@/components/user/user-form';
-import { signOut } from 'firebase/auth';
-
 
 // Extending AppUser to include what we get from Firestore
 interface UserFromDB extends AppUser {
@@ -44,12 +39,9 @@ interface UserFromDB extends AppUser {
 export default function UsersPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { signUp, signIn, user: adminUser } = useAuth();
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserFromDB | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserFromDB | null>(null);
 
   const { data: users, isLoading, error } = useQuery<UserFromDB[]>({
     queryKey: ['users'],
@@ -60,45 +52,6 @@ export default function UsersPage() {
       return querySnapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as Omit<UserFromDB, 'id'>) }));
     },
   });
-
-   const createUserMutation = useMutation({
-    mutationFn: async (userData: UserFormValues) => {
-        if (!adminUser || !process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
-            throw new Error("No se pudo autenticar al administrador para esta acción.");
-        }
-        
-        // IMPORTANT: This flow signs out the admin, creates the new user (which signs them in),
-        // and then signs the admin back in. This is a workaround for Firebase client-side limitations.
-        const originalAdminEmail = adminUser.email;
-
-        // 1. Create the new user (this signs in the new user automatically)
-        await signUp(userData.email, userData.password, userData.displayName);
-        
-        // 2. Update the role of the newly created user
-        const newUserAuth = adminAuth.currentUser;
-        if (!newUserAuth) throw new Error("No se pudo obtener el nuevo usuario creado.");
-        
-        const userRef = doc(db, 'users', newUserAuth.uid);
-        await updateDoc(userRef, { role: userData.role });
-
-        // 3. Sign out the new user
-        await signOut(adminAuth);
-
-        // 4. Sign the admin back in
-        if (originalAdminEmail) {
-           await signIn(originalAdminEmail, process.env.NEXT_PUBLIC_ADMIN_PASSWORD);
-        }
-    },
-    onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['users'] });
-        toast({ title: 'Usuario Creado', description: 'El nuevo usuario ha sido creado con éxito.' });
-        setIsFormOpen(false);
-    },
-    onError: (error) => {
-        toast({ title: 'Error al Crear Usuario', description: `No se pudo crear el usuario: ${(error as Error).message}`, variant: 'destructive' });
-    }
-  });
-
 
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ id, role }: { id: string, role: 'admin' | 'client' }) => {
@@ -133,12 +86,6 @@ export default function UsersPage() {
     },
   });
   
-  const handleFormSubmit = (data: UserFormValues) => {
-    // For now, we only handle creation. Edit can be added later.
-    createUserMutation.mutate(data);
-  };
-
-
   const handleDeleteClick = (user: UserFromDB) => {
     setUserToDelete(user);
     setShowDeleteDialog(true);
@@ -147,15 +94,15 @@ export default function UsersPage() {
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Lista de Usuarios</CardTitle>
-            <CardDescription>Gestiona los roles y el acceso de los usuarios.</CardDescription>
+        <CardHeader>
+          <CardTitle>Lista de Usuarios</CardTitle>
+          <CardDescription>Gestiona los roles y el acceso de los usuarios.</CardDescription>
+          <div className="flex items-start gap-2 rounded-lg border bg-secondary/50 p-3 text-sm text-secondary-foreground mt-2">
+            <Info className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <p>
+              Para añadir nuevos usuarios, por favor, ve a la sección de <strong>Authentication</strong> en tu Consola de Firebase. Por razones de seguridad, la creación de usuarios está centralizada allí.
+            </p>
           </div>
-          <Button onClick={() => { setEditingUser(null); setIsFormOpen(true); }}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Crear Usuario
-          </Button>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -248,23 +195,6 @@ export default function UsersPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Crear Nuevo Usuario</DialogTitle>
-                <DialogDescription>
-                Rellena los campos para crear una nueva cuenta de usuario.
-                </DialogDescription>
-            </DialogHeader>
-            <UserForm 
-                onSubmit={handleFormSubmit}
-                isLoading={createUserMutation.isPending}
-                onCancel={() => setIsFormOpen(false)}
-            />
-        </DialogContent>
-      </Dialog>
-
-
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -290,5 +220,3 @@ export default function UsersPage() {
     </div>
   );
 }
-
-    
