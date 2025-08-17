@@ -46,8 +46,8 @@ export default function UsersPage() {
   const { data: users, isLoading, error } = useQuery<UserFromDB[]>({
     queryKey: ['users'],
     queryFn: async () => {
-      const usersCollection = collection(db, 'users');
       // Simplified query to fetch all users without ordering to avoid issues with missing fields.
+      const usersCollection = collection(db, 'users');
       const q = query(usersCollection); 
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as Omit<UserFromDB, 'id'>) }));
