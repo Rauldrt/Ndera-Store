@@ -28,7 +28,7 @@ export function CartSummary() {
         >
           <Button
             size="lg"
-            className="w-full max-w-md h-14 rounded-full shadow-2xl flex items-center justify-between text-base px-6"
+            className="w-full max-w-sm h-14 rounded-full shadow-2xl flex items-center justify-between text-base px-6"
             onClick={handleClick}
           >
             <div className="flex items-center gap-3">
