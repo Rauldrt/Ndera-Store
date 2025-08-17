@@ -17,6 +17,7 @@ import { notFound, useParams } from 'next/navigation';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from '@/components/ui/separator';
 import { ItemDetailModal } from '@/components/item/item-detail-modal';
+import { CartSummary } from '@/components/cart/cart-summary';
 
 
 interface ItemWithTimestamp extends Omit<Item, 'createdAt'> {
@@ -338,6 +339,7 @@ export default function CatalogPage() {
         )}
     </div>
     <ItemDetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+    <CartSummary />
     </>
   );
 }

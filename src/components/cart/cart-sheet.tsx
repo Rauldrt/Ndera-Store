@@ -22,6 +22,7 @@ import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
 import { collection, query, where, getDocs, addDoc, updateDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { CartSummary } from './cart-summary';
 
 
 const SAVED_SHIPPING_INFO_KEY = 'savedShippingInfo';
@@ -528,5 +529,3 @@ export function CartSheet() {
     </>
   );
 }
-
-    
