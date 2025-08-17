@@ -53,18 +53,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
             role: userData.role, // Get role from Firestore
           });
         } else {
-            // This case might happen if a user was created in auth but not in firestore
-            // We can create it here, or treat them as a client.
+            // This case happens if a user was created in auth but not in firestore.
+            // We create the user document on the fly.
             const role = firebaseUser.email === ADMIN_EMAIL ? 'admin' : 'client';
+            const displayName = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Nuevo Usuario';
+            
             const newUser: AppUser = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email,
-                displayName: firebaseUser.displayName,
+                displayName: displayName,
                 photoURL: firebaseUser.photoURL,
                 role: role,
             };
+
             await setDoc(doc(db, 'users', firebaseUser.uid), {
-                displayName: firebaseUser.displayName,
+                displayName: displayName,
                 email: firebaseUser.email,
                 role: role,
                 createdAt: serverTimestamp(),
