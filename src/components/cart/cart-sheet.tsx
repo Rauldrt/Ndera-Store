@@ -40,7 +40,7 @@ type QuoteFormValues = z.infer<typeof quoteSchema>;
 
 
 export function CartSheet() {
-  const { cart, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart();
+  const { cart, removeFromCart, updateQuantity, getCartTotal, clearCart, isCartOpen, setIsCartOpen } = useCart();
   const { toast } = useToast();
   const total = getCartTotal();
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
@@ -309,7 +309,7 @@ export function CartSheet() {
 
   return (
     <>
-      <Sheet>
+      <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
         <SheetTrigger asChild>
           <Button variant="outline" size="icon" className="relative">
             <ShoppingCart className="h-5 w-5" />

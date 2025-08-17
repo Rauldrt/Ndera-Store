@@ -18,6 +18,8 @@ interface CartContextType {
   getCartTotal: () => number;
   checkoutStep: CheckoutStep;
   setCheckoutStep: (step: CheckoutStep) => void;
+  isCartOpen: boolean;
+  setIsCartOpen: (isOpen: boolean) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -43,6 +45,7 @@ export function CartProvider({ children }: CartProviderProps) {
     return [];
   });
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>('cart');
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
 
   useEffect(() => {
@@ -101,6 +104,8 @@ export function CartProvider({ children }: CartProviderProps) {
           getCartTotal,
           checkoutStep,
           setCheckoutStep,
+          isCartOpen,
+          setIsCartOpen,
       }}
     >
       {children}

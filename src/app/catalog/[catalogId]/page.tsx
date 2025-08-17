@@ -340,25 +340,7 @@ export default function CatalogPage() {
         )}
     </div>
     <ItemDetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />
-    <CartSummary>
-        <SheetTrigger asChild>
-            <Button
-              size="lg"
-              className="w-full h-14 rounded-full shadow-2xl flex items-center justify-between text-base px-6"
-            >
-                <div className="flex items-center gap-3">
-                    <div className="relative">
-                    <ShoppingCart className="h-6 w-6" />
-                    <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
-                        {cart.reduce((sum, item) => sum + item.quantity, 0)}
-                    </span>
-                    </div>
-                    <span>Ver Carrito</span>
-                </div>
-                <span className="font-bold">${getCartTotal().toFixed(2)}</span>
-            </Button>
-        </SheetTrigger>
-    </CartSummary>
+    <CartSummary />
     </>
   );
 }
