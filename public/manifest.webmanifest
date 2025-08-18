@@ -1,19 +1,19 @@
 {
   "name": "Ndera-Store",
   "short_name": "Ndera-Store",
-  "description": "Gestiona tus catálogos de productos y compártelos con facilidad.",
+  "description": "Gestiona tus catálogos con facilidad.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#1f2937",
+  "theme_color": "#16a34a",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "/logo.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "/logo.png",
       "sizes": "512x512",
       "type": "image/png"
     }
