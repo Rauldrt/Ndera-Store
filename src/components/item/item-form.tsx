@@ -22,7 +22,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription as CardDesc }
 import { Badge } from "@/components/ui/badge";
 import { X, Lightbulb, Loader2, Info, DollarSign, Sparkles, Search, Clipboard, Upload } from "lucide-react"; 
 import type { Item } from "@/types";
-import { suggestTags, type SuggestTagsInput, type SuggestTagsOutput } from '@/ai/flows/suggest-tags'; 
 import { useToast } from "@/hooks/use-toast";
 import {
   Tooltip,
@@ -37,7 +36,7 @@ const itemFormSchema = z.object({
   name: z.string().min(1, "El nombre del producto es obligatorio").max(100, "Nombre demasiado largo (máx. 100 caracteres)"),
   description: z.string().min(1, "La descripción es obligatoria").max(1000, "Descripción demasiado larga (máx. 1000 caracteres)"),
   price: z.coerce.number().min(0, "El precio debe ser un número positivo.").refine(val => val !== null && val !== undefined, { message: "El precio es obligatorio" }),
-  imageUrl: z.string().optional().or(z.literal("")),
+  imageUrl: z.string().url("Formato de URL inválido. Por favor, introduce una URL válida https:// o http://.").optional().or(z.literal("")),
   tags: z.array(z.string().min(1, "La etiqueta no puede estar vacía.").max(50, "Etiqueta demasiado larga (máx. 50 caracteres).")).max(10, "Máximo 10 etiquetas permitidas."),
   isFeatured: z.boolean().default(false),
   isVisible: z.boolean().default(true),
@@ -68,8 +67,9 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
 
   const [currentTag, setCurrentTag] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const tags = form.watch("tags");
   
@@ -112,6 +112,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setIsUploading(true);
       // Clear the URL input to give priority to the uploaded file
       form.setValue('imageUrl', '', { shouldValidate: true });
 
@@ -120,7 +121,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1200;
+          const MAX_WIDTH = 1200; // Larger for catalog background
           const MAX_HEIGHT = 1200;
           let width = img.width;
           let height = img.height;
@@ -142,20 +143,21 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
           ctx?.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality compression
           setImagePreview(dataUrl);
-           toast({
-             title: "Imagen Cargada",
-             description: "La imagen ha sido optimizada y está lista.",
-           });
+          setIsUploading(false);
+          toast({
+            title: "Imagen Cargada",
+            description: "La imagen ha sido optimizada y está lista.",
+          });
         };
         img.src = e.target?.result as string;
       };
       reader.onerror = () => {
-        toast({ title: "Error", description: "No se pudo leer el archivo de imagen.", variant: "destructive"});
+        setIsUploading(false);
+        toast({ title: "Error", description: "No se pudo leer el archivo de imagen.", variant: "destructive" });
       };
       reader.readAsDataURL(file);
     }
-    // Reset file input to allow re-uploading the same file
-    if (event.target) {
+     if (event.target) {
         event.target.value = '';
     }
   };
@@ -215,12 +217,14 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     setImagePreview(initialData?.imageUrl || null);
   }, [initialData, form]);
 
+  const imageUrlValue = form.watch('imageUrl');
+
   useEffect(() => {
     // Sync preview when URL is manually changed in the input, but not if it's an upload
-    if (form.watch('imageUrl') && !form.watch('imageUrl').startsWith('data:image')) {
-        setImagePreview(form.watch('imageUrl'));
+    if (imageUrlValue && !imageUrlValue.startsWith('data:image')) {
+        setImagePreview(imageUrlValue);
     }
-  }, [form.watch('imageUrl')]);
+  }, [imageUrlValue]);
 
 
   return (
@@ -317,8 +321,8 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                         />
                     </FormControl>
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
-                    <Button type="button" variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} title="Subir imagen">
-                       <Upload className="h-4 w-4" />
+                    <Button type="button" variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading} title="Subir imagen">
+                       {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                     </Button>
                      <Button type="button" variant="secondary" size="icon" onClick={handlePasteFromClipboard} title="Pegar URL">
                         <Clipboard className="h-4 w-4" />
