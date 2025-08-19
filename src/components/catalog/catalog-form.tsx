@@ -87,7 +87,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality compression
-          setImagePreview(dataUrl); // This is the fix
+          setImagePreview(dataUrl);
           setIsUploading(false);
           toast({
             title: "Imagen Cargada",
@@ -143,15 +143,17 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
     }
   };
 
-  const handleSubmit = (data: CatalogFormValues) => {
-    // Give priority to the uploaded/generated image in the preview state
-    const finalImageUrl = imagePreview && imagePreview.startsWith('data:image') 
-        ? imagePreview 
-        : data.imageUrl;
-
+  const handleSubmit: SubmitHandler<CatalogFormValues> = (data) => {
+    let finalImageUrl = data.imageUrl || '';
+    
+    // **Corrected Logic**: Prioritize the imagePreview if it's a data URI (uploaded file)
+    if (imagePreview && imagePreview.startsWith('data:image')) {
+      finalImageUrl = imagePreview;
+    }
+  
     onSubmit({
       ...data,
-      imageUrl: finalImageUrl || "",
+      imageUrl: finalImageUrl,
     });
   };
   

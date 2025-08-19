@@ -309,17 +309,19 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   };
   
   const handleSubmitForm: SubmitHandler<ItemFormValues> = async (data) => {
-     // Give priority to the uploaded/generated image in the preview state
-     const finalImageUrl = imagePreview && imagePreview.startsWith('data:image') 
-        ? imagePreview 
-        : data.imageUrl;
-
-     const trimmedData = {
-        ...data,
-        imageUrl: finalImageUrl || "",
-        tags: data.tags.map(tag => tag.trim()).filter(tag => tag), 
-     };
-     await onSubmit(trimmedData);
+    let finalImageUrl = data.imageUrl || '';
+    
+    // **Corrected Logic**: Prioritize the imagePreview if it's a data URI (uploaded file)
+    if (imagePreview && imagePreview.startsWith('data:image')) {
+      finalImageUrl = imagePreview;
+    }
+  
+    const trimmedData = {
+      ...data,
+      imageUrl: finalImageUrl,
+      tags: data.tags.map(tag => tag.trim()).filter(tag => tag),
+    };
+    await onSubmit(trimmedData);
   };
 
    useEffect(() => {
