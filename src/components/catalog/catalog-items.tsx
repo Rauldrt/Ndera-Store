@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, addDoc, serverTimestamp, query, where, orderBy, getDocs, doc, deleteDoc, updateDoc, getDoc, Timestamp, writeBatch } from "firebase/firestore"; // Import Timestamp and writeBatch
+import { collection, query, where, orderBy, getDocs, doc, deleteDoc, updateDoc, getDoc, Timestamp, writeBatch } from "firebase/firestore"; // Import Timestamp and writeBatch
 import { db } from "@/lib/firebase";
 import type { Catalog, Item } from "@/types";
 import { ItemForm, type ItemFormValues } from '@/components/item/item-form';
@@ -160,77 +160,27 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     });
 
 
-  // Mutation for adding an item
-  const addItemMutation = useMutation({
-    mutationFn: async ({ data, catalogId: currentCatalogId }: { data: ItemFormValues, catalogId: string }): Promise<string> => {
-        const newItemData: Omit<Item, 'id' | 'createdAt'> & { catalogId: string } = {
-            name: data.name,
-            description: data.description,
-            price: data.price,
-            imageUrl: data.imageUrl,
-            tags: Array.isArray(data.tags) ? data.tags : [],
-            catalogId: currentCatalogId,
-            isFeatured: data.isFeatured,
-            isVisible: data.isVisible,
-        };
-        const docRef = await addDoc(collection(db, "items"), {
-           ...newItemData,
-            createdAt: serverTimestamp(),
-        });
-      return docRef.id;
+  // Mutation for updating an item's visibility
+  const updateVisibilityMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { isVisible: boolean } }) => {
+      const itemRef = doc(db, 'items', id);
+      await updateDoc(itemRef, data);
     },
-    onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
-        toast({
-            title: "Producto Añadido",
-            description: "El nuevo producto ha sido añadido al catálogo.",
-            variant: "default",
-        });
-      setShowItemForm(false);
-      setEditingItem(null);
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
+      toast({
+        title: 'Visibilidad Actualizada',
+        description: `El producto ahora es ${variables.data.isVisible ? 'visible' : 'oculto'}.`,
+      });
     },
     onError: (error: any) => {
-      let description = "No se pudo añadir el producto. Por favor, inténtalo de nuevo.";
-      if (error instanceof Error) {
-        description = error.message;
-      }
-       toast({
-         title: "Error al Añadir Producto",
-         description: description,
-         variant: "destructive",
-       });
+      toast({
+        title: 'Error al Actualizar',
+        description: error.message || 'No se pudo actualizar la visibilidad.',
+        variant: 'destructive',
+      });
     },
   });
-
-  // Mutation for updating an item
-    const updateItemMutation = useMutation({
-        mutationFn: async ({ id, data }: { id: string, data: Partial<ItemFormValues> }) => { 
-            const itemRef = doc(db, "items", id);
-            await updateDoc(itemRef, data);
-        },
-        onSuccess: (_, variables) => { 
-            queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
-            toast({
-                title: variables.data.isVisible === undefined ? "Producto Actualizado" : "Visibilidad Actualizada",
-                description: variables.data.isVisible === undefined ? "El producto ha sido guardado." : `El producto ahora es ${variables.data.isVisible ? 'visible' : 'oculto'}.`,
-                variant: "default",
-            });
-            setShowItemForm(false);
-            setEditingItem(null);
-        },
-        onError: (error: any) => {
-            let description = "No se pudo actualizar el producto. Por favor, inténtalo de nuevo.";
-            if (error instanceof Error) {
-                description = error.message;
-            }
-            toast({
-                title: "Error al Actualizar Producto",
-                description: description,
-                variant: "destructive",
-            });
-        },
-    });
-
 
    // Mutation for deleting an item
    const deleteItemMutation = useMutation({
@@ -499,20 +449,9 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         }
     };
 
-
-   const handleAddItem = async (data: ItemFormValues) => {
-        await addItemMutation.mutateAsync({ data, catalogId });
-    };
-
-   const handleUpdateItem = async (data: ItemFormValues) => {
-        if (editingItem?.id) {
-            await updateItemMutation.mutateAsync({ id: editingItem.id, data });
-        }
-    };
-    
     const handleToggleVisibility = (item: ItemWithTimestamp) => {
       const newVisibility = !(item.isVisible === false ? false : true);
-      updateItemMutation.mutate({ id: item.id, data: { isVisible: newVisibility } });
+      updateVisibilityMutation.mutate({ id: item.id, data: { isVisible: newVisibility } });
     }
 
     const handleEditItem = (item: ItemWithTimestamp) => {
@@ -543,13 +482,6 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         }
       };
     
-
-    const handleCancelForm = () => {
-        setShowItemForm(false);
-        setEditingItem(null);
-    }
-
-
   return (
     <>
     <div ref={catalogContainerRef}>
@@ -632,25 +564,23 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
         </div>
       </div>
       <Dialog open={showItemForm} onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setEditingItem(null);
+          }
           setShowItemForm(isOpen);
-          if (!isOpen) handleCancelForm();
       }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingItem ? 'Editar Producto' : 'Añadir Producto'}</DialogTitle>
-            <DialogDescription>
-              {editingItem ? 'Modifica el producto en este formulario.' : 'Añade un nuevo producto usando este formulario.'}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-xl">
           <ItemForm
             catalogId={catalogId}
-            onSubmit={editingItem ? handleUpdateItem : handleAddItem}
             initialData={editingItem ? {
               ...editingItem,
               price: editingItem.price ?? 0,
               createdAt: editingItem.createdAt ? new Date(editingItem.createdAt.seconds * 1000 + (editingItem.createdAt.nanoseconds || 0) / 1000000) : undefined,
             } as Partial<Item> : {}} 
-            isLoading={addItemMutation.isPending || updateItemMutation.isPending}
+            onFormSubmit={() => {
+              setShowItemForm(false);
+              setEditingItem(null);
+            }}
             key={editingItem?.id || 'new-item'}
           />
         </DialogContent>
