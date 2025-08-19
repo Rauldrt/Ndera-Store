@@ -54,20 +54,57 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+    if (!file.type.startsWith('image/')) {
         toast({
-            title: "Archivo Demasiado Grande",
-            description: "Por favor, sube una imagen de menos de 2MB.",
+            title: "Archivo no Soportado",
+            description: "Por favor, selecciona un archivo de imagen.",
             variant: "destructive",
         });
         return;
     }
 
     const reader = new FileReader();
-    reader.onloadend = () => {
-        const base64String = reader.result as string;
-        form.setValue("imageUrl", base64String, { shouldValidate: true });
-        setImagePreview(base64String);
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800; // Max width for the image
+            const MAX_HEIGHT = 800; // Max height for the image
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+            } else {
+                if (height > MAX_HEIGHT) {
+                    width *= MAX_HEIGHT / height;
+                    height = MAX_HEIGHT;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+            
+            // Get the data-URL with quality of 70%
+            const dataUrl = canvas.toDataURL(file.type, 0.7);
+
+            if (dataUrl.length > 1048487) { // Firestore's 1MB limit for a string, with some buffer
+                 toast({
+                    title: "Imagen Demasiado Grande",
+                    description: "Incluso después de la optimización, la imagen es demasiado grande. Por favor, elige una más pequeña.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            form.setValue("imageUrl", dataUrl, { shouldValidate: true });
+            setImagePreview(dataUrl);
+        };
+        img.src = e.target?.result as string;
     };
     reader.readAsDataURL(file);
   };
