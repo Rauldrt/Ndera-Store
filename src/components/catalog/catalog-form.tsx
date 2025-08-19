@@ -58,6 +58,9 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
     const file = event.target.files?.[0];
     if (file) {
       setIsUploading(true);
+      // Clear the URL input to give priority to the uploaded file
+      form.setValue('imageUrl', '', { shouldValidate: true });
+
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
@@ -84,8 +87,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality compression
-          form.setValue('imageUrl', dataUrl, { shouldValidate: true });
-          setImagePreview(dataUrl);
+          setImagePreview(dataUrl); // This is the fix
           setIsUploading(false);
           toast({
             title: "Imagen Cargada",
@@ -116,12 +118,21 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
         return;
       }
       const text = await navigator.clipboard.readText();
-      form.setValue("imageUrl", text, { shouldValidate: true });
-      setImagePreview(text);
-      toast({
-        title: "Enlace Pegado",
-        description: "Se ha pegado la URL desde tu portapapeles.",
-      });
+      // Ensure the pasted text is a valid URL format before setting
+      if (text.startsWith('http://') || text.startsWith('https://')) {
+        form.setValue("imageUrl", text, { shouldValidate: true });
+        setImagePreview(text); // Update preview with pasted URL
+        toast({
+          title: "Enlace Pegado",
+          description: "Se ha pegado la URL desde tu portapapeles.",
+        });
+      } else {
+         toast({
+          title: "Enlace no válido",
+          description: "El texto copiado no parece ser una URL válida.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Error al pegar desde el portapapeles:", error);
       toast({
@@ -133,11 +144,18 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
   };
 
   const handleSubmit = (data: CatalogFormValues) => {
+    // Give priority to the uploaded/generated image in the preview state
+    const finalImageUrl = imagePreview && imagePreview.startsWith('data:image') 
+        ? imagePreview 
+        : data.imageUrl;
+
     onSubmit({
       ...data,
-      imageUrl: imagePreview || "",
+      imageUrl: finalImageUrl || "",
     });
   };
+  
+  const imageUrlValue = form.watch('imageUrl');
 
   useEffect(() => {
     if (initialData) {
@@ -150,14 +168,12 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
     }
   }, [initialData, form]);
 
-  const imageUrlValue = form.watch('imageUrl');
-
   useEffect(() => {
-    // Sync preview when URL is pasted manually
-    if (!isUploading) {
-      setImagePreview(imageUrlValue || null);
+    // Sync preview when URL is manually changed in the input, but not if it's an upload
+    if (imageUrlValue && !imageUrlValue.startsWith('data:image')) {
+        setImagePreview(imageUrlValue);
     }
-  }, [imageUrlValue, isUploading]);
+  }, [imageUrlValue]);
 
   return (
     <TooltipProvider>
@@ -239,10 +255,6 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
                         type="url" 
                         placeholder="https://placehold.co/600x400.png" 
                         {...field} 
-                        onChange={(e) => {
-                            field.onChange(e);
-                            setImagePreview(e.target.value);
-                        }}
                         />
                     </FormControl>
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />

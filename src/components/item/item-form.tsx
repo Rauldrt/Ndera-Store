@@ -93,12 +93,21 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
         return;
       }
       const text = await navigator.clipboard.readText();
-      form.setValue("imageUrl", text, { shouldValidate: true });
-      setImagePreview(text);
-      toast({
-        title: "Enlace Pegado",
-        description: "Se ha pegado la URL desde tu portapapeles.",
-      });
+      // Ensure the pasted text is a valid URL format before setting
+      if (text.startsWith('http://') || text.startsWith('https://')) {
+        form.setValue("imageUrl", text, { shouldValidate: true });
+        setImagePreview(text);
+        toast({
+          title: "Enlace Pegado",
+          description: "Se ha pegado la URL desde tu portapapeles.",
+        });
+      } else {
+        toast({
+          title: "Enlace no válido",
+          description: "El texto copiado no parece ser una URL válida.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Error al pegar desde el portapapeles:", error);
       toast({
@@ -127,6 +136,9 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     const file = event.target.files?.[0];
     if (file) {
       setIsUploading(true);
+      // Clear the URL input to give priority to the uploaded file
+      form.setValue('imageUrl', '', { shouldValidate: true });
+
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
@@ -153,7 +165,6 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality compression
-          form.setValue('imageUrl', dataUrl, { shouldValidate: true });
           setImagePreview(dataUrl);
           setIsUploading(false);
            toast({
@@ -267,8 +278,10 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     try {
         const input: GenerateProductImageInput = { name, description };
         const result: GenerateProductImageOutput = await generateProductImage(input);
-        form.setValue("imageUrl", result.imageUrl, { shouldValidate: true });
+        
+        // When generating an image, we give it top priority
         setImagePreview(result.imageUrl);
+        form.setValue("imageUrl", result.wasGenerated ? '' : result.imageUrl, { shouldValidate: true });
 
         if (result.wasGenerated) {
             toast({
@@ -296,9 +309,14 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   };
   
   const handleSubmitForm: SubmitHandler<ItemFormValues> = async (data) => {
+     // Give priority to the uploaded/generated image in the preview state
+     const finalImageUrl = imagePreview && imagePreview.startsWith('data:image') 
+        ? imagePreview 
+        : data.imageUrl;
+
      const trimmedData = {
         ...data,
-        imageUrl: imagePreview || "",
+        imageUrl: finalImageUrl || "",
         tags: data.tags.map(tag => tag.trim()).filter(tag => tag), 
      };
      await onSubmit(trimmedData);
@@ -318,11 +336,11 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   }, [initialData, form]);
 
   useEffect(() => {
-    // Sync preview when URL is pasted manually
-    if (!isUploading) {
-      setImagePreview(imageUrlValue || null);
+    // Sync preview when URL is manually changed in the input, but not if it's an upload
+    if (imageUrlValue && !imageUrlValue.startsWith('data:image')) {
+        setImagePreview(imageUrlValue);
     }
-  }, [imageUrlValue, isUploading]);
+  }, [imageUrlValue]);
 
 
   return (
@@ -424,10 +442,6 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                             type="url" 
                             placeholder="https://placehold.co/400x300.png" 
                             {...field}
-                            onChange={(e) => {
-                                field.onChange(e);
-                                setImagePreview(e.target.value);
-                            }}
                         />
                     </FormControl>
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
