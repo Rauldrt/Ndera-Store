@@ -5,7 +5,7 @@ import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as CardDesc } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Lightbulb, Loader2, Info, DollarSign, Sparkles, Search } from "lucide-react"; 
+import { X, Lightbulb, Loader2, Info, DollarSign, Sparkles, Search, Upload } from "lucide-react"; 
 import type { Item } from "@/types";
 import { suggestTags, type SuggestTagsInput, type SuggestTagsOutput } from '@/ai/flows/suggest-tags'; 
 import { generateProductImage, type GenerateProductImageInput, type GenerateProductImageOutput } from '@/ai/flows/generate-product-image';
@@ -39,7 +39,7 @@ const itemFormSchema = z.object({
   name: z.string().min(1, "El nombre del producto es obligatorio").max(100, "Nombre demasiado largo (máx. 100 caracteres)"),
   description: z.string().min(1, "La descripción es obligatoria").max(1000, "Descripción demasiado larga (máx. 1000 caracteres)"),
   price: z.coerce.number().min(0, "El precio debe ser un número positivo.").refine(val => val !== null && val !== undefined, { message: "El precio es obligatorio" }),
-  imageUrl: z.string().url("Formato de URL inválido. Por favor, introduce una URL válida https:// o http://.").or(z.literal("")),
+  imageUrl: z.string().optional().or(z.literal("")),
   tags: z.array(z.string().min(1, "La etiqueta no puede estar vacía.").max(50, "Etiqueta demasiado larga (máx. 50 caracteres).")).max(10, "Máximo 10 etiquetas permitidas."),
   isFeatured: z.boolean().default(false),
   isVisible: z.boolean().default(true),
@@ -49,7 +49,7 @@ export type ItemFormValues = z.infer<typeof itemFormSchema>;
 
 interface ItemFormProps {
   catalogId: string;
-  onSubmit: (data: ItemFormValues) => Promise<void>; // Removed catalogId from onSubmit args as it's passed directly
+  onSubmit: (data: ItemFormValues) => Promise<void>; 
   initialData?: Partial<Item>;
   isLoading?: boolean;
 }
@@ -64,7 +64,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
       imageUrl: initialData?.imageUrl || "",
       tags: initialData?.tags || [],
       isFeatured: initialData?.isFeatured || false,
-      isVisible: initialData?.isVisible === false ? false : true, // Default to true if undefined
+      isVisible: initialData?.isVisible === false ? false : true, 
     },
   });
 
@@ -72,14 +72,16 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [isSuggestingTags, setIsSuggestingTags] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const tags = form.watch("tags");
   const itemName = form.watch("name");
-  const itemDescription = form.watch("description"); // Watch description for enabling suggest button
+  const itemDescription = form.watch("description");
 
   const handleAddTag = (tagToAdd: string) => {
-    const newTag = tagToAdd.trim().toLowerCase(); // Normalize to lowercase
+    const newTag = tagToAdd.trim().toLowerCase(); 
     if (newTag && !tags.map(t => t.toLowerCase()).includes(newTag) && tags.length < 10) {
       form.setValue("tags", [...tags, newTag], { shouldValidate: true });
     }
@@ -106,7 +108,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
 
    const handleSuggestTags = async () => {
     const descriptionValue = form.getValues("description");
-    if (!descriptionValue || descriptionValue.trim().length < 10) { // Require minimum length for description
+    if (!descriptionValue || descriptionValue.trim().length < 10) { 
       toast({
         title: "Descripción Demasiado Corta",
         description: "Por favor, introduce una descripción más detallada del producto (al menos 10 caracteres) para sugerir etiquetas.",
@@ -124,7 +126,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
       
       const currentTagsLower = tags.map(t => t.toLowerCase());
       const newSuggestions = result.tags.filter(tag => !currentTagsLower.includes(tag.toLowerCase()));
-      const uniqueSuggestions = Array.from(new Set(newSuggestions.map(t => t.toLowerCase()))); // Store unique suggestions as lowercase
+      const uniqueSuggestions = Array.from(new Set(newSuggestions.map(t => t.toLowerCase()))); 
        
       setSuggestedTags(uniqueSuggestions);
 
@@ -170,6 +172,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
         const input: GenerateProductImageInput = { name, description };
         const result: GenerateProductImageOutput = await generateProductImage(input);
         form.setValue("imageUrl", result.imageUrl, { shouldValidate: true });
+        setImagePreview(result.imageUrl);
 
         if (result.wasGenerated) {
             toast({
@@ -211,16 +214,38 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     window.open(url, '_blank');
   };
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        toast({
+            title: "Archivo Demasiado Grande",
+            description: "Por favor, sube una imagen de menos de 2MB.",
+            variant: "destructive",
+        });
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        const base64String = reader.result as string;
+        form.setValue("imageUrl", base64String, { shouldValidate: true });
+        setImagePreview(base64String);
+    };
+    reader.readAsDataURL(file);
+};
+
   const handleSubmitForm: SubmitHandler<ItemFormValues> = async (data) => {
      const trimmedData = {
         ...data,
+        imageUrl: imagePreview || data.imageUrl,
         tags: data.tags.map(tag => tag.trim()).filter(tag => tag), 
      };
      await onSubmit(trimmedData);
   };
 
    useEffect(() => {
-    // Reset form if initialData changes (e.g., when switching from add to edit)
     form.reset({
       name: initialData?.name || "",
       description: initialData?.description || "",
@@ -230,6 +255,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
       isFeatured: initialData?.isFeatured || false,
       isVisible: initialData?.isVisible === false ? false : true,
     });
+    setImagePreview(initialData?.imageUrl || null);
   }, [initialData, form]);
 
 
@@ -242,7 +268,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
       </CardHeader>
       <CardContent className="p-4 md:p-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmitForm)} className="space-y-6"> {/* Increased space */}
+          <form onSubmit={form.handleSubmit(handleSubmitForm)} className="space-y-6"> 
             <FormField
               control={form.control}
               name="name"
@@ -290,37 +316,20 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                     </FormItem>
                 )}
                 />
-                <FormField
-                  control={form.control}
-                  name="imageUrl"
-                  render={({ field }) => (
-                    <FormItem className="w-full">
-                      <FormLabel className="flex items-center">
-                        URL de la Imagen (Opcional)
-                        <Tooltip delayDuration={100}>
-                          <TooltipTrigger asChild>
-                            <Info className="h-3 w-3 ml-1.5 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-xs">
-                            <p>Proporciona un enlace directo (URL), genera una imagen con IA o búscala en la web.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </FormLabel>
-                      <div className="flex items-center gap-2">
-                        <FormControl>
-                          <Input type="url" placeholder="https://picsum.photos/seed/example/400/300" {...field} />
-                        </FormControl>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={handleSearchImage}
-                          disabled={!itemName || isLoading}
-                          title="Buscar imagen en la web"
-                        >
-                           <Search className="h-4 w-4" />
-                        </Button>
-                        <Button
+                <div className="space-y-2">
+                  <FormLabel>Imagen</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                        <Upload className="mr-2 h-4 w-4" /> Subir Imagen
+                    </Button>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept="image/png, image/jpeg, image/webp"
+                    />
+                     <Button
                           type="button"
                           variant="outline"
                           size="icon"
@@ -329,25 +338,75 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                           title="Generar imagen con IA"
                         >
                           {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                      </Button>
+                  </div>
+                   {imagePreview && (
+                    <div className="mt-2 relative w-32 h-32">
+                        <img src={imagePreview} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                            onClick={() => {
+                                setImagePreview(null);
+                                form.setValue("imageUrl", "");
+                            }}
+                        >
+                            <X className="h-4 w-4" />
                         </Button>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
+                    </div>
                   )}
-                />
+                </div>
             </div>
+            
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem className="w-full">
+                  <FormLabel className="flex items-center">
+                    O pega una URL de imagen
+                  </FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormControl>
+                      <Input 
+                        type="url" 
+                        placeholder="https://picsum.photos/seed/example/400/300" 
+                        {...field}
+                        onChange={(e) => {
+                            field.onChange(e);
+                            setImagePreview(e.target.value);
+                        }}
+                      />
+                    </FormControl>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleSearchImage}
+                      disabled={!itemName || isLoading}
+                      title="Buscar imagen en la web"
+                    >
+                        <Search className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
               name="tags"
-              render={() => ( // field is not directly used here, manage via form.watch and form.setValue
+              render={() => ( 
                 <FormItem>
                  <FormLabel>Etiquetas ({tags.length}/10)</FormLabel>
-                 <div className="flex flex-col md:flex-row items-start md:items-center gap-2 w-full"> {/* Ensure the container takes full width */}
+                 <div className="flex flex-col md:flex-row items-start md:items-center gap-2 w-full"> 
                  <FormControl className="flex-grow w-full">
                         <Input
                         placeholder="Escribe una etiqueta y presiona Enter o ,"
-                        value={currentTag.toLowerCase()} // Display in lowercase
+                        value={currentTag.toLowerCase()} 
                         onChange={(e) => setCurrentTag(e.target.value)}
                         onKeyDown={handleKeyDown}
                         disabled={tags.length >= 10 || isSuggestingTags || isLoading}
@@ -373,7 +432,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                     </FormControl>
                   </div>
                    <FormMessage>{form.formState.errors.tags?.message || (form.formState.errors.tags as any)?.root?.message}</FormMessage>
-                  <div className="mt-2 flex flex-wrap gap-1.5 w-full"> {/* Allow tags to wrap and take full width, already had flex-wrap*/}
+                  <div className="mt-2 flex flex-wrap gap-1.5 w-full"> 
                     {tags.map((tag) => (
                       <Badge key={tag} variant="secondary" className="flex items-center gap-1 text-xs sm:text-sm py-1 px-2"> 
                         <span>{tag}</span> 
@@ -410,7 +469,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                             variant="outline"
                             size="sm"
                             onClick={() => handleAddTag(tag)}
-                            className="text-xs h-auto py-1 px-2 font-normal" // Adjusted styling
+                            className="text-xs h-auto py-1 px-2 font-normal" 
                              disabled={tags.length >= 10 || isLoading || isSuggestingTags}
                           >
                             + {tag}
