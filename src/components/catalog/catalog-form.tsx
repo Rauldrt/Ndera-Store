@@ -20,7 +20,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Catalog } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Loader2 } from "lucide-react";
 
 const catalogFormSchema = z.object({
   name: z.string().min(1, "El nombre del catálogo es obligatorio").max(100, "Nombre demasiado largo"),
@@ -47,6 +47,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
   });
 
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -62,14 +63,15 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
         });
         return;
     }
-
+    
+    setIsProcessingImage(true);
     const reader = new FileReader();
     reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 800; // Max width for the image
-            const MAX_HEIGHT = 800; // Max height for the image
+            const MAX_WIDTH = 800;
+            const MAX_HEIGHT = 800;
             let width = img.width;
             let height = img.height;
 
@@ -89,22 +91,40 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
             const ctx = canvas.getContext('2d');
             ctx?.drawImage(img, 0, 0, width, height);
             
-            // Get the data-URL with quality of 70%
-            const dataUrl = canvas.toDataURL(file.type, 0.7);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
 
-            if (dataUrl.length > 1048487) { // Firestore's 1MB limit for a string, with some buffer
+            // ~1MB limit in Firestore for a string
+            if (dataUrl.length > 1048487) {
                  toast({
                     title: "Imagen Demasiado Grande",
                     description: "Incluso después de la optimización, la imagen es demasiado grande. Por favor, elige una más pequeña.",
                     variant: "destructive",
                 });
+                setIsProcessingImage(false);
                 return;
             }
 
             form.setValue("imageUrl", dataUrl, { shouldValidate: true });
             setImagePreview(dataUrl);
+            setIsProcessingImage(false);
+        };
+        img.onerror = () => {
+            toast({
+                title: "Error de Imagen",
+                description: "No se pudo cargar el archivo de imagen.",
+                variant: "destructive",
+            });
+            setIsProcessingImage(false);
         };
         img.src = e.target?.result as string;
+    };
+    reader.onerror = () => {
+        toast({
+            title: "Error de Archivo",
+            description: "No se pudo leer el archivo seleccionado.",
+            variant: "destructive",
+        });
+        setIsProcessingImage(false);
     };
     reader.readAsDataURL(file);
   };
@@ -126,6 +146,13 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
       setImagePreview(initialData.imageUrl || null);
     }
   }, [initialData, form]);
+
+  const imageUrlValue = form.watch('imageUrl');
+
+  useEffect(() => {
+    // Sync preview when URL is pasted manually
+    setImagePreview(imageUrlValue || null);
+  }, [imageUrlValue]);
 
   return (
     <Card>
@@ -167,8 +194,13 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
             />
             <div className="space-y-2">
                 <FormLabel>Imagen de Fondo</FormLabel>
-                <Button type="button" variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()}>
-                    <Upload className="mr-2 h-4 w-4" /> Subir Imagen
+                <Button type="button" variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()} disabled={isProcessingImage || isLoading}>
+                    {isProcessingImage ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                        <Upload className="mr-2 h-4 w-4" />
+                    )}
+                    {isProcessingImage ? 'Procesando...' : 'Subir Imagen'}
                 </Button>
                 <input
                     type="file"
@@ -210,7 +242,6 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
                       {...field} 
                        onChange={(e) => {
                           field.onChange(e);
-                          setImagePreview(e.target.value);
                        }}
                     />
                   </FormControl>
@@ -218,7 +249,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || isProcessingImage}>
               {isLoading ? (initialData?.id ? "Guardando..." : "Creando...") : (initialData?.id ? "Guardar Cambios" : "Crear Catálogo")}
             </Button>
           </form>

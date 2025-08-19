@@ -72,12 +72,90 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [isSuggestingTags, setIsSuggestingTags] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const tags = form.watch("tags");
   const itemName = form.watch("name");
   const itemDescription = form.watch("description");
   const imageUrlValue = form.watch("imageUrl");
+  
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        toast({
+            title: "Archivo no Soportado",
+            description: "Por favor, selecciona un archivo de imagen.",
+            variant: "destructive",
+        });
+        return;
+    }
+    
+    setIsProcessingImage(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800;
+            const MAX_HEIGHT = 800;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+            } else {
+                if (height > MAX_HEIGHT) {
+                    width *= MAX_HEIGHT / height;
+                    height = MAX_HEIGHT;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+            
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+            if (dataUrl.length > 1048487) { 
+                 toast({
+                    title: "Imagen Demasiado Grande",
+                    description: "Incluso después de la optimización, la imagen es demasiado grande. Por favor, elige una más pequeña.",
+                    variant: "destructive",
+                });
+                setIsProcessingImage(false);
+                return;
+            }
+
+            form.setValue("imageUrl", dataUrl, { shouldValidate: true });
+            setIsProcessingImage(false);
+        };
+        img.onerror = () => {
+             toast({
+                title: "Error de Imagen",
+                description: "No se pudo cargar el archivo de imagen.",
+                variant: "destructive",
+            });
+            setIsProcessingImage(false);
+        };
+        img.src = e.target?.result as string;
+    };
+    reader.onerror = () => {
+         toast({
+            title: "Error de Archivo",
+            description: "No se pudo leer el archivo seleccionado.",
+            variant: "destructive",
+        });
+        setIsProcessingImage(false);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleAddTag = (tagToAdd: string) => {
     const newTag = tagToAdd.trim().toLowerCase(); 
@@ -196,22 +274,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
         setIsGeneratingImage(false);
     }
   };
-
-  const handleSearchImage = () => {
-    const name = form.getValues("name");
-    if (!name || name.trim().length < 1) {
-      toast({
-        title: "Nombre del Producto Requerido",
-        description: "Por favor, introduce un nombre para el producto para poder buscar una imagen.",
-        variant: "destructive",
-      });
-      return;
-    }
-    const query = encodeURIComponent(name);
-    const url = `https://www.google.com/search?tbm=isch&q=${query}`;
-    window.open(url, '_blank');
-  };
-
+  
   const handleSubmitForm: SubmitHandler<ItemFormValues> = async (data) => {
      const trimmedData = {
         ...data,
@@ -273,7 +336,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                 control={form.control}
                 name="price"
@@ -291,19 +354,19 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                 )}
                 />
                 <div className="space-y-2">
-                    <FormLabel>Imagen (URL)</FormLabel>
+                    <FormLabel>Imagen</FormLabel>
                     <div className="flex items-center gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleSearchImage}
-                            disabled={!itemName || isLoading}
-                            title="Buscar imagen en la web"
-                            >
-                            <Search className="mr-2 h-4 w-4" />
-                            Buscar Imagen
+                         <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isProcessingImage || isLoading}>
+                            {isProcessingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                            {isProcessingImage ? 'Procesando...' : 'Subir'}
                         </Button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            className="hidden"
+                            accept="image/png, image/jpeg, image/webp"
+                        />
                         <Button
                             type="button"
                             variant="outline"
@@ -324,12 +387,12 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               render={({ field }) => (
                 <FormItem className="w-full">
                   <FormLabel className="flex items-center">
-                    Pega una URL de imagen
+                    O pega una URL de imagen
                   </FormLabel>
                   <FormControl>
                       <Input 
                         type="url" 
-                        placeholder="https://picsum.photos/seed/example/400/300" 
+                        placeholder="https://placehold.co/400x300.png" 
                         {...field}
                       />
                   </FormControl>
@@ -484,7 +547,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               />
             </div>
 
-             <Button type="submit" disabled={isLoading || isSuggestingTags || isGeneratingImage} className="w-full sm:w-auto"> 
+             <Button type="submit" disabled={isLoading || isSuggestingTags || isGeneratingImage || isProcessingImage} className="w-full sm:w-auto"> 
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -501,5 +564,3 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     </TooltipProvider>
   );
 }
-
-    
