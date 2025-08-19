@@ -87,13 +87,13 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
       // Ensure the pasted text is a valid URL format before setting
       if (text.startsWith('http://') || text.startsWith('https://')) {
         form.setValue("imageUrl", text, { shouldValidate: true });
-        setImagePreview(text);
+        setImagePreview(text); // Update preview with pasted URL
         toast({
           title: "Enlace Pegado",
           description: "Se ha pegado la URL desde tu portapapeles.",
         });
       } else {
-        toast({
+         toast({
           title: "Enlace no válido",
           description: "El texto copiado no parece ser una URL válida.",
           variant: "destructive",
