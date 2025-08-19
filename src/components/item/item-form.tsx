@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as CardDesc } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Lightbulb, Loader2, Info, DollarSign, Sparkles, Search, Upload } from "lucide-react"; 
+import { X, Lightbulb, Loader2, Info, DollarSign, Sparkles, Search, Upload, Clipboard } from "lucide-react"; 
 import type { Item } from "@/types";
 import { suggestTags, type SuggestTagsInput, type SuggestTagsOutput } from '@/ai/flows/suggest-tags'; 
 import { generateProductImage, type GenerateProductImageInput, type GenerateProductImageOutput } from '@/ai/flows/generate-product-image';
@@ -155,6 +155,32 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
         setIsProcessingImage(false);
     };
     reader.readAsDataURL(file);
+  };
+  
+  const handlePasteFromClipboard = async () => {
+    try {
+      if (!navigator.clipboard?.readText) {
+        toast({
+          title: "Función no Soportada",
+          description: "Tu navegador no permite pegar desde el portapapeles de forma segura.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const text = await navigator.clipboard.readText();
+      form.setValue("imageUrl", text, { shouldValidate: true });
+      toast({
+        title: "Enlace Pegado",
+        description: "Se ha pegado la URL desde tu portapapeles.",
+      });
+    } catch (error) {
+      console.error("Error al pegar desde el portapapeles:", error);
+      toast({
+        title: "Error al Pegar",
+        description: "No se pudo leer el portapapeles. Asegúrate de haber concedido permisos.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAddTag = (tagToAdd: string) => {
@@ -377,6 +403,9 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                             >
                             {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                         </Button>
+                        <Button type="button" variant="outline" size="icon" onClick={handlePasteFromClipboard} title="Pegar desde portapapeles">
+                            <Clipboard className="h-4 w-4" />
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -386,8 +415,16 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               name="imageUrl"
               render={({ field }) => (
                 <FormItem className="w-full">
-                  <FormLabel className="flex items-center">
+                  <FormLabel className="flex items-center gap-2">
                     O pega una URL de imagen
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                           <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                           <p className="max-w-xs">En móvil: mantén pulsada una imagen, selecciona 'Abrir en pestaña nueva' y copia la URL de esa pestaña.</p>
+                        </TooltipContent>
+                      </Tooltip>
                   </FormLabel>
                   <FormControl>
                       <Input 

@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -20,7 +21,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Catalog } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, X, Loader2 } from "lucide-react";
+import { Upload, X, Loader2, Info, Clipboard } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 const catalogFormSchema = z.object({
   name: z.string().min(1, "El nombre del catálogo es obligatorio").max(100, "Nombre demasiado largo"),
@@ -129,6 +132,33 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
     reader.readAsDataURL(file);
   };
   
+  const handlePasteFromClipboard = async () => {
+    try {
+      if (!navigator.clipboard?.readText) {
+        toast({
+          title: "Función no Soportada",
+          description: "Tu navegador no permite pegar desde el portapapeles de forma segura.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const text = await navigator.clipboard.readText();
+      form.setValue("imageUrl", text, { shouldValidate: true });
+      setImagePreview(text);
+      toast({
+        title: "Enlace Pegado",
+        description: "Se ha pegado la URL desde tu portapapeles.",
+      });
+    } catch (error) {
+      console.error("Error al pegar desde el portapapeles:", error);
+      toast({
+        title: "Error al Pegar",
+        description: "No se pudo leer el portapapeles. Asegúrate de haber concedido permisos.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmit = (data: CatalogFormValues) => {
     onSubmit({
       ...data,
@@ -155,6 +185,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
   }, [imageUrlValue]);
 
   return (
+    <TooltipProvider>
     <Card>
       <CardHeader>
         <CardTitle>{initialData?.id ? "Editar Catálogo" : "Crear Nuevo Catálogo"}</CardTitle>
@@ -194,14 +225,20 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
             />
             <div className="space-y-2">
                 <FormLabel>Imagen de Fondo</FormLabel>
-                <Button type="button" variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()} disabled={isProcessingImage || isLoading}>
-                    {isProcessingImage ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                        <Upload className="mr-2 h-4 w-4" />
-                    )}
-                    {isProcessingImage ? 'Procesando...' : 'Subir Imagen'}
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" className="w-full" onClick={() => fileInputRef.current?.click()} disabled={isProcessingImage || isLoading}>
+                        {isProcessingImage ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Upload className="mr-2 h-4 w-4" />
+                        )}
+                        {isProcessingImage ? 'Procesando...' : 'Subir Imagen'}
+                    </Button>
+                     <Button type="button" variant="secondary" onClick={handlePasteFromClipboard}>
+                        <Clipboard className="mr-2 h-4 w-4" />
+                        Pegar Enlace
+                    </Button>
+                </div>
                 <input
                     type="file"
                     ref={fileInputRef}
@@ -234,7 +271,17 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
               name="imageUrl"
               render={({ field }) => (
                 <FormItem className="w-full">
-                  <FormLabel>O pega una URL de imagen (Opcional)</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                     O pega una URL de imagen (Opcional)
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                           <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                           <p className="max-w-xs">En móvil: mantén pulsada una imagen, selecciona 'Abrir en pestaña nueva' y copia la URL de esa pestaña.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                  </FormLabel>
                   <FormControl>
                     <Input 
                       type="url" 
@@ -256,5 +303,6 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
         </Form>
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 }
