@@ -319,7 +319,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     const trimmedData = {
       ...data,
       imageUrl: finalImageUrl,
-      tags: data.tags.map(tag => tag.trim()).filter(tag => tag),
+      tags: data.tags.map(tag => tag.trim()).filter(Boolean),
     };
     await onSubmit(trimmedData);
   };
