@@ -146,7 +146,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
   const handleSubmit: SubmitHandler<CatalogFormValues> = (data) => {
     let finalImageUrl = data.imageUrl || '';
     
-    // **Corrected Logic**: Prioritize the imagePreview if it's a data URI (uploaded file)
+    // Prioritize the imagePreview if it's a data URI (uploaded file)
     if (imagePreview && imagePreview.startsWith('data:image')) {
       finalImageUrl = imagePreview;
     }
