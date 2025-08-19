@@ -239,6 +239,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
                         {...field} 
                         onChange={(e) => {
                             field.onChange(e);
+                            setImagePreview(e.target.value);
                         }}
                         />
                     </FormControl>

@@ -72,6 +72,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [isSuggestingTags, setIsSuggestingTags] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -93,6 +94,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
       }
       const text = await navigator.clipboard.readText();
       form.setValue("imageUrl", text, { shouldValidate: true });
+      setImagePreview(text);
       toast({
         title: "Enlace Pegado",
         description: "Se ha pegado la URL desde tu portapapeles.",
@@ -152,6 +154,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
           ctx?.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality compression
           form.setValue('imageUrl', dataUrl, { shouldValidate: true });
+          setImagePreview(dataUrl);
           setIsUploading(false);
            toast({
              title: "Imagen Cargada",
@@ -265,6 +268,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
         const input: GenerateProductImageInput = { name, description };
         const result: GenerateProductImageOutput = await generateProductImage(input);
         form.setValue("imageUrl", result.imageUrl, { shouldValidate: true });
+        setImagePreview(result.imageUrl);
 
         if (result.wasGenerated) {
             toast({
@@ -294,6 +298,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   const handleSubmitForm: SubmitHandler<ItemFormValues> = async (data) => {
      const trimmedData = {
         ...data,
+        imageUrl: imagePreview || data.imageUrl,
         tags: data.tags.map(tag => tag.trim()).filter(tag => tag), 
      };
      await onSubmit(trimmedData);
@@ -309,7 +314,13 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
       isFeatured: initialData?.isFeatured || false,
       isVisible: initialData?.isVisible === false ? false : true,
     });
+    setImagePreview(initialData?.imageUrl || null);
   }, [initialData, form]);
+
+  useEffect(() => {
+    // Sync preview when URL is pasted manually
+    setImagePreview(imageUrlValue || null);
+  }, [imageUrlValue]);
 
 
   return (
@@ -371,6 +382,24 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                 />
             </div>
             
+            {imagePreview && (
+              <div className="mt-2 relative w-32 h-32">
+                <img src={imagePreview} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                  onClick={() => {
+                    setImagePreview(null);
+                    form.setValue("imageUrl", "");
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
             <FormField
               control={form.control}
               name="imageUrl"
@@ -393,6 +422,10 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                             type="url" 
                             placeholder="https://placehold.co/400x300.png" 
                             {...field}
+                            onChange={(e) => {
+                                field.onChange(e);
+                                setImagePreview(e.target.value);
+                            }}
                         />
                     </FormControl>
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
@@ -423,21 +456,6 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                 </FormItem>
               )}
             />
-
-             {imageUrlValue && (
-                <div className="mt-2 relative w-32 h-32">
-                    <img src={imageUrlValue} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
-                    <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                        onClick={() => form.setValue("imageUrl", "")}
-                    >
-                        <X className="h-4 w-4" />
-                    </Button>
-                </div>
-            )}
 
             <FormField
               control={form.control}
