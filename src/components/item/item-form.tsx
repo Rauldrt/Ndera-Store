@@ -154,7 +154,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
           ctx?.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality compression
           form.setValue('imageUrl', dataUrl, { shouldValidate: true });
-          setImagePreview(dataUrl); // This was the missing line.
+          setImagePreview(dataUrl);
           setIsUploading(false);
            toast({
              title: "Imagen Cargada",
@@ -298,7 +298,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   const handleSubmitForm: SubmitHandler<ItemFormValues> = async (data) => {
      const trimmedData = {
         ...data,
-        imageUrl: imagePreview || data.imageUrl,
+        imageUrl: imagePreview || "",
         tags: data.tags.map(tag => tag.trim()).filter(tag => tag), 
      };
      await onSubmit(trimmedData);
@@ -319,8 +319,10 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
 
   useEffect(() => {
     // Sync preview when URL is pasted manually
-    setImagePreview(imageUrlValue || null);
-  }, [imageUrlValue]);
+    if (!isUploading) {
+      setImagePreview(imageUrlValue || null);
+    }
+  }, [imageUrlValue, isUploading]);
 
 
   return (

@@ -135,7 +135,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
   const handleSubmit = (data: CatalogFormValues) => {
     onSubmit({
       ...data,
-      imageUrl: imagePreview || data.imageUrl,
+      imageUrl: imagePreview || "",
     });
   };
 
@@ -154,8 +154,10 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
 
   useEffect(() => {
     // Sync preview when URL is pasted manually
-    setImagePreview(imageUrlValue || null);
-  }, [imageUrlValue]);
+    if (!isUploading) {
+      setImagePreview(imageUrlValue || null);
+    }
+  }, [imageUrlValue, isUploading]);
 
   return (
     <TooltipProvider>
