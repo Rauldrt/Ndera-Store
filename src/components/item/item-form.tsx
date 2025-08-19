@@ -180,7 +180,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
       };
       reader.readAsDataURL(file);
     }
-    // Reset file input
+    // Reset file input to allow re-uploading the same file
     if (event.target) {
         event.target.value = '';
     }
@@ -311,7 +311,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   const handleSubmitForm: SubmitHandler<ItemFormValues> = async (data) => {
     let finalImageUrl = data.imageUrl || '';
     
-    // **Corrected Logic**: Prioritize the imagePreview if it's a data URI (uploaded file)
+    // Prioritize the imagePreview if it's a data URI (uploaded file)
     if (imagePreview && imagePreview.startsWith('data:image')) {
       finalImageUrl = imagePreview;
     }
