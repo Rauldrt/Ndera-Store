@@ -183,6 +183,20 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     }
   };
 
+  const handleSearchOnWeb = () => {
+    const name = form.getValues("name");
+    if (!name || name.trim().length < 3) {
+      toast({
+        title: "Nombre de Producto Requerido",
+        description: "Por favor, introduce un nombre para el producto antes de buscar una imagen.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const query = encodeURIComponent(name);
+    window.open(`https://www.google.com/search?q=${query}&tbm=isch`, '_blank');
+  };
+
   const handleAddTag = (tagToAdd: string) => {
     const newTag = tagToAdd.trim().toLowerCase(); 
     if (newTag && !tags.map(t => t.toLowerCase()).includes(newTag) && tags.length < 10) {
@@ -393,6 +407,9 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                             className="hidden"
                             accept="image/png, image/jpeg, image/webp"
                         />
+                        <Button type="button" variant="outline" size="icon" onClick={handleSearchOnWeb} disabled={!itemName || isLoading} title="Buscar imagen en la web">
+                          <Search className="h-4 w-4" />
+                        </Button>
                         <Button
                             type="button"
                             variant="outline"
