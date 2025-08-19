@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as CardDesc } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Lightbulb, Loader2, Info, DollarSign, Sparkles, Search, Clipboard } from "lucide-react"; 
+import { X, Lightbulb, Loader2, Info, DollarSign, Sparkles, Search, Clipboard, Upload } from "lucide-react"; 
 import type { Item } from "@/types";
 import { suggestTags, type SuggestTagsInput, type SuggestTagsOutput } from '@/ai/flows/suggest-tags'; 
 import { generateProductImage, type GenerateProductImageInput, type GenerateProductImageOutput } from '@/ai/flows/generate-product-image';
@@ -72,6 +72,8 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [isSuggestingTags, setIsSuggestingTags] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const tags = form.watch("tags");
@@ -118,6 +120,58 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
     const query = encodeURIComponent(name);
     window.open(`https://www.google.com/search?q=${query}&tbm=isch`, '_blank');
   };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setIsUploading(true);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality compression
+          form.setValue('imageUrl', dataUrl, { shouldValidate: true });
+          setIsUploading(false);
+           toast({
+             title: "Imagen Cargada",
+             description: "La imagen ha sido optimizada y está lista.",
+           });
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => {
+        setIsUploading(false);
+        toast({ title: "Error", description: "No se pudo leer el archivo de imagen.", variant: "destructive"});
+      };
+      reader.readAsDataURL(file);
+    }
+    // Reset file input
+    if (event.target) {
+        event.target.value = '';
+    }
+  };
+
 
   const handleAddTag = (tagToAdd: string) => {
     const newTag = tagToAdd.trim().toLowerCase(); 
@@ -322,14 +376,14 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
               name="imageUrl"
               render={({ field }) => (
                 <FormItem className="w-full">
-                  <FormLabel className="flex items-center gap-2">
-                    URL de la imagen
+                   <FormLabel className="flex items-center gap-2">
+                    URL de la imagen o Subir Archivo
                       <Tooltip>
                         <TooltipTrigger asChild>
                            <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                         </TooltipTrigger>
                         <TooltipContent>
-                           <p className="max-w-xs">En móvil: mantén pulsada una imagen, selecciona 'Abrir en pestaña nueva' y copia la URL de esa pestaña.</p>
+                           <p className="max-w-xs">Puedes pegar una URL o subir un archivo. Al subir, la imagen se optimizará.</p>
                         </TooltipContent>
                       </Tooltip>
                   </FormLabel>
@@ -341,21 +395,28 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
                             {...field}
                         />
                     </FormControl>
-                    <Button type="button" variant="outline" size="icon" onClick={handleSearchOnWeb} disabled={!itemName || isLoading} title="Buscar imagen en la web">
-                        <Search className="h-4 w-4" />
+                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
+                    <Button type="button" variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading} title="Subir imagen">
+                       {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                     </Button>
-                    <Button
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                     <Button type="button" variant="outline" size="sm" onClick={handleSearchOnWeb} disabled={!itemName || isLoading}>
+                        <Search className="h-4 w-4 mr-2" /> Buscar en Web
+                    </Button>
+                     <Button
                         type="button"
                         variant="outline"
-                        size="icon"
+                        size="sm"
                         onClick={handleGenerateImage}
                         disabled={isGeneratingImage || !itemName || isLoading}
-                        title="Generar imagen con IA"
                         >
-                        {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                        Generar con IA
                     </Button>
-                    <Button type="button" variant="outline" size="icon" onClick={handlePasteFromClipboard} title="Pegar desde portapapeles">
-                        <Clipboard className="h-4 w-4" />
+                    <Button type="button" variant="outline" size="sm" onClick={handlePasteFromClipboard}>
+                        <Clipboard className="h-4 w-4 mr-2" />
+                        Pegar
                     </Button>
                   </div>
                   <FormMessage />

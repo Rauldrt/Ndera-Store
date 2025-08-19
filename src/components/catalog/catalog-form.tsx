@@ -51,6 +51,59 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
 
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setIsUploading(true);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200; // Larger for catalog background
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality compression
+          form.setValue('imageUrl', dataUrl, { shouldValidate: true });
+          setImagePreview(dataUrl);
+          setIsUploading(false);
+          toast({
+            title: "Imagen Cargada",
+            description: "La imagen ha sido optimizada y está lista.",
+          });
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => {
+        setIsUploading(false);
+        toast({ title: "Error", description: "No se pudo leer el archivo de imagen.", variant: "destructive" });
+      };
+      reader.readAsDataURL(file);
+    }
+     if (event.target) {
+        event.target.value = '';
+    }
+  };
 
   const handlePasteFromClipboard = async () => {
     try {
@@ -174,7 +227,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
                            <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                         </TooltipTrigger>
                         <TooltipContent>
-                           <p className="max-w-xs">En móvil: mantén pulsada una imagen, selecciona 'Abrir en pestaña nueva' y copia la URL de esa pestaña.</p>
+                           <p className="max-w-xs">Puedes pegar una URL o subir un archivo. Al subir, la imagen se optimizará.</p>
                         </TooltipContent>
                       </Tooltip>
                   </FormLabel>
@@ -189,17 +242,20 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
                         }}
                         />
                     </FormControl>
-                    <Button type="button" variant="secondary" onClick={handlePasteFromClipboard}>
-                        <Clipboard className="mr-2 h-4 w-4" />
-                        Pegar
+                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
+                    <Button type="button" variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading} title="Subir imagen">
+                       {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    </Button>
+                    <Button type="button" variant="secondary" size="icon" onClick={handlePasteFromClipboard} title="Pegar URL">
+                        <Clipboard className="h-4 w-4" />
                     </Button>
                   </div>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (initialData?.id ? "Guardando..." : "Creando...") : (initialData?.id ? "Guardar Cambios" : "Crear Catálogo")}
+            <Button type="submit" disabled={isLoading || isUploading}>
+              {isLoading || isUploading ? (initialData?.id ? "Guardando..." : "Creando...") : (initialData?.id ? "Guardar Cambios" : "Crear Catálogo")}
             </Button>
           </form>
         </Form>
