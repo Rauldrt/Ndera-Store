@@ -154,7 +154,7 @@ export function ItemForm({ catalogId, onSubmit, initialData, isLoading = false }
           ctx?.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality compression
           form.setValue('imageUrl', dataUrl, { shouldValidate: true });
-          setImagePreview(dataUrl);
+          setImagePreview(dataUrl); // This was the missing line.
           setIsUploading(false);
            toast({
              title: "Imagen Cargada",
