@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, query, where, orderBy, getDocs, doc, deleteDoc, updateDoc, getDoc, Timestamp, writeBatch } from "firebase/firestore"; // Import Timestamp and writeBatch
+import { collection, query, where, orderBy, getDocs, doc, deleteDoc, updateDoc, getDoc, Timestamp, writeBatch, addDoc, serverTimestamp } from "firebase/firestore"; // Import Timestamp and writeBatch
 import { db } from "@/lib/firebase";
 import type { Catalog, Item } from "@/types";
 import { ItemForm, type ItemFormValues } from '@/components/item/item-form';
@@ -160,6 +160,67 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     });
 
 
+  // Mutation for adding an item
+  const addItemMutation = useMutation({
+    mutationFn: async (data: ItemFormValues): Promise<string> => {
+        const newItemData: Omit<Item, 'id' | 'createdAt'> & { catalogId: string } = {
+            name: data.name,
+            description: data.description,
+            price: data.price,
+            imageUrl: data.imageUrl,
+            tags: Array.isArray(data.tags) ? data.tags : [],
+            catalogId: catalogId,
+            isFeatured: data.isFeatured,
+            isVisible: data.isVisible,
+        };
+        const docRef = await addDoc(collection(db, "items"), {
+           ...newItemData,
+            createdAt: serverTimestamp(),
+        });
+      return docRef.id;
+    },
+    onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
+        toast({
+            title: "Producto Añadido",
+            description: "El nuevo producto ha sido añadido al catálogo.",
+        });
+      setShowItemForm(false);
+      setEditingItem(null);
+    },
+    onError: (error: any) => {
+       toast({
+         title: "Error al Añadir Producto",
+         description: error.message || "No se pudo añadir el producto.",
+         variant: "destructive",
+       });
+    },
+  });
+
+  // Mutation for updating an item
+  const updateItemMutation = useMutation({
+      mutationFn: async ({ id, data }: { id: string, data: Partial<ItemFormValues> }) => { 
+          const itemRef = doc(db, "items", id);
+          await updateDoc(itemRef, data);
+      },
+      onSuccess: () => { 
+          queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
+          toast({
+              title: "Producto Actualizado",
+              description: "El producto ha sido guardado.",
+          });
+          setShowItemForm(false);
+          setEditingItem(null);
+      },
+      onError: (error: any) => {
+          toast({
+              title: "Error al Actualizar Producto",
+              description: error.message || "No se pudo actualizar el producto.",
+              variant: "destructive",
+          });
+      },
+  });
+
   // Mutation for updating an item's visibility
   const updateVisibilityMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: { isVisible: boolean } }) => {
@@ -206,6 +267,15 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
        setShowDeleteDialog(false);
      },
    });
+
+    const handleFormSubmit = (data: ItemFormValues) => {
+        if (editingItem) {
+            updateItemMutation.mutate({ id: editingItem.id, data });
+        } else {
+            addItemMutation.mutate(data);
+        }
+    };
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -571,16 +641,13 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       }}>
         <DialogContent className="max-w-xl">
           <ItemForm
-            catalogId={catalogId}
             initialData={editingItem ? {
               ...editingItem,
               price: editingItem.price ?? 0,
               createdAt: editingItem.createdAt ? new Date(editingItem.createdAt.seconds * 1000 + (editingItem.createdAt.nanoseconds || 0) / 1000000) : undefined,
             } as Partial<Item> : {}} 
-            onFormSubmit={() => {
-              setShowItemForm(false);
-              setEditingItem(null);
-            }}
+            onSubmit={handleFormSubmit}
+            isLoading={addItemMutation.isPending || updateItemMutation.isPending}
             key={editingItem?.id || 'new-item'}
           />
         </DialogContent>

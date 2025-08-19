@@ -23,16 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, Loader2, DollarSign, Upload, Clipboard } from "lucide-react"; 
 import type { Item } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { Switch } from "@/components/ui/switch";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 const itemFormSchema = z.object({
   name: z.string().min(1, "El nombre del producto es obligatorio").max(100, "Nombre demasiado largo (máx. 100 caracteres)"),
@@ -47,13 +38,12 @@ const itemFormSchema = z.object({
 export type ItemFormValues = z.infer<typeof itemFormSchema>;
 
 interface ItemFormProps {
-  catalogId: string;
   initialData?: Partial<Item>;
-  onFormSubmit: () => void; // Callback to close dialog
+  onSubmit: (data: ItemFormValues) => void;
+  isLoading?: boolean;
 }
 
-export function ItemForm({ catalogId, initialData, onFormSubmit }: ItemFormProps) {
-  const queryClient = useQueryClient();
+export function ItemForm({ initialData, onSubmit, isLoading = false }: ItemFormProps) {
   const { toast } = useToast();
   
   const form = useForm<ItemFormValues>({
@@ -75,73 +65,11 @@ export function ItemForm({ catalogId, initialData, onFormSubmit }: ItemFormProps
   const [isUploading, setIsUploading] = useState(false);
 
   const tags = form.watch("tags");
-
-   // Mutation for adding an item
-  const addItemMutation = useMutation({
-    mutationFn: async (data: ItemFormValues): Promise<string> => {
-        const newItemData: Omit<Item, 'id' | 'createdAt'> & { catalogId: string } = {
-            name: data.name,
-            description: data.description,
-            price: data.price,
-            imageUrl: data.imageUrl,
-            tags: Array.isArray(data.tags) ? data.tags : [],
-            catalogId: catalogId,
-            isFeatured: data.isFeatured,
-            isVisible: data.isVisible,
-        };
-        const docRef = await addDoc(collection(db, "items"), {
-           ...newItemData,
-            createdAt: serverTimestamp(),
-        });
-      return docRef.id;
-    },
-    onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
-        toast({
-            title: "Producto Añadido",
-            description: "El nuevo producto ha sido añadido al catálogo.",
-        });
-      onFormSubmit();
-    },
-    onError: (error: any) => {
-       toast({
-         title: "Error al Añadir Producto",
-         description: error.message || "No se pudo añadir el producto.",
-         variant: "destructive",
-       });
-    },
-  });
-
-  // Mutation for updating an item
-    const updateItemMutation = useMutation({
-        mutationFn: async ({ id, data }: { id: string, data: Partial<ItemFormValues> }) => { 
-            const itemRef = doc(db, "items", id);
-            await updateDoc(itemRef, data);
-        },
-        onSuccess: () => { 
-            queryClient.invalidateQueries({ queryKey: ['items', catalogId] });
-            toast({
-                title: "Producto Actualizado",
-                description: "El producto ha sido guardado.",
-            });
-            onFormSubmit();
-        },
-        onError: (error: any) => {
-            toast({
-                title: "Error al Actualizar Producto",
-                description: error.message || "No se pudo actualizar el producto.",
-                variant: "destructive",
-            });
-        },
-    });
-
-  const isLoading = addItemMutation.isPending || updateItemMutation.isPending || isUploading;
   
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setIsUploading(true);
-      // Clear the URL input to give priority to the uploaded file
       form.setValue('imageUrl', '', { shouldValidate: true });
 
       const reader = new FileReader();
@@ -149,8 +77,8 @@ export function ItemForm({ catalogId, initialData, onFormSubmit }: ItemFormProps
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
           let width = img.width;
           let height = img.height;
 
@@ -169,7 +97,7 @@ export function ItemForm({ catalogId, initialData, onFormSubmit }: ItemFormProps
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
           setImagePreview(dataUrl);
           setIsUploading(false);
           toast({
@@ -204,10 +132,6 @@ export function ItemForm({ catalogId, initialData, onFormSubmit }: ItemFormProps
       if (text.startsWith('http://') || text.startsWith('https://')) {
         form.setValue("imageUrl", text, { shouldValidate: true });
         setImagePreview(text);
-        toast({
-          title: "Enlace Pegado",
-          description: "Se ha pegado la URL desde tu portapapeles.",
-        });
       } else {
          toast({
           title: "Enlace no válido",
@@ -253,7 +177,6 @@ export function ItemForm({ catalogId, initialData, onFormSubmit }: ItemFormProps
   const handleSubmit: SubmitHandler<ItemFormValues> = (data) => {
     let finalData = { ...data };
     
-    // Prioritize the imagePreview if it's a data URI (uploaded file)
     if (imagePreview && imagePreview.startsWith('data:image')) {
       finalData.imageUrl = imagePreview;
     }
@@ -262,12 +185,8 @@ export function ItemForm({ catalogId, initialData, onFormSubmit }: ItemFormProps
       ...finalData,
       tags: data.tags.map(tag => tag.trim()).filter(Boolean),
     };
-    
-    if (initialData?.id) {
-        updateItemMutation.mutate({ id: initialData.id, data: trimmedData });
-    } else {
-        addItemMutation.mutate(trimmedData);
-    }
+
+    onSubmit(trimmedData);
   };
 
    useEffect(() => {
@@ -286,7 +205,6 @@ export function ItemForm({ catalogId, initialData, onFormSubmit }: ItemFormProps
   const imageUrlValue = form.watch('imageUrl');
 
   useEffect(() => {
-    // Sync preview when URL is manually changed in the input, but not if it's an upload
     if (imageUrlValue && !imageUrlValue.startsWith('data:image')) {
         setImagePreview(imageUrlValue);
     }
@@ -294,7 +212,6 @@ export function ItemForm({ catalogId, initialData, onFormSubmit }: ItemFormProps
 
 
   return (
-    <TooltipProvider>
     <Card className="shadow-xl border-none">
       <CardHeader className="p-0 mb-4">
         <CardTitle className="text-lg md:text-xl">{initialData?.id ? "Editar Producto" : "Añadir Nuevo Producto"}</CardTitle>
@@ -482,8 +399,8 @@ export function ItemForm({ catalogId, initialData, onFormSubmit }: ItemFormProps
               />
             </div>
 
-             <Button type="submit" disabled={isLoading} className="w-full sm:w-auto"> 
-              {isLoading ? (
+             <Button type="submit" disabled={isLoading || isUploading} className="w-full sm:w-auto"> 
+              {isLoading || isUploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {initialData?.id ? "Guardando..." : "Añadiendo..."}
@@ -496,6 +413,5 @@ export function ItemForm({ catalogId, initialData, onFormSubmit }: ItemFormProps
         </Form>
       </CardContent>
     </Card>
-    </TooltipProvider>
   );
 }
