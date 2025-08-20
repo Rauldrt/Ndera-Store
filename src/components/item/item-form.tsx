@@ -27,7 +27,7 @@ import { Switch } from "@/components/ui/switch";
 
 const itemFormSchema = z.object({
   name: z.string().min(1, "El nombre del producto es obligatorio").max(100, "Nombre demasiado largo (máx. 100 caracteres)"),
-  description: z.string().min(1, "La descripción es obligatoria").max(1000, "Descripción demasiado larga (máx. 1000 caracteres)"),
+  description: z.string().max(1000, "Descripción demasiado larga (máx. 1000 caracteres)").optional(),
   price: z.coerce.number().min(0, "El precio debe ser un número positivo.").refine(val => val !== null && val !== undefined, { message: "El precio es obligatorio" }),
   imageUrl: z.string().url("Formato de URL inválido. Por favor, introduce una URL válida https:// o http://.").optional().or(z.literal("")),
   tags: z.array(z.string().min(1, "La etiqueta no puede estar vacía.").max(50, "Etiqueta demasiado larga (máx. 50 caracteres).")).max(10, "Máximo 10 etiquetas permitidas."),
@@ -82,15 +82,14 @@ export function ItemForm({ initialData, onSubmit, isLoading = false }: ItemFormP
           let width = img.width;
           let height = img.height;
 
-          // Correct aspect ratio calculation
           if (width > height) {
             if (width > MAX_WIDTH) {
-              height = height * (MAX_WIDTH / width);
+              height = Math.round(height * (MAX_WIDTH / width));
               width = MAX_WIDTH;
             }
           } else {
             if (height > MAX_HEIGHT) {
-              width = width * (MAX_HEIGHT / height);
+              width = Math.round(width * (MAX_HEIGHT / height));
               height = MAX_HEIGHT;
             }
           }
@@ -100,7 +99,7 @@ export function ItemForm({ initialData, onSubmit, isLoading = false }: ItemFormP
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          setImagePreview(dataUrl); // This line is crucial
+          setImagePreview(dataUrl);
           setIsUploading(false);
           toast({
             title: "Imagen Cargada",
@@ -182,7 +181,7 @@ export function ItemForm({ initialData, onSubmit, isLoading = false }: ItemFormP
     if (imagePreview && imagePreview.startsWith('data:image')) {
       finalData.imageUrl = imagePreview;
     } else {
-      finalData.imageUrl = data.imageUrl; // Use the URL from the form if no data URI preview
+      finalData.imageUrl = data.imageUrl;
     }
   
     const trimmedData = {

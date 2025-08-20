@@ -58,7 +58,6 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
     const file = event.target.files?.[0];
     if (file) {
       setIsUploading(true);
-      // Clear the URL input to give priority to the uploaded file
       form.setValue('imageUrl', '', { shouldValidate: true });
 
       const reader = new FileReader();
@@ -66,20 +65,19 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1200; // Larger for catalog background
+          const MAX_WIDTH = 1200;
           const MAX_HEIGHT = 1200;
           let width = img.width;
           let height = img.height;
 
-          // Correct aspect ratio calculation
           if (width > height) {
             if (width > MAX_WIDTH) {
-              height = height * (MAX_WIDTH / width);
+              height = Math.round(height * (MAX_WIDTH / width));
               width = MAX_WIDTH;
             }
           } else {
             if (height > MAX_HEIGHT) {
-              width = width * (MAX_HEIGHT / height);
+              width = Math.round(width * (MAX_HEIGHT / height));
               height = MAX_HEIGHT;
             }
           }
@@ -88,7 +86,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality compression
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
           setImagePreview(dataUrl);
           setIsUploading(false);
           toast({
@@ -120,10 +118,9 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
         return;
       }
       const text = await navigator.clipboard.readText();
-      // Ensure the pasted text is a valid URL format before setting
       if (text.startsWith('http://') || text.startsWith('https://')) {
         form.setValue("imageUrl", text, { shouldValidate: true });
-        setImagePreview(text); // Update preview with pasted URL
+        setImagePreview(text);
         toast({
           title: "Enlace Pegado",
           description: "Se ha pegado la URL desde tu portapapeles.",
@@ -148,7 +145,6 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
   const handleSubmit: SubmitHandler<CatalogFormValues> = (data) => {
     let finalImageUrl = data.imageUrl || '';
     
-    // Prioritize the imagePreview if it's a data URI (uploaded file)
     if (imagePreview && imagePreview.startsWith('data:image')) {
       finalImageUrl = imagePreview;
     }
@@ -173,7 +169,6 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
   }, [initialData, form]);
 
   useEffect(() => {
-    // Sync preview when URL is manually changed in the input, but not if it's an upload
     if (imageUrlValue && !imageUrlValue.startsWith('data:image')) {
         setImagePreview(imageUrlValue);
     }
