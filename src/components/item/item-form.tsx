@@ -101,6 +101,7 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
           ctx?.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
           setImagePreview(dataUrl);
+          form.setValue("imageUrl", dataUrl, { shouldValidate: true }); // This line was missing
           setIsUploading(false);
           toast({
             title: "Imagen Cargada",
@@ -212,6 +213,8 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
   }, [initialData, form]);
 
   useEffect(() => {
+    // This effect ensures the preview updates when the URL is changed manually
+    // or by pasting, but it avoids conflicts with the file upload logic.
     if (imageUrlValue && !imageUrlValue.startsWith('data:image')) {
         setImagePreview(imageUrlValue);
     } else if (!imageUrlValue && !isUploading) {
@@ -432,5 +435,3 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
     </TooltipProvider>
   );
 }
-
-    
