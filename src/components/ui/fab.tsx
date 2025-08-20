@@ -49,7 +49,7 @@ const Fab = React.forwardRef<HTMLButtonElement, FabProps>(
 
     const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
       const fab = event.currentTarget;
-      const size = fab.offsetWidth;
+      const sizeValue = fab.offsetWidth;
       const pos = fab.getBoundingClientRect();
       const x = event.clientX - pos.left;
       const y = event.clientY - pos.top;
@@ -57,8 +57,8 @@ const Fab = React.forwardRef<HTMLButtonElement, FabProps>(
       setRippleStyle({
         top: `${y}px`,
         left: `${x}px`,
-        height: `${size}px`,
-        width: `${size}px`,
+        height: `${sizeValue}px`,
+        width: `${sizeValue}px`,
       });
 
       setIsRippling(true);
@@ -100,7 +100,6 @@ interface FabMenuProps {
   actions: FabMenuAction[];
 }
 
-
 const ActionButton: React.FC<{ action: FabMenuAction; onActionClick: () => void; index: number }> = ({ action, onActionClick, index }) => {
     const handleClick = () => {
         if (action.onClick) {
@@ -109,8 +108,8 @@ const ActionButton: React.FC<{ action: FabMenuAction; onActionClick: () => void;
         onActionClick();
     };
 
-    const actionContent = (
-      <div 
+    const content = (
+        <div 
           className="flex items-center gap-4"
           style={{ 
             transition: 'all 300ms cubic-bezier(0.34, 1.56, 0.64, 1)', 
@@ -123,7 +122,7 @@ const ActionButton: React.FC<{ action: FabMenuAction; onActionClick: () => void;
                 {action.label}
             </div>
             {action.href ? (
-                 <Link href={action.href} passHref legacyBehavior>
+                <Link href={action.href} passHref legacyBehavior>
                     <Fab asChild size="sm" variant="secondary" aria-label={action.label} onClick={handleClick}>
                        <a>{action.icon}</a>
                     </Fab>
@@ -136,7 +135,7 @@ const ActionButton: React.FC<{ action: FabMenuAction; onActionClick: () => void;
         </div>
     );
 
-    return actionContent;
+    return content;
 };
 
 
