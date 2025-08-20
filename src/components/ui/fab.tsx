@@ -109,11 +109,11 @@ const ActionButton: React.FC<{ action: FabMenuAction; onActionClick: () => void;
     };
 
     const fabContent = action.href ? (
-        <Link href={action.href} passHref legacyBehavior>
-            <Fab asChild size="sm" variant="secondary" aria-label={action.label}>
-                <a>{action.icon}</a>
-            </Fab>
-        </Link>
+        <Fab asChild size="sm" variant="secondary" aria-label={action.label}>
+            <Link href={action.href} passHref onClick={handleClick}>
+              {action.icon}
+            </Link>
+        </Fab>
     ) : (
         <Fab size="sm" variant="secondary" aria-label={action.label} onClick={handleClick}>
             {action.icon}
@@ -171,7 +171,7 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
         }
       `}</style>
       <TooltipProvider>
-        <div className="fixed bottom-4 right-4 z-30 flex flex-col items-center gap-4 md:hidden">
+        <div className="fixed bottom-4 right-4 z-30 flex flex-col items-end gap-4 md:hidden">
           {isOpen && (
               <div className="flex flex-col-reverse items-end gap-4">
                 {actions.map((action, index) => (
@@ -192,7 +192,7 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
                 aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
                 className="transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95"
                 >
-                    <div className="relative h-8 w-8 flex items-center justify-center">
+                    <div className="relative h-6 w-6 flex items-center justify-center">
                        <Plus className={cn("absolute transition-all duration-300 ease-in-out", isOpen ? "transform rotate-45 scale-0 opacity-0" : "transform rotate-0 scale-100 opacity-100")} />
                        <X className={cn("absolute transition-all duration-300 ease-in-out", isOpen ? "transform rotate-0 scale-100 opacity-100" : "transform -rotate-45 scale-0 opacity-0")} />
                     </div>
