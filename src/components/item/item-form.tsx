@@ -71,22 +71,52 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
     const file = event.target.files?.[0];
     if (file) {
       setIsUploading(true);
-      form.setValue('imageUrl', '', { shouldValidate: true });
 
       const reader = new FileReader();
       reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        setImagePreview(dataUrl);
-        form.setValue("imageUrl", dataUrl, { shouldValidate: true });
-        setIsUploading(false);
-        toast({
-          title: "Imagen Cargada",
-          description: "La imagen está lista para ser guardada.",
-        });
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          
+          setImagePreview(dataUrl);
+          form.setValue("imageUrl", dataUrl, { shouldValidate: true });
+          setIsUploading(false);
+          toast({
+            title: "Imagen Cargada y Optimizada",
+            description: "La imagen está lista para ser guardada.",
+          });
+        };
+        img.onerror = () => {
+          setIsUploading(false);
+          toast({ title: "Error", description: "El archivo no es una imagen válida.", variant: "destructive" });
+        };
+        img.src = e.target?.result as string;
       };
       reader.onerror = () => {
         setIsUploading(false);
-        toast({ title: "Error", description: "No se pudo leer el archivo de imagen.", variant: "destructive" });
+        toast({ title: "Error", description: "No se pudo leer el archivo.", variant: "destructive" });
       };
       reader.readAsDataURL(file);
     }
@@ -169,8 +199,6 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
     onFormSubmit(finalData);
   };
   
-  const imageUrlValue = form.watch('imageUrl');
-
   useEffect(() => {
     if (initialData) {
       form.reset({
@@ -187,6 +215,7 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
   }, [initialData, form]);
 
   useEffect(() => {
+    const imageUrlValue = form.watch('imageUrl');
     // This effect ensures the preview updates when the URL is changed manually
     // or by pasting, but it avoids conflicts with the file upload logic.
     if (imageUrlValue && !imageUrlValue.startsWith('data:image')) {
@@ -194,7 +223,7 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
     } else if (!imageUrlValue && !isUploading) {
         setImagePreview(null);
     }
-  }, [imageUrlValue, isUploading]);
+  }, [form.watch('imageUrl'), isUploading]);
 
   return (
     <TooltipProvider>

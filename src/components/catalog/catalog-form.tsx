@@ -58,22 +58,52 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
     const file = event.target.files?.[0];
     if (file) {
       setIsUploading(true);
-      form.setValue('imageUrl', '', { shouldValidate: true });
-
+      
       const reader = new FileReader();
       reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        setImagePreview(dataUrl);
-        form.setValue("imageUrl", dataUrl, { shouldValidate: true });
-        setIsUploading(false);
-        toast({
-          title: "Imagen Cargada",
-          description: "La imagen está lista para ser guardada.",
-        });
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8); // Use jpeg for better compression
+          
+          setImagePreview(dataUrl);
+          form.setValue("imageUrl", dataUrl, { shouldValidate: true });
+          setIsUploading(false);
+          toast({
+            title: "Imagen Cargada y Optimizada",
+            description: "La imagen está lista para ser guardada.",
+          });
+        };
+        img.onerror = () => {
+          setIsUploading(false);
+          toast({ title: "Error", description: "El archivo no es una imagen válida.", variant: "destructive" });
+        };
+        img.src = e.target?.result as string;
       };
       reader.onerror = () => {
         setIsUploading(false);
-        toast({ title: "Error", description: "No se pudo leer el archivo de imagen.", variant: "destructive" });
+        toast({ title: "Error", description: "No se pudo leer el archivo.", variant: "destructive" });
       };
       reader.readAsDataURL(file);
     }
@@ -150,7 +180,8 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
     } else if (!imageUrlValue && !isUploading) {
         setImagePreview(null);
     }
-  }, [imageUrlValue]);
+  }, [imageUrlValue, isUploading]);
+
 
   return (
     <TooltipProvider>
