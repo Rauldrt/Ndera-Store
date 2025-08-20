@@ -100,6 +100,48 @@ interface FabMenuProps {
   actions: FabMenuAction[];
 }
 
+// New component to handle the animation logic correctly
+const ActionButton: React.FC<{ action: FabMenuAction; index: number; onActionClick: () => void; }> = ({ action, index, onActionClick }) => {
+    const [isVisible, setIsVisible] = React.useState(false);
+    
+    // This triggers the staggered animation on mount for each button individually
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsVisible(true);
+        }, index * 40); // Stagger the animation
+        return () => clearTimeout(timer);
+    }, [index]);
+
+    const handleClick = () => {
+        if (action.onClick) {
+            action.onClick();
+        }
+        onActionClick();
+    };
+
+    return (
+        <div className={cn("fab-action-transition", isVisible ? "fab-action-enter-active" : "fab-action-enter")}>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Fab
+                        size="sm"
+                        variant="secondary"
+                        aria-label={action.label}
+                        onClick={handleClick}
+                        asChild={!!action.href}
+                    >
+                        {action.href ? <Link href={action.href}>{action.icon}</Link> : action.icon}
+                    </Fab>
+                </TooltipTrigger>
+                <TooltipContent side="left" align="center">
+                    <p>{action.label}</p>
+                </TooltipContent>
+            </Tooltip>
+        </div>
+    );
+};
+
+
 const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -123,7 +165,10 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
             opacity: 0;
           }
         }
-
+        
+        .fab-action-transition {
+          transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
         .fab-action-enter {
           opacity: 0;
           transform: translateY(20px) scale(0.8);
@@ -131,57 +176,20 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
         .fab-action-enter-active {
           opacity: 1;
           transform: translateY(0) scale(1);
-          transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .fab-action-exit {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-        .fab-action-exit-active {
-          opacity: 0;
-          transform: translateY(20px) scale(0.8);
-          transition: all 200ms ease-in;
         }
       `}</style>
       <TooltipProvider>
         <div className="fixed bottom-4 right-4 z-30 flex flex-col items-center gap-4 md:hidden">
           {isOpen && (
               <div className="flex flex-col-reverse items-center gap-4">
-                {actions.map((action, index) => {
-                   const ActionButton = (
-                     <div key={index} className="fab-action-enter" style={{ transitionDelay: `${index * 40}ms` }}>
-                       <Tooltip>
-                         <TooltipTrigger asChild>
-                           <Fab
-                             size="sm"
-                             variant="secondary"
-                             aria-label={action.label}
-                             onClick={action.onClick ? () => { action.onClick?.(); setIsOpen(false); } : undefined}
-                             asChild={!!action.href}
-                           >
-                             {action.href ? <Link href={action.href}>{action.icon}</Link> : action.icon}
-                           </Fab>
-                         </TooltipTrigger>
-                         <TooltipContent side="left" align="center">
-                           <p>{action.label}</p>
-                         </TooltipContent>
-                       </Tooltip>
-                     </div>
-                   );
-                   
-                   // This triggers the staggered animation on mount
-                   React.useEffect(() => {
-                       const element = document.querySelector(`.fab-action-enter:nth-child(${index + 1})`);
-                       if (element) {
-                           setTimeout(() => {
-                               element.classList.add('fab-action-enter-active');
-                           }, 10); // small delay to ensure CSS is applied
-                       }
-                   }, [index]);
-
-                   return ActionButton;
-
-                })}
+                {actions.map((action, index) => (
+                    <ActionButton 
+                        key={index}
+                        action={action} 
+                        index={index} 
+                        onActionClick={() => setIsOpen(false)} 
+                    />
+                ))}
               </div>
           )}
           <Tooltip>
