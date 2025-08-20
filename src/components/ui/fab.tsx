@@ -96,10 +96,6 @@ interface FabMenuAction {
   href?: string;
 }
 
-interface FabMenuProps {
-  actions: FabMenuAction[];
-}
-
 const ActionButton: React.FC<{ action: FabMenuAction; onActionClick: () => void; index: number }> = ({ action, onActionClick, index }) => {
     const handleClick = () => {
         if (action.onClick) {
@@ -108,7 +104,7 @@ const ActionButton: React.FC<{ action: FabMenuAction; onActionClick: () => void;
         onActionClick();
     };
 
-    const fabContent = action.href ? (
+    const fabButton = action.href ? (
         <Fab asChild size="sm" variant="secondary" aria-label={action.label}>
             <Link href={action.href} passHref onClick={handleClick}>
               {action.icon}
@@ -133,7 +129,7 @@ const ActionButton: React.FC<{ action: FabMenuAction; onActionClick: () => void;
             <div className="bg-background text-foreground rounded-md px-3 py-1.5 shadow-md text-sm">
                 {action.label}
             </div>
-            {fabContent}
+            {fabButton}
         </div>
     );
 };
@@ -146,30 +142,6 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
 
   return (
     <>
-      <style jsx global>{`
-        .ripple {
-          position: absolute;
-          border-radius: 50%;
-          background-color: rgba(255, 255, 255, 0.6);
-          transform: scale(0);
-          animation: ripple-animation 0.5s linear;
-          pointer-events: none;
-        }
-
-        @keyframes ripple-animation {
-          to {
-            transform: scale(4);
-            opacity: 0;
-          }
-        }
-        
-        @keyframes fab-action-enter {
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-      `}</style>
       <TooltipProvider>
         <div className="fixed bottom-4 right-4 z-30 flex flex-col items-end gap-4 md:hidden">
           {isOpen && (
@@ -205,6 +177,30 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
           </Tooltip>
         </div>
       </TooltipProvider>
+      <style jsx global>{`
+        .ripple {
+          position: absolute;
+          border-radius: 50%;
+          background-color: rgba(255, 255, 255, 0.6);
+          transform: scale(0);
+          animation: ripple-animation 0.5s linear;
+          pointer-events: none;
+        }
+
+        @keyframes ripple-animation {
+          to {
+            transform: scale(4);
+            opacity: 0;
+          }
+        }
+        
+        @keyframes fab-action-enter {
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+      `}</style>
     </>
   );
 };
