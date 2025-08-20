@@ -107,37 +107,42 @@ const ActionButton: React.FC<{ action: FabMenuAction; onActionClick: () => void;
         }
         onActionClick();
     };
-
-    const content = (
-        <div 
-          className="flex items-center gap-4"
-          style={{ 
-            transition: 'all 300ms cubic-bezier(0.34, 1.56, 0.64, 1)', 
-            opacity: 0, 
-            transform: 'translateY(20px) scale(0.8)', 
-            animation: `fab-action-enter 300ms ${index * 40}ms forwards cubic-bezier(0.34, 1.56, 0.64, 1)` 
-          }}
-        >
-            <div className="bg-background text-foreground rounded-md px-3 py-1.5 shadow-md text-sm">
-                {action.label}
-            </div>
-            {action.href ? (
-                <Link href={action.href} passHref legacyBehavior>
-                    <Fab asChild size="sm" variant="secondary" aria-label={action.label} onClick={handleClick}>
-                       <a>{action.icon}</a>
-                    </Fab>
-                </Link>
-            ) : (
-                <Fab size="sm" variant="secondary" aria-label={action.label} onClick={handleClick}>
-                    {action.icon}
-                </Fab>
-            )}
-        </div>
+    
+    const fabContent = (
+      <Fab size="sm" variant="secondary" aria-label={action.label} onClick={action.onClick ? handleClick : onActionClick}>
+          {action.icon}
+      </Fab>
     );
 
+    const content = (
+      <div 
+        className="flex items-center gap-4"
+        style={{ 
+          transition: 'all 300ms cubic-bezier(0.34, 1.56, 0.64, 1)', 
+          opacity: 0, 
+          transform: 'translateY(20px) scale(0.8)', 
+          animation: `fab-action-enter 300ms ${index * 40}ms forwards cubic-bezier(0.34, 1.56, 0.64, 1)` 
+        }}
+      >
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {action.href ? (
+                <Link href={action.href} passHref legacyBehavior>
+                    {fabContent}
+                </Link>
+            ) : (
+                fabContent
+            )}
+          </TooltipTrigger>
+          <TooltipContent side="left" align="center">
+            <p>{action.label}</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    );
+    
     return content;
 };
-
 
 const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -208,6 +213,5 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
     </>
   );
 };
-
 
 export { Fab, fabVariants, FabMenu };
