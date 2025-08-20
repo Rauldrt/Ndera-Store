@@ -75,40 +75,14 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
 
       const reader = new FileReader();
       reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 1200;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height = Math.round(height * (MAX_WIDTH / width));
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width = Math.round(width * (MAX_HEIGHT / height));
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          setImagePreview(dataUrl);
-          form.setValue("imageUrl", dataUrl, { shouldValidate: true }); // This line was missing
-          setIsUploading(false);
-          toast({
-            title: "Imagen Cargada",
-            description: "La imagen ha sido optimizada y está lista.",
-          });
-        };
-        img.src = e.target?.result as string;
+        const dataUrl = e.target?.result as string;
+        setImagePreview(dataUrl);
+        form.setValue("imageUrl", dataUrl, { shouldValidate: true });
+        setIsUploading(false);
+        toast({
+          title: "Imagen Cargada",
+          description: "La imagen está lista para ser guardada.",
+        });
       };
       reader.onerror = () => {
         setIsUploading(false);
@@ -293,7 +267,7 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
                            <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                         </TooltipTrigger>
                         <TooltipContent>
-                           <p className="max-w-xs">Puedes pegar una URL o subir un archivo. Al subir, la imagen se optimizará.</p>
+                           <p className="max-w-xs">Puedes pegar una URL o subir un archivo.</p>
                         </TooltipContent>
                       </Tooltip>
                   </FormLabel>
@@ -319,7 +293,8 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
                         <Input 
                         type="url" 
                         placeholder="https://placehold.co/600x400.png" 
-                        {...field} 
+                        {...field}
+                        value={field.value ?? ""} 
                         />
                     </FormControl>
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />

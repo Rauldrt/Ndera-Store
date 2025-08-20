@@ -62,39 +62,14 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
 
       const reader = new FileReader();
       reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 1200;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height = Math.round(height * (MAX_WIDTH / width));
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width = Math.round(width * (MAX_HEIGHT / height));
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          setImagePreview(dataUrl);
-          setIsUploading(false);
-          toast({
-            title: "Imagen Cargada",
-            description: "La imagen ha sido optimizada y está lista.",
-          });
-        };
-        img.src = e.target?.result as string;
+        const dataUrl = e.target?.result as string;
+        setImagePreview(dataUrl);
+        form.setValue("imageUrl", dataUrl, { shouldValidate: true });
+        setIsUploading(false);
+        toast({
+          title: "Imagen Cargada",
+          description: "La imagen está lista para ser guardada.",
+        });
       };
       reader.onerror = () => {
         setIsUploading(false);
@@ -217,24 +192,6 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
               )}
             />
             
-             {imagePreview && (
-                <div className="mt-2 relative w-48 h-32">
-                    <img src={imagePreview} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
-                    <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                        onClick={() => {
-                            setImagePreview(null);
-                            form.setValue("imageUrl", "");
-                        }}
-                    >
-                        <X className="h-4 w-4" />
-                    </Button>
-                </div>
-            )}
-            
             <FormField
               control={form.control}
               name="imageUrl"
@@ -247,16 +204,34 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
                            <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                         </TooltipTrigger>
                         <TooltipContent>
-                           <p className="max-w-xs">Puedes pegar una URL o subir un archivo. Al subir, la imagen se optimizará.</p>
+                           <p className="max-w-xs">Puedes pegar una URL o subir un archivo.</p>
                         </TooltipContent>
                       </Tooltip>
                   </FormLabel>
+                  {imagePreview && (
+                    <div className="mt-2 relative w-48 h-32">
+                        <img src={imagePreview} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                            onClick={() => {
+                                setImagePreview(null);
+                                form.setValue("imageUrl", "");
+                            }}
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                  )}
                    <div className="flex items-center gap-2">
                     <FormControl>
                         <Input 
                         type="url" 
                         placeholder="https://placehold.co/600x400.png" 
-                        {...field} 
+                        {...field}
+                        value={field.value ?? ""} 
                         />
                     </FormControl>
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
