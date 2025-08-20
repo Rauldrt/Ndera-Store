@@ -119,19 +119,33 @@ const ActionButton: React.FC<{ action: FabMenuAction; index: number; onActionCli
         onActionClick();
     };
 
+    const fabContent = action.href ? (
+        <Fab
+            asChild
+            size="sm"
+            variant="secondary"
+            aria-label={action.label}
+        >
+            <Link href={action.href} onClick={handleClick}>
+                {action.icon}
+            </Link>
+        </Fab>
+    ) : (
+        <Fab
+            size="sm"
+            variant="secondary"
+            aria-label={action.label}
+            onClick={handleClick}
+        >
+            {action.icon}
+        </Fab>
+    );
+
     return (
         <div className={cn("fab-action-transition", isVisible ? "fab-action-enter-active" : "fab-action-enter")}>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <Fab
-                        size="sm"
-                        variant="secondary"
-                        aria-label={action.label}
-                        onClick={handleClick}
-                        asChild={!!action.href}
-                    >
-                        {action.href ? <Link href={action.href}>{action.icon}</Link> : action.icon}
-                    </Fab>
+                    {fabContent}
                 </TooltipTrigger>
                 <TooltipContent side="left" align="center">
                     <p>{action.label}</p>
