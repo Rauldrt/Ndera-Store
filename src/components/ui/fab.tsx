@@ -14,7 +14,7 @@ import {
 } from "./tooltip";
 
 const fabVariants = cva(
-  "inline-flex items-center justify-center rounded-full text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 shadow-lg",
+  "relative inline-flex items-center justify-center rounded-full text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 shadow-lg overflow-hidden",
   {
     variants: {
       variant: {
@@ -42,14 +42,48 @@ export interface FabProps
 }
 
 const Fab = React.forwardRef<HTMLButtonElement, FabProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
+    const [rippleStyle, setRippleStyle] = React.useState({});
+    const [isRippling, setIsRippling] = React.useState(false);
+
+    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+      const fab = event.currentTarget;
+      const size = fab.offsetWidth;
+      const pos = fab.getBoundingClientRect();
+      const x = event.clientX - pos.left;
+      const y = event.clientY - pos.top;
+
+      setRippleStyle({
+        top: `${y}px`,
+        left: `${x}px`,
+        height: `${size}px`,
+        width: `${size}px`,
+      });
+
+      setIsRippling(true);
+
+      // Propagate the click event if it exists
+      props.onClick?.(event);
+    };
+
+    React.useEffect(() => {
+      if (isRippling) {
+        const timer = setTimeout(() => setIsRippling(false), 500); // Duration of the ripple animation
+        return () => clearTimeout(timer);
+      }
+    }, [isRippling]);
+
     return (
       <Comp
         className={cn(fabVariants({ variant, size, className }))}
         ref={ref}
+        onClick={handleClick}
         {...props}
-      />
+      >
+        {children}
+        {isRippling && <span className="ripple" style={rippleStyle} />}
+      </Comp>
     );
   }
 );
@@ -72,47 +106,111 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
   const toggleMenu = () => setIsOpen(!isOpen);
 
   return (
-    <TooltipProvider>
-      <div className="fixed bottom-4 right-4 z-30 flex flex-col items-center gap-3 md:hidden">
-        {isOpen && (
-          <div className="flex flex-col items-center gap-3 transition-all duration-300">
-            {actions.map((action, index) => {
-              const ActionButton = (
-                <Fab
-                  key={index}
-                  size="sm"
-                  variant="secondary"
-                  aria-label={action.label}
-                  onClick={action.onClick ? () => { action.onClick?.(); setIsOpen(false); } : undefined}
-                  asChild={!!action.href}
-                >
-                  {action.href ? <Link href={action.href}>{action.icon}</Link> : action.icon}
-                </Fab>
-              );
+    <>
+    <style jsx global>{`
+        .ripple {
+          position: absolute;
+          border-radius: 50%;
+          background-color: rgba(255, 255, 255, 0.6);
+          transform: scale(0);
+          animation: ripple-animation 0.5s linear;
+          pointer-events: none;
+        }
 
-              return (
-                <Tooltip key={index}>
-                  <TooltipTrigger asChild>{ActionButton}</TooltipTrigger>
-                  <TooltipContent side="left" align="center">
-                    <p>{action.label}</p>
-                  </TooltipContent>
-                </Tooltip>
-              );
-            })}
-          </div>
-        )}
-        <Fab
-          onClick={toggleMenu}
-          aria-expanded={isOpen}
-          aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
-          className="transition-transform duration-300 ease-in-out"
-          style={{ transform: isOpen ? 'rotate(45deg)' : 'none' }}
-        >
-          {isOpen ? <X className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
-        </Fab>
-      </div>
-    </TooltipProvider>
+        @keyframes ripple-animation {
+          to {
+            transform: scale(4);
+            opacity: 0;
+          }
+        }
+
+        .fab-action-enter {
+          opacity: 0;
+          transform: translateY(20px) scale(0.8);
+        }
+        .fab-action-enter-active {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .fab-action-exit {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        .fab-action-exit-active {
+          opacity: 0;
+          transform: translateY(20px) scale(0.8);
+          transition: all 200ms ease-in;
+        }
+      `}</style>
+      <TooltipProvider>
+        <div className="fixed bottom-4 right-4 z-30 flex flex-col items-center gap-4 md:hidden">
+          {isOpen && (
+              <div className="flex flex-col-reverse items-center gap-4">
+                {actions.map((action, index) => {
+                   const ActionButton = (
+                     <div key={index} className="fab-action-enter" style={{ transitionDelay: `${index * 40}ms` }}>
+                       <Tooltip>
+                         <TooltipTrigger asChild>
+                           <Fab
+                             size="sm"
+                             variant="secondary"
+                             aria-label={action.label}
+                             onClick={action.onClick ? () => { action.onClick?.(); setIsOpen(false); } : undefined}
+                             asChild={!!action.href}
+                           >
+                             {action.href ? <Link href={action.href}>{action.icon}</Link> : action.icon}
+                           </Fab>
+                         </TooltipTrigger>
+                         <TooltipContent side="left" align="center">
+                           <p>{action.label}</p>
+                         </TooltipContent>
+                       </Tooltip>
+                     </div>
+                   );
+                   
+                   // This triggers the staggered animation on mount
+                   React.useEffect(() => {
+                       const element = document.querySelector(`.fab-action-enter:nth-child(${index + 1})`);
+                       if (element) {
+                           setTimeout(() => {
+                               element.classList.add('fab-action-enter-active');
+                           }, 10); // small delay to ensure CSS is applied
+                       }
+                   }, [index]);
+
+                   return ActionButton;
+
+                })}
+              </div>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+                <Fab
+                onClick={toggleMenu}
+                aria-expanded={isOpen}
+                aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
+                className="transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95"
+                >
+                <div className="relative w-8 h-8 flex items-center justify-center">
+                    <span className={cn("absolute transition-all duration-300 ease-in-out", isOpen ? 'transform rotate-45 opacity-100' : 'transform rotate-0 opacity-0')}>
+                         <X className="h-8 w-8" />
+                    </span>
+                    <span className={cn("absolute transition-all duration-300 ease-in-out", !isOpen ? 'transform rotate-0 opacity-100' : 'transform -rotate-45 opacity-0')}>
+                         <Plus className="h-8 w-8" />
+                    </span>
+                </div>
+                </Fab>
+            </TooltipTrigger>
+             <TooltipContent side="left" align="center">
+                <p>{isOpen ? "Cerrar" : "Opciones"}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
+    </>
   );
 };
+
 
 export { Fab, fabVariants, FabMenu };
