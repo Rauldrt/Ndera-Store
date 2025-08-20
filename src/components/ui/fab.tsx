@@ -100,16 +100,7 @@ interface FabMenuProps {
   actions: FabMenuAction[];
 }
 
-const ActionButton: React.FC<{ action: FabMenuAction; index: number; onActionClick: () => void }> = ({ action, index, onActionClick }) => {
-    const [isVisible, setIsVisible] = React.useState(false);
-
-    React.useEffect(() => {
-        const timer = setTimeout(() => {
-            setIsVisible(true);
-        }, index * 40);
-        return () => clearTimeout(timer);
-    }, [index]);
-
+const ActionButton: React.FC<{ action: FabMenuAction; onActionClick: () => void; index: number }> = ({ action, onActionClick, index }) => {
     const handleClick = () => {
         if (action.onClick) {
             action.onClick();
@@ -117,23 +108,26 @@ const ActionButton: React.FC<{ action: FabMenuAction; index: number; onActionCli
         onActionClick();
     };
 
-    const fabContent = action.href ? (
-        <Fab asChild size="sm" variant="secondary" aria-label={action.label}>
-            <Link href={action.href} onClick={handleClick}>
-                {action.icon}
-            </Link>
-        </Fab>
+    const fabContent = (
+      <Fab size="sm" variant="secondary" aria-label={action.label} asChild={!!action.href}>
+          {action.href ? <Link href={action.href}>{action.icon}</Link> : action.icon}
+      </Fab>
+    );
+    
+    // The conditional logic was the issue. This is a safer way to handle it.
+    const TriggerComponent = action.href ? (
+        <Link href={action.href} passHref legacyBehavior>
+            <a onClick={handleClick}><Fab size="sm" variant="secondary" aria-label={action.label}>{action.icon}</Fab></a>
+        </Link>
     ) : (
-        <Fab size="sm" variant="secondary" aria-label={action.label} onClick={handleClick}>
-            {action.icon}
-        </Fab>
+        <Fab size="sm" variant="secondary" aria-label={action.label} onClick={handleClick}>{action.icon}</Fab>
     );
 
     return (
-        <div className={cn("fab-action-transition", isVisible ? "fab-action-enter-active" : "fab-action-enter")}>
+        <div style={{ transition: 'all 300ms cubic-bezier(0.34, 1.56, 0.64, 1)', opacity: 0, transform: 'translateY(20px) scale(0.8)', animation: `fab-action-enter 300ms ${index * 40}ms forwards cubic-bezier(0.34, 1.56, 0.64, 1)` }}>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    {fabContent}
+                    {TriggerComponent}
                 </TooltipTrigger>
                 <TooltipContent side="left" align="center">
                     <p>{action.label}</p>
@@ -151,7 +145,8 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
 
   return (
     <>
-    <style jsx global>{`
+      {/* Moved styles to the top level of the component */}
+      <style jsx global>{`
         .ripple {
           position: absolute;
           border-radius: 50%;
@@ -167,17 +162,12 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
             opacity: 0;
           }
         }
-        
-        .fab-action-transition {
-          transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .fab-action-enter {
-          opacity: 0;
-          transform: translateY(20px) scale(0.8);
-        }
-        .fab-action-enter-active {
-          opacity: 1;
-          transform: translateY(0) scale(1);
+
+        @keyframes fab-action-enter {
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
       `}</style>
       <TooltipProvider>
@@ -187,8 +177,8 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
                 {actions.map((action, index) => (
                     <ActionButton 
                         key={index}
+                        index={index}
                         action={action} 
-                        index={index} 
                         onActionClick={() => setIsOpen(false)} 
                     />
                 ))}
@@ -202,20 +192,27 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
                 aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
                 className="transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95"
                 >
-                <div className="relative h-8 w-8 flex flex-col justify-between items-center" aria-hidden="true">
-                    <span className={cn(
-                        "block w-full h-1 bg-white rounded-full transition-all duration-300 ease-in-out",
-                        isOpen ? "transform rotate-45 translate-y-[11px]" : ""
-                    )}></span>
-                    <span className={cn(
-                        "block w-full h-1 bg-white rounded-full transition-all duration-300 ease-in-out",
-                        isOpen ? "opacity-0" : "opacity-100"
-                    )}></span>
-                    <span className={cn(
-                        "block w-full h-1 bg-white rounded-full transition-all duration-300 ease-in-out",
-                        isOpen ? "transform -rotate-45 -translate-y-[11px]" : ""
-                    )}></span>
-                </div>
+                    <div className="relative h-8 w-8 flex items-center justify-center">
+                        <span
+                            className={cn(
+                                "absolute block w-6 h-0.5 bg-current rounded-full transition-all duration-300 ease-in-out",
+                                isOpen ? "transform rotate-45" : "-translate-y-1.5"
+                            )}
+                        ></span>
+                        <span
+                            className={cn(
+                                "absolute block w-6 h-0.5 bg-current rounded-full transition-all duration-300 ease-in-out",
+                                isOpen ? "opacity-0" : "opacity-100"
+                            )}
+                        ></span>
+                        <span
+                            className={cn(
+                                "absolute block w-6 h-0.5 bg-current rounded-full transition-all duration-300 ease-in-out",
+                                isOpen ? "transform -rotate-45" : "translate-y-1.5"
+                            )}
+                        ></span>
+                    </div>
+                    <div className="sr-only">{isOpen ? "Cerrar" : "Abrir"}</div>
                 </Fab>
             </TooltipTrigger>
              <TooltipContent side="left" align="center">
