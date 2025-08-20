@@ -20,10 +20,11 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as CardDesc } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Loader2, DollarSign, Upload, Clipboard } from "lucide-react"; 
+import { X, Loader2, DollarSign, Upload, Clipboard, Info } from "lucide-react"; 
 import type { Item } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const itemFormSchema = z.object({
   name: z.string().min(1, "El nombre del producto es obligatorio").max(100, "Nombre demasiado largo (máx. 100 caracteres)"),
@@ -114,8 +115,8 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
       };
       reader.readAsDataURL(file);
     }
-    if (event.target) {
-        event.target.value = ''; // Reset file input
+     if (event.target) {
+        event.target.value = '';
     }
   };
 
@@ -182,35 +183,44 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
   const handleSubmit: SubmitHandler<ItemFormValues> = (data) => {
     let finalData = { ...data };
     
+    // Prioritize the base64-encoded image preview if it exists
     if (imagePreview && imagePreview.startsWith('data:image')) {
       finalData.imageUrl = imagePreview;
     } else {
+      // Otherwise, use the URL from the form field
       finalData.imageUrl = data.imageUrl;
     }
   
-    const trimmedData = {
-      ...finalData,
-      tags: data.tags.map(tag => tag.trim()).filter(Boolean),
-    };
-
-    onFormSubmit(trimmedData);
+    onFormSubmit(finalData);
   };
+  
+  const imageUrlValue = form.watch('imageUrl');
 
-   useEffect(() => {
-    form.reset({
-      name: initialData?.name || "",
-      description: initialData?.description || "",
-      price: initialData?.price || 0,
-      imageUrl: initialData?.imageUrl || "",
-      tags: initialData?.tags || [],
-      isFeatured: initialData?.isFeatured || false,
-      isVisible: initialData?.isVisible === false ? false : true,
-    });
-    setImagePreview(initialData?.imageUrl || null);
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        name: initialData.name || "",
+        description: initialData.description || "",
+        price: initialData.price || 0,
+        imageUrl: initialData.imageUrl || "",
+        tags: initialData.tags || [],
+        isFeatured: initialData.isFeatured || false,
+        isVisible: initialData.isVisible === false ? false : true,
+      });
+      setImagePreview(initialData.imageUrl || null);
+    }
   }, [initialData, form]);
 
+  useEffect(() => {
+    if (imageUrlValue && !imageUrlValue.startsWith('data:image')) {
+        setImagePreview(imageUrlValue);
+    } else if (!imageUrlValue && !isUploading) {
+        setImagePreview(null);
+    }
+  }, [imageUrlValue, isUploading]);
 
   return (
+    <TooltipProvider>
     <Card className="shadow-xl border-none">
       <CardHeader className="p-0 mb-4">
         <CardTitle className="text-lg md:text-xl">{initialData?.id ? "Editar Producto" : "Añadir Nuevo Producto"}</CardTitle>
@@ -273,45 +283,54 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
               name="imageUrl"
               render={({ field }) => (
                 <FormItem className="w-full">
-                   <FormLabel>Imagen del Producto</FormLabel>
-                   <div className="flex flex-col gap-2">
-                        {imagePreview && (
-                            <div className="relative w-32 h-32">
-                                <img src={imagePreview} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
-                                <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="icon"
-                                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                                    onClick={() => {
-                                        setImagePreview(null);
-                                        form.setValue("imageUrl", "");
-                                    }}
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        )}
-                        <div className="flex items-center gap-2">
-                            <FormControl>
-                                <Input 
-                                    type="url" 
-                                    placeholder="Pega una URL..." 
-                                    {...field}
-                                />
-                            </FormControl>
-                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading} title="Subir imagen desde archivo">
-                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                Subir
-                            </Button>
-                             <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
-                        </div>
-                   </div>
+                  <FormLabel className="flex items-center gap-2">
+                     URL de imagen de producto (Opcional)
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                           <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                           <p className="max-w-xs">Puedes pegar una URL o subir un archivo. Al subir, la imagen se optimizará.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                  </FormLabel>
+                  {imagePreview && (
+                    <div className="mt-2 relative w-48 h-32">
+                        <img src={imagePreview} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                            onClick={() => {
+                                setImagePreview(null);
+                                form.setValue("imageUrl", "");
+                            }}
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                  )}
+                   <div className="flex items-center gap-2">
+                    <FormControl>
+                        <Input 
+                        type="url" 
+                        placeholder="https://placehold.co/600x400.png" 
+                        {...field} 
+                        />
+                    </FormControl>
+                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
+                    <Button type="button" variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading} title="Subir imagen">
+                       {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    </Button>
+                    <Button type="button" variant="secondary" size="icon" onClick={handlePasteFromClipboard} title="Pegar URL">
+                        <Clipboard className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
 
             <FormField
               control={form.control}
@@ -410,5 +429,8 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
         </Form>
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 }
+
+    
