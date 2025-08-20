@@ -209,16 +209,6 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
     setImagePreview(initialData?.imageUrl || null);
   }, [initialData, form]);
 
-  const imageUrlValue = form.watch('imageUrl');
-
-  useEffect(() => {
-    if (imageUrlValue && !imageUrlValue.startsWith('data:image')) {
-        setImagePreview(imageUrlValue);
-    } else if (!imageUrlValue && !isUploading) {
-        setImagePreview(null);
-    }
-  }, [imageUrlValue, isUploading]);
-
 
   return (
     <Card className="shadow-xl border-none">
@@ -283,40 +273,40 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
               name="imageUrl"
               render={({ field }) => (
                 <FormItem className="w-full">
-                  <FormLabel>Imagen del Producto</FormLabel>
-                   {imagePreview && (
-                      <div className="mt-2 relative w-32 h-32">
-                          <img src={imagePreview} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
-                          <Button
-                              type="button"
-                              variant="destructive"
-                              size="icon"
-                              className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                              onClick={() => {
-                                  setImagePreview(null);
-                                  form.setValue("imageUrl", "");
-                              }}
-                          >
-                              <X className="h-4 w-4" />
-                          </Button>
-                      </div>
-                  )}
-                   <div className="flex items-center gap-2 mt-2">
-                      <FormControl>
-                          <Input 
-                          type="url" 
-                          placeholder="Pega una URL o sube un archivo" 
-                          {...field}
-                          />
-                      </FormControl>
-                      <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
-                      <Button type="button" variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading} title="Subir imagen">
-                         {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                      </Button>
-                      <Button type="button" variant="secondary" size="icon" onClick={handlePasteFromClipboard} title="Pegar URL">
-                          <Clipboard className="h-4 w-4" />
-                      </Button>
-                    </div>
+                   <FormLabel>Imagen del Producto</FormLabel>
+                   <div className="flex flex-col gap-2">
+                        {imagePreview && (
+                            <div className="relative w-32 h-32">
+                                <img src={imagePreview} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                                    onClick={() => {
+                                        setImagePreview(null);
+                                        form.setValue("imageUrl", "");
+                                    }}
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                            <FormControl>
+                                <Input 
+                                    type="url" 
+                                    placeholder="Pega una URL..." 
+                                    {...field}
+                                />
+                            </FormControl>
+                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading} title="Subir imagen desde archivo">
+                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                Subir
+                            </Button>
+                             <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
+                        </div>
+                   </div>
                   <FormMessage />
                 </FormItem>
               )}
