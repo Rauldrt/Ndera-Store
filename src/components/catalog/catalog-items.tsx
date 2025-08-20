@@ -641,6 +641,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
       }}>
         <DialogContent className="max-w-xl">
           <ItemForm
+            key={editingItem?.id || 'new-item-form'}
             initialData={editingItem ? {
               ...editingItem,
               price: editingItem.price ?? 0,
@@ -879,3 +880,5 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </>
   );
 }
+
+    
