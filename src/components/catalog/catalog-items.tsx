@@ -633,12 +633,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
             </div>
         </div>
       </div>
-      <Dialog open={showItemForm} onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setEditingItem(null);
-          }
-          setShowItemForm(isOpen);
-      }}>
+      <Dialog open={showItemForm} onOpenChange={setShowItemForm}>
         <DialogContent className="max-w-xl">
           <ItemForm
             key={editingItem?.id || 'new-item-form'}
@@ -880,5 +875,3 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
     </>
   );
 }
-
-    
