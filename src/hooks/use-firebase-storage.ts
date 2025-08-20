@@ -2,22 +2,31 @@
 import { useState } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
+import { useAuth } from '@/context/auth-context'; // Import useAuth
 
 export function useFirebaseStorage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth(); // Get the current user
 
   const uploadFile = (file: File, path: string = 'images') => {
+    // Check for authentication before proceeding
+    if (!user) {
+      setError("Debes iniciar sesión para subir archivos.");
+      setIsUploading(false);
+      return;
+    }
+
     if (!file) return;
 
     setIsUploading(true);
     setError(null);
     setFileUrl(null);
 
-    // Create a unique file name
-    const storageRef = ref(storage, `${path}/${Date.now()}_${file.name}`);
+    // Create a unique file name, but associate it with the user's ID for better organization/rules
+    const storageRef = ref(storage, `${path}/${user.uid}/${Date.now()}_${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     uploadTask.on(
