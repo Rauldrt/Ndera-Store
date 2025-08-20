@@ -302,7 +302,8 @@ const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, state, isMobile, openMobile } = useSidebar();
+  const isOpen = isMobile ? openMobile : state === 'expanded';
 
   return (
     <Button
@@ -310,18 +311,31 @@ const SidebarTrigger = React.forwardRef<
       data-sidebar="trigger"
       variant="ghost"
       size="icon"
-      className={cn("h-7 w-7 shrink-0", className)} // Added shrink-0
+      className={cn("h-10 w-10 shrink-0", className)}
       onClick={(event) => {
-        onClick?.(event)
-        toggleSidebar()
+        onClick?.(event);
+        toggleSidebar();
       }}
       {...props}
     >
-      <PanelLeft />
+       <div className="relative h-6 w-6 flex flex-col justify-between items-center" aria-hidden="true">
+          <span className={cn(
+              "block w-full h-0.5 bg-current rounded-full transition-all duration-300 ease-in-out",
+              isOpen ? "transform rotate-45 translate-y-[11px]" : ""
+          )}></span>
+          <span className={cn(
+              "block w-full h-0.5 bg-current rounded-full transition-all duration-300 ease-in-out",
+              isOpen ? "opacity-0" : "opacity-100"
+          )}></span>
+          <span className={cn(
+              "block w-full h-0.5 bg-current rounded-full transition-all duration-300 ease-in-out",
+              isOpen ? "transform -rotate-45 -translate-y-[11px]" : ""
+          )}></span>
+      </div>
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
-  )
-})
+  );
+});
 SidebarTrigger.displayName = "SidebarTrigger"
 
 const SidebarRail = React.forwardRef<

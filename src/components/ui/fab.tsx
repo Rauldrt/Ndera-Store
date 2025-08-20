@@ -100,15 +100,13 @@ interface FabMenuProps {
   actions: FabMenuAction[];
 }
 
-// New component to handle the animation logic correctly
-const ActionButton: React.FC<{ action: FabMenuAction; index: number; onActionClick: () => void; }> = ({ action, index, onActionClick }) => {
+const ActionButton: React.FC<{ action: FabMenuAction; index: number; onActionClick: () => void }> = ({ action, index, onActionClick }) => {
     const [isVisible, setIsVisible] = React.useState(false);
-    
-    // This triggers the staggered animation on mount for each button individually
+
     React.useEffect(() => {
         const timer = setTimeout(() => {
             setIsVisible(true);
-        }, index * 40); // Stagger the animation
+        }, index * 40);
         return () => clearTimeout(timer);
     }, [index]);
 
@@ -120,23 +118,13 @@ const ActionButton: React.FC<{ action: FabMenuAction; index: number; onActionCli
     };
 
     const fabContent = action.href ? (
-        <Fab
-            asChild
-            size="sm"
-            variant="secondary"
-            aria-label={action.label}
-        >
+        <Fab asChild size="sm" variant="secondary" aria-label={action.label}>
             <Link href={action.href} onClick={handleClick}>
                 {action.icon}
             </Link>
         </Fab>
     ) : (
-        <Fab
-            size="sm"
-            variant="secondary"
-            aria-label={action.label}
-            onClick={handleClick}
-        >
+        <Fab size="sm" variant="secondary" aria-label={action.label} onClick={handleClick}>
             {action.icon}
         </Fab>
     );
@@ -214,10 +202,19 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
                 aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
                 className="transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95"
                 >
-                <div className="relative h-8 w-8 flex flex-col justify-between items-center" style={{ transition: 'transform 300ms ease-in-out', transform: isOpen ? 'rotate(45deg)' : 'none' }}>
-                    <span className={cn("block w-full h-1 bg-white rounded-full transition-all duration-300 ease-in-out", isOpen ? "transform rotate-90 translate-y-[13px]" : "")}></span>
-                    <span className={cn("block w-full h-1 bg-white rounded-full transition-all duration-300 ease-in-out", isOpen ? "opacity-0" : "opacity-100")}></span>
-                    <span className={cn("block w-full h-1 bg-white rounded-full transition-all duration-300 ease-in-out", isOpen ? "transform -rotate-90 -translate-y-[13px]" : "")}></span>
+                <div className="relative h-8 w-8 flex flex-col justify-between items-center" aria-hidden="true">
+                    <span className={cn(
+                        "block w-full h-1 bg-white rounded-full transition-all duration-300 ease-in-out",
+                        isOpen ? "transform rotate-45 translate-y-[11px]" : ""
+                    )}></span>
+                    <span className={cn(
+                        "block w-full h-1 bg-white rounded-full transition-all duration-300 ease-in-out",
+                        isOpen ? "opacity-0" : "opacity-100"
+                    )}></span>
+                    <span className={cn(
+                        "block w-full h-1 bg-white rounded-full transition-all duration-300 ease-in-out",
+                        isOpen ? "transform -rotate-45 -translate-y-[11px]" : ""
+                    )}></span>
                 </div>
                 </Fab>
             </TooltipTrigger>
