@@ -96,6 +96,11 @@ interface FabMenuAction {
   href?: string;
 }
 
+interface FabMenuProps {
+  actions: FabMenuAction[];
+}
+
+
 const ActionButton: React.FC<{ action: FabMenuAction; onActionClick: () => void; index: number }> = ({ action, onActionClick, index }) => {
     const handleClick = () => {
         if (action.onClick) {
@@ -104,20 +109,8 @@ const ActionButton: React.FC<{ action: FabMenuAction; onActionClick: () => void;
         onActionClick();
     };
 
-    const fabButton = action.href ? (
-        <Fab asChild size="sm" variant="secondary" aria-label={action.label}>
-            <Link href={action.href} passHref onClick={handleClick}>
-              {action.icon}
-            </Link>
-        </Fab>
-    ) : (
-        <Fab size="sm" variant="secondary" aria-label={action.label} onClick={handleClick}>
-            {action.icon}
-        </Fab>
-    );
-
-    return (
-        <div 
+    const actionContent = (
+      <div 
           className="flex items-center gap-4"
           style={{ 
             transition: 'all 300ms cubic-bezier(0.34, 1.56, 0.64, 1)', 
@@ -129,9 +122,21 @@ const ActionButton: React.FC<{ action: FabMenuAction; onActionClick: () => void;
             <div className="bg-background text-foreground rounded-md px-3 py-1.5 shadow-md text-sm">
                 {action.label}
             </div>
-            {fabButton}
+            {action.href ? (
+                 <Link href={action.href} passHref legacyBehavior>
+                    <Fab asChild size="sm" variant="secondary" aria-label={action.label} onClick={handleClick}>
+                       <a>{action.icon}</a>
+                    </Fab>
+                </Link>
+            ) : (
+                <Fab size="sm" variant="secondary" aria-label={action.label} onClick={handleClick}>
+                    {action.icon}
+                </Fab>
+            )}
         </div>
     );
+
+    return actionContent;
 };
 
 
