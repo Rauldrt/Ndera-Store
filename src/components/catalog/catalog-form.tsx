@@ -71,17 +71,19 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
           let width = img.width;
           let height = img.height;
 
+          // Correct aspect ratio calculation
           if (width > height) {
             if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
+              height = height * (MAX_WIDTH / width);
               width = MAX_WIDTH;
             }
           } else {
             if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
+              width = width * (MAX_HEIGHT / height);
               height = MAX_HEIGHT;
             }
           }
+
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
