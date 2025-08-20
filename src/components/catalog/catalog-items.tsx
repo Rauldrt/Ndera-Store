@@ -646,7 +646,7 @@ export function CatalogItems({ catalogId }: CatalogItemsProps) {
               price: editingItem.price ?? 0,
               createdAt: editingItem.createdAt ? new Date(editingItem.createdAt.seconds * 1000 + (editingItem.createdAt.nanoseconds || 0) / 1000000) : undefined,
             } as Partial<Item> : {}} 
-            onSubmit={handleFormSubmit}
+            onFormSubmit={handleFormSubmit}
             isLoading={addItemMutation.isPending || updateItemMutation.isPending}
             key={editingItem?.id || 'new-item'}
           />
