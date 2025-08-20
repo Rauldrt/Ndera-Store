@@ -99,7 +99,7 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          setImagePreview(dataUrl); // This line was missing
+          setImagePreview(dataUrl);
           setIsUploading(false);
           toast({
             title: "Imagen Cargada",
@@ -116,6 +116,41 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
     }
     if (event.target) {
         event.target.value = ''; // Reset file input
+    }
+  };
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      if (!navigator.clipboard?.readText) {
+        toast({
+          title: "Función no Soportada",
+          description: "Tu navegador no permite pegar desde el portapapeles de forma segura.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const text = await navigator.clipboard.readText();
+      if (text.startsWith('http://') || text.startsWith('https://')) {
+        form.setValue("imageUrl", text, { shouldValidate: true });
+        setImagePreview(text);
+        toast({
+          title: "Enlace Pegado",
+          description: "Se ha pegado la URL desde tu portapapeles.",
+        });
+      } else {
+         toast({
+          title: "Enlace no válido",
+          description: "El texto copiado no parece ser una URL válida.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error al pegar desde el portapapeles:", error);
+      toast({
+        title: "Error al Pegar",
+        description: "No se pudo leer el portapapeles. Asegúrate de haber concedido permisos.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -243,57 +278,49 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
                 />
             </div>
             
-            {imagePreview && (
-              <div className="mt-2 relative w-32 h-32">
-                <img src={imagePreview} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                  onClick={() => {
-                    setImagePreview(null);
-                    form.setValue("imageUrl", "");
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-            
-            <div className="space-y-2">
-                <FormLabel>Imagen</FormLabel>
-                <div className="flex items-center gap-2">
-                    <FormField
-                    control={form.control}
-                    name="imageUrl"
-                    render={({ field }) => (
-                        <FormItem className="w-full">
-                        <FormControl>
-                            <Input 
-                            type="url" 
-                            placeholder="Pega una URL de imagen aquí" 
-                            {...field}
-                            />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormControl>
-                        <Button 
-                            type="button" 
-                            variant="outline" 
-                            onClick={() => fileInputRef.current?.click()} 
-                            disabled={isUploading}
-                        >
-                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                            Subir
-                        </Button>
-                    </FormControl>
-                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
-                </div>
-            </div>
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem className="w-full">
+                  <FormLabel>Imagen del Producto</FormLabel>
+                   {imagePreview && (
+                      <div className="mt-2 relative w-32 h-32">
+                          <img src={imagePreview} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
+                          <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                              onClick={() => {
+                                  setImagePreview(null);
+                                  form.setValue("imageUrl", "");
+                              }}
+                          >
+                              <X className="h-4 w-4" />
+                          </Button>
+                      </div>
+                  )}
+                   <div className="flex items-center gap-2 mt-2">
+                      <FormControl>
+                          <Input 
+                          type="url" 
+                          placeholder="Pega una URL o sube un archivo" 
+                          {...field}
+                          />
+                      </FormControl>
+                      <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
+                      <Button type="button" variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading} title="Subir imagen">
+                         {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      </Button>
+                      <Button type="button" variant="secondary" size="icon" onClick={handlePasteFromClipboard} title="Pegar URL">
+                          <Clipboard className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
 
             <FormField
