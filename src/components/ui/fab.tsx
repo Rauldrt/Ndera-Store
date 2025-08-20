@@ -108,31 +108,32 @@ const ActionButton: React.FC<{ action: FabMenuAction; onActionClick: () => void;
         onActionClick();
     };
 
-    const fabContent = (
-      <Fab size="sm" variant="secondary" aria-label={action.label} asChild={!!action.href}>
-          {action.href ? <Link href={action.href}>{action.icon}</Link> : action.icon}
-      </Fab>
-    );
-    
-    // The conditional logic was the issue. This is a safer way to handle it.
-    const TriggerComponent = action.href ? (
+    const fabContent = action.href ? (
         <Link href={action.href} passHref legacyBehavior>
-            <a onClick={handleClick}><Fab size="sm" variant="secondary" aria-label={action.label}>{action.icon}</Fab></a>
+            <Fab asChild size="sm" variant="secondary" aria-label={action.label}>
+                <a>{action.icon}</a>
+            </Fab>
         </Link>
     ) : (
-        <Fab size="sm" variant="secondary" aria-label={action.label} onClick={handleClick}>{action.icon}</Fab>
+        <Fab size="sm" variant="secondary" aria-label={action.label} onClick={handleClick}>
+            {action.icon}
+        </Fab>
     );
 
     return (
-        <div style={{ transition: 'all 300ms cubic-bezier(0.34, 1.56, 0.64, 1)', opacity: 0, transform: 'translateY(20px) scale(0.8)', animation: `fab-action-enter 300ms ${index * 40}ms forwards cubic-bezier(0.34, 1.56, 0.64, 1)` }}>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    {TriggerComponent}
-                </TooltipTrigger>
-                <TooltipContent side="left" align="center">
-                    <p>{action.label}</p>
-                </TooltipContent>
-            </Tooltip>
+        <div 
+          className="flex items-center gap-4"
+          style={{ 
+            transition: 'all 300ms cubic-bezier(0.34, 1.56, 0.64, 1)', 
+            opacity: 0, 
+            transform: 'translateY(20px) scale(0.8)', 
+            animation: `fab-action-enter 300ms ${index * 40}ms forwards cubic-bezier(0.34, 1.56, 0.64, 1)` 
+          }}
+        >
+            <div className="bg-background text-foreground rounded-md px-3 py-1.5 shadow-md text-sm">
+                {action.label}
+            </div>
+            {fabContent}
         </div>
     );
 };
@@ -145,7 +146,6 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
 
   return (
     <>
-      {/* Moved styles to the top level of the component */}
       <style jsx global>{`
         .ripple {
           position: absolute;
@@ -162,7 +162,7 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
             opacity: 0;
           }
         }
-
+        
         @keyframes fab-action-enter {
             to {
                 opacity: 1;
@@ -173,7 +173,7 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
       <TooltipProvider>
         <div className="fixed bottom-4 right-4 z-30 flex flex-col items-center gap-4 md:hidden">
           {isOpen && (
-              <div className="flex flex-col-reverse items-center gap-4">
+              <div className="flex flex-col-reverse items-end gap-4">
                 {actions.map((action, index) => (
                     <ActionButton 
                         key={index}
@@ -193,24 +193,8 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
                 className="transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95"
                 >
                     <div className="relative h-8 w-8 flex items-center justify-center">
-                        <span
-                            className={cn(
-                                "absolute block w-6 h-0.5 bg-current rounded-full transition-all duration-300 ease-in-out",
-                                isOpen ? "transform rotate-45" : "-translate-y-1.5"
-                            )}
-                        ></span>
-                        <span
-                            className={cn(
-                                "absolute block w-6 h-0.5 bg-current rounded-full transition-all duration-300 ease-in-out",
-                                isOpen ? "opacity-0" : "opacity-100"
-                            )}
-                        ></span>
-                        <span
-                            className={cn(
-                                "absolute block w-6 h-0.5 bg-current rounded-full transition-all duration-300 ease-in-out",
-                                isOpen ? "transform -rotate-45" : "translate-y-1.5"
-                            )}
-                        ></span>
+                       <Plus className={cn("absolute transition-all duration-300 ease-in-out", isOpen ? "transform rotate-45 scale-0 opacity-0" : "transform rotate-0 scale-100 opacity-100")} />
+                       <X className={cn("absolute transition-all duration-300 ease-in-out", isOpen ? "transform rotate-0 scale-100 opacity-100" : "transform -rotate-45 scale-0 opacity-0")} />
                     </div>
                     <div className="sr-only">{isOpen ? "Cerrar" : "Abrir"}</div>
                 </Fab>
