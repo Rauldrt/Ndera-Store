@@ -192,13 +192,10 @@ const FabMenu: React.FC<FabMenuProps> = ({ actions }) => {
                 aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
                 className="transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95"
                 >
-                <div className="relative w-8 h-8 flex items-center justify-center">
-                    <span className={cn("absolute transition-all duration-300 ease-in-out", isOpen ? 'transform rotate-45 opacity-100' : 'transform rotate-0 opacity-0')}>
-                         <X className="h-8 w-8" />
-                    </span>
-                    <span className={cn("absolute transition-all duration-300 ease-in-out", !isOpen ? 'transform rotate-0 opacity-100' : 'transform -rotate-45 opacity-0')}>
-                         <Plus className="h-8 w-8" />
-                    </span>
+                <div className="relative h-8 w-8 flex flex-col justify-between items-center" style={{ transition: 'transform 300ms ease-in-out', transform: isOpen ? 'rotate(45deg)' : 'none' }}>
+                    <span className={cn("block w-full h-1 bg-white rounded-full transition-all duration-300 ease-in-out", isOpen ? "transform rotate-90 translate-y-[13px]" : "")}></span>
+                    <span className={cn("block w-full h-1 bg-white rounded-full transition-all duration-300 ease-in-out", isOpen ? "opacity-0" : "opacity-100")}></span>
+                    <span className={cn("block w-full h-1 bg-white rounded-full transition-all duration-300 ease-in-out", isOpen ? "transform -rotate-90 -translate-y-[13px]" : "")}></span>
                 </div>
                 </Fab>
             </TooltipTrigger>
