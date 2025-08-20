@@ -450,13 +450,15 @@ export default function Home() {
       </Sidebar>
 
       <SidebarInset>
-        <div className="md:hidden flex items-center justify-between p-4 border-b bg-background sticky top-0 z-20">
-          <h1 className="text-lg font-semibold text-primary truncate">
+        <div className="md:hidden grid grid-cols-3 items-center p-4 border-b bg-background sticky top-0 z-20">
+          <div className="flex justify-start">
+            <SidebarTrigger />
+          </div>
+          <h1 className="text-lg font-semibold text-primary truncate text-center">
             { selectedCatalogId ? (catalogs?.find(c => c.id === selectedCatalogId)?.name || "Catálogo") : "Dashboard"}
           </h1>
-           <div className="flex items-center gap-2">
+          <div className="flex justify-end">
             <CartSheet />
-            <SidebarTrigger />
           </div>
         </div>
 
