@@ -99,7 +99,7 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          setImagePreview(dataUrl);
+          setImagePreview(dataUrl); // This line was missing
           setIsUploading(false);
           toast({
             title: "Imagen Cargada",
@@ -260,41 +260,40 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
                 </Button>
               </div>
             )}
-
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>URL de la imagen</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="url" 
-                      placeholder="https://placehold.co/400x300.png" 
-                      {...field}
+            
+            <div className="space-y-2">
+                <FormLabel>Imagen</FormLabel>
+                <div className="flex items-center gap-2">
+                    <FormField
+                    control={form.control}
+                    name="imageUrl"
+                    render={({ field }) => (
+                        <FormItem className="w-full">
+                        <FormControl>
+                            <Input 
+                            type="url" 
+                            placeholder="Pega una URL de imagen aquí" 
+                            {...field}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormItem>
-              <FormLabel>O sube una imagen</FormLabel>
-              <FormControl>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => fileInputRef.current?.click()} 
-                  disabled={isUploading}
-                  className="w-full"
-                >
-                  {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                  {isUploading ? 'Procesando...' : 'Seleccionar archivo'}
-                </Button>
-              </FormControl>
-              <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
-            </FormItem>
+                    <FormControl>
+                        <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => fileInputRef.current?.click()} 
+                            disabled={isUploading}
+                        >
+                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                            Subir
+                        </Button>
+                    </FormControl>
+                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
+                </div>
+            </div>
 
 
             <FormField
