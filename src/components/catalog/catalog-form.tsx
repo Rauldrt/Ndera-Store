@@ -143,16 +143,17 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
   };
 
   const handleSubmit: SubmitHandler<CatalogFormValues> = (data) => {
-    let finalImageUrl = data.imageUrl || '';
+    let finalData = { ...data };
     
+    // Prioritize the base64-encoded image preview if it exists
     if (imagePreview && imagePreview.startsWith('data:image')) {
-      finalImageUrl = imagePreview;
+      finalData.imageUrl = imagePreview;
+    } else {
+      // Otherwise, use the URL from the form field
+      finalData.imageUrl = data.imageUrl;
     }
   
-    onSubmit({
-      ...data,
-      imageUrl: finalImageUrl,
-    });
+    onSubmit(finalData);
   };
   
   const imageUrlValue = form.watch('imageUrl');
@@ -171,6 +172,8 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
   useEffect(() => {
     if (imageUrlValue && !imageUrlValue.startsWith('data:image')) {
         setImagePreview(imageUrlValue);
+    } else if (!imageUrlValue && !isUploading) {
+        setImagePreview(null);
     }
   }, [imageUrlValue]);
 

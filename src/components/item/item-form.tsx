@@ -178,9 +178,11 @@ export function ItemForm({ initialData, onSubmit, isLoading = false }: ItemFormP
   const handleSubmit: SubmitHandler<ItemFormValues> = (data) => {
     let finalData = { ...data };
     
+    // Prioritize the base64-encoded image preview if it exists
     if (imagePreview && imagePreview.startsWith('data:image')) {
       finalData.imageUrl = imagePreview;
     } else {
+      // Otherwise, use the URL from the form field
       finalData.imageUrl = data.imageUrl;
     }
   
@@ -208,8 +210,12 @@ export function ItemForm({ initialData, onSubmit, isLoading = false }: ItemFormP
   const imageUrlValue = form.watch('imageUrl');
 
   useEffect(() => {
+    // This syncs the preview if the URL field is changed manually
     if (imageUrlValue && !imageUrlValue.startsWith('data:image')) {
         setImagePreview(imageUrlValue);
+    } else if (!imageUrlValue && !isUploading) {
+        // Clear preview if URL is cleared and not currently uploading
+        setImagePreview(null);
     }
   }, [imageUrlValue]);
 
