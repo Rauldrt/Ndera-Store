@@ -2,6 +2,7 @@
 import { initializeApp, FirebaseApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage"; // Import Storage
 
 /**
  * @fileoverview This file initializes the Firebase app and Firestore database.
@@ -26,7 +27,7 @@ const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyCI7CedFB4uXRKp0dBloP_c42WNr9uIkU8",
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "catalogify-htws4.firebaseapp.com",
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "catalogify-htws4",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "catalogify-htws4.firebasestorage.app",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "catalogify-htws4.appspot.com", // Corrected storage bucket
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "322550483925",
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:322550483925:web:cfa4449ed1dda67457cb5c",
 };
@@ -35,6 +36,7 @@ const firebaseConfig = {
 const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app); // Initialize Firestore
 const auth = getAuth(app); // Initialize Firebase Auth
+const storage = getStorage(app); // Initialize Firebase Storage
 
 
 console.log("Firebase initialized successfully.");
@@ -45,4 +47,4 @@ console.log("db is defined:", typeof db !== 'undefined');
 
 console.log(firebaseConfig)
 
-export { app, db, auth, firebaseConfig };
+export { app, db, auth, storage, firebaseConfig }; // Export storage

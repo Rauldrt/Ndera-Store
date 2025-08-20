@@ -23,6 +23,8 @@ import type { Catalog } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X, Loader2, Info, Clipboard } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useFirebaseStorage } from "@/hooks/use-firebase-storage";
+import { Progress } from "../ui/progress";
 
 
 const catalogFormSchema = z.object({
@@ -49,65 +51,33 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
     },
   });
 
-  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
+  const { uploadFile, uploadProgress, isUploading, fileUrl, error } = useFirebaseStorage();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    if (fileUrl) {
+      form.setValue("imageUrl", fileUrl, { shouldValidate: true });
+    }
+  }, [fileUrl, form]);
+
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error al Subir Imagen",
+        description: error,
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setIsUploading(true);
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.8); // Use jpeg for better compression
-          
-          setImagePreview(dataUrl);
-          form.setValue("imageUrl", dataUrl, { shouldValidate: true });
-          setIsUploading(false);
-          toast({
-            title: "Imagen Cargada y Optimizada",
-            description: "La imagen está lista para ser guardada.",
-          });
-        };
-        img.onerror = () => {
-          setIsUploading(false);
-          toast({ title: "Error", description: "El archivo no es una imagen válida.", variant: "destructive" });
-        };
-        img.src = e.target?.result as string;
-      };
-      reader.onerror = () => {
-        setIsUploading(false);
-        toast({ title: "Error", description: "No se pudo leer el archivo.", variant: "destructive" });
-      };
-      reader.readAsDataURL(file);
+      uploadFile(file, 'catalog-images');
     }
-     if (event.target) {
+    if (event.target) {
         event.target.value = '';
     }
   };
@@ -125,7 +95,6 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
       const text = await navigator.clipboard.readText();
       if (text.startsWith('http://') || text.startsWith('https://')) {
         form.setValue("imageUrl", text, { shouldValidate: true });
-        setImagePreview(text);
         toast({
           title: "Enlace Pegado",
           description: "Se ha pegado la URL desde tu portapapeles.",
@@ -146,20 +115,6 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
       });
     }
   };
-
-  const handleSubmit: SubmitHandler<CatalogFormValues> = (data) => {
-    let finalData = { ...data };
-    
-    // Prioritize the base64-encoded image preview if it exists
-    if (imagePreview && imagePreview.startsWith('data:image')) {
-      finalData.imageUrl = imagePreview;
-    } else {
-      // Otherwise, use the URL from the form field
-      finalData.imageUrl = data.imageUrl;
-    }
-  
-    onSubmit(finalData);
-  };
   
   const imageUrlValue = form.watch('imageUrl');
 
@@ -170,17 +125,8 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
         description: initialData.description || "",
         imageUrl: initialData.imageUrl || "",
       });
-      setImagePreview(initialData.imageUrl || null);
     }
   }, [initialData, form]);
-
-  useEffect(() => {
-    if (imageUrlValue && !imageUrlValue.startsWith('data:image')) {
-        setImagePreview(imageUrlValue);
-    } else if (!imageUrlValue && !isUploading) {
-        setImagePreview(null);
-    }
-  }, [imageUrlValue, isUploading]);
 
 
   return (
@@ -191,7 +137,7 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -239,18 +185,15 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
                         </TooltipContent>
                       </Tooltip>
                   </FormLabel>
-                  {imagePreview && (
+                  {imageUrlValue && (
                     <div className="mt-2 relative w-48 h-32">
-                        <img src={imagePreview} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
+                        <img src={imageUrlValue} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
                         <Button
                             type="button"
                             variant="destructive"
                             size="icon"
                             className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                            onClick={() => {
-                                setImagePreview(null);
-                                form.setValue("imageUrl", "");
-                            }}
+                            onClick={() => form.setValue("imageUrl", "")}
                         >
                             <X className="h-4 w-4" />
                         </Button>
@@ -273,6 +216,12 @@ export function CatalogForm({ onSubmit, initialData, isLoading = false }: Catalo
                         <Clipboard className="h-4 w-4" />
                     </Button>
                   </div>
+                  {isUploading && (
+                    <div className="mt-2 space-y-1">
+                      <Progress value={uploadProgress} />
+                      <p className="text-xs text-muted-foreground">{Math.round(uploadProgress)}% subido...</p>
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
