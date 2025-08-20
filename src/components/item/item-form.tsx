@@ -39,11 +39,11 @@ export type ItemFormValues = z.infer<typeof itemFormSchema>;
 
 interface ItemFormProps {
   initialData?: Partial<Item>;
-  onSubmit: (data: ItemFormValues) => void;
+  onFormSubmit: (data: ItemFormValues) => void;
   isLoading?: boolean;
 }
 
-export function ItemForm({ initialData, onSubmit, isLoading = false }: ItemFormProps) {
+export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemFormProps) {
   const { toast } = useToast();
   
   const form = useForm<ItemFormValues>({
@@ -119,37 +119,6 @@ export function ItemForm({ initialData, onSubmit, isLoading = false }: ItemFormP
     }
   };
 
-  const handlePasteFromClipboard = async () => {
-    try {
-      if (!navigator.clipboard?.readText) {
-        toast({
-          title: "Función no Soportada",
-          description: "Tu navegador no permite pegar desde el portapapeles de forma segura.",
-          variant: "destructive",
-        });
-        return;
-      }
-      const text = await navigator.clipboard.readText();
-      if (text.startsWith('http://') || text.startsWith('https://')) {
-        form.setValue("imageUrl", text, { shouldValidate: true });
-        setImagePreview(text);
-      } else {
-         toast({
-          title: "Enlace no válido",
-          description: "El texto copiado no parece ser una URL válida.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error al pegar desde el portapapeles:", error);
-      toast({
-        title: "Error al Pegar",
-        description: "No se pudo leer el portapapeles.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleAddTag = (tagToAdd: string) => {
     const newTag = tagToAdd.trim().toLowerCase(); 
     if (newTag && !tags.map(t => t.toLowerCase()).includes(newTag) && tags.length < 10) {
@@ -178,11 +147,9 @@ export function ItemForm({ initialData, onSubmit, isLoading = false }: ItemFormP
   const handleSubmit: SubmitHandler<ItemFormValues> = (data) => {
     let finalData = { ...data };
     
-    // Prioritize the base64-encoded image preview if it exists
     if (imagePreview && imagePreview.startsWith('data:image')) {
       finalData.imageUrl = imagePreview;
     } else {
-      // Otherwise, use the URL from the form field
       finalData.imageUrl = data.imageUrl;
     }
   
@@ -191,7 +158,7 @@ export function ItemForm({ initialData, onSubmit, isLoading = false }: ItemFormP
       tags: data.tags.map(tag => tag.trim()).filter(Boolean),
     };
 
-    onSubmit(trimmedData);
+    onFormSubmit(trimmedData);
   };
 
    useEffect(() => {
@@ -210,14 +177,12 @@ export function ItemForm({ initialData, onSubmit, isLoading = false }: ItemFormP
   const imageUrlValue = form.watch('imageUrl');
 
   useEffect(() => {
-    // This syncs the preview if the URL field is changed manually
     if (imageUrlValue && !imageUrlValue.startsWith('data:image')) {
         setImagePreview(imageUrlValue);
     } else if (!imageUrlValue && !isUploading) {
-        // Clear preview if URL is cleared and not currently uploading
         setImagePreview(null);
     }
-  }, [imageUrlValue]);
+  }, [imageUrlValue, isUploading]);
 
 
   return (
@@ -300,30 +265,37 @@ export function ItemForm({ initialData, onSubmit, isLoading = false }: ItemFormP
               control={form.control}
               name="imageUrl"
               render={({ field }) => (
-                <FormItem className="w-full">
-                   <FormLabel className="flex items-center gap-2">
-                    URL de la imagen o Subir Archivo
-                  </FormLabel>
-                  <div className="flex items-center gap-2">
-                    <FormControl>
-                        <Input 
-                            type="url" 
-                            placeholder="https://placehold.co/400x300.png" 
-                            {...field}
-                        />
-                    </FormControl>
-                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
-                    <Button type="button" variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading} title="Subir imagen">
-                       {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                    </Button>
-                     <Button type="button" variant="secondary" size="icon" onClick={handlePasteFromClipboard} title="Pegar URL">
-                        <Clipboard className="h-4 w-4" />
-                    </Button>
-                  </div>
+                <FormItem>
+                  <FormLabel>URL de la imagen</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="url" 
+                      placeholder="https://placehold.co/400x300.png" 
+                      {...field}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            <FormItem>
+              <FormLabel>O sube una imagen</FormLabel>
+              <FormControl>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => fileInputRef.current?.click()} 
+                  disabled={isUploading}
+                  className="w-full"
+                >
+                  {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                  {isUploading ? 'Procesando...' : 'Seleccionar archivo'}
+                </Button>
+              </FormControl>
+              <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
+            </FormItem>
+
 
             <FormField
               control={form.control}
