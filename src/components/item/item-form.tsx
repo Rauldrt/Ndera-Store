@@ -20,13 +20,16 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as CardDesc } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Loader2, DollarSign, Upload, Clipboard, Info } from "lucide-react"; 
+import { X, Loader2, DollarSign, Upload, Clipboard, Info, Sparkles, Wand2 } from "lucide-react"; 
 import type { Item } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useFirebaseStorage } from "@/hooks/use-firebase-storage";
 import { Progress } from "../ui/progress";
+import { suggestTags } from "@/ai/flows/suggest-tags";
+import { generateProductImage } from "@/ai/flows/generate-product-image";
+
 
 const itemFormSchema = z.object({
   name: z.string().min(1, "El nombre del producto es obligatorio").max(100, "Nombre demasiado largo (máx. 100 caracteres)"),
@@ -66,6 +69,8 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentTag, setCurrentTag] = useState("");
   const tags = form.watch("tags");
+  const [isSuggestingTags, setIsSuggestingTags] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   useEffect(() => {
     if (fileUrl) {
@@ -152,6 +157,93 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
     }
   };
   
+  const handleSuggestTags = async () => {
+    const description = form.getValues("description");
+    if (!description || description.trim().length < 10) {
+        toast({
+            title: "Descripción Insuficiente",
+            description: "Por favor, escribe una descripción de al menos 10 caracteres para sugerir etiquetas.",
+            variant: "destructive",
+        });
+        return;
+    }
+    setIsSuggestingTags(true);
+    try {
+        const result = await suggestTags({ itemDescription: description });
+        if (result.tags && result.tags.length > 0) {
+            // Add new tags, avoiding duplicates, and respecting the 10 tags limit
+            const currentTags = form.getValues("tags").map(t => t.toLowerCase());
+            const newTags = result.tags.filter(tag => !currentTags.includes(tag.toLowerCase()));
+            const combinedTags = [...form.getValues("tags"), ...newTags].slice(0, 10);
+            form.setValue("tags", combinedTags, { shouldValidate: true });
+            toast({
+                title: "Etiquetas Sugeridas",
+                description: `${newTags.length} nuevas etiquetas fueron añadidas.`,
+            });
+        } else {
+             toast({
+                title: "No se encontraron nuevas etiquetas",
+                description: "La IA no encontró sugerencias relevantes o ya existen.",
+            });
+        }
+    } catch (error) {
+        console.error("Error al sugerir etiquetas:", error);
+        toast({
+            title: "Error de la IA",
+            description: `No se pudieron obtener las etiquetas: ${(error as Error).message}`,
+            variant: "destructive",
+        });
+    } finally {
+        setIsSuggestingTags(false);
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    const name = form.getValues("name");
+    const description = form.getValues("description");
+
+    if (!name || name.trim().length < 3) {
+      toast({
+        title: "Nombre del Producto Requerido",
+        description: "Por favor, introduce un nombre para el producto antes de generar una imagen.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsGeneratingImage(true);
+    toast({
+        title: "Generando imagen...",
+        description: "La IA está creando tu imagen. Esto puede tardar unos segundos.",
+    });
+
+    try {
+        const result = await generateProductImage({ name, description: description || "" });
+        if(result.wasGenerated) {
+            form.setValue("imageUrl", result.imageUrl, { shouldValidate: true });
+            toast({
+                title: "Imagen Generada con Éxito",
+                description: "La imagen creada por la IA ha sido añadida.",
+            });
+        } else {
+            toast({
+                title: "Fallo en la Generación",
+                description: "No se pudo generar la imagen. Se usará una de reemplazo.",
+                variant: "destructive",
+            });
+        }
+    } catch (error) {
+        console.error("Error al generar la imagen:", error);
+        toast({
+            title: "Error de la IA",
+            description: `No se pudo generar la imagen: ${(error as Error).message}`,
+            variant: "destructive",
+        });
+    } finally {
+        setIsGeneratingImage(false);
+    }
+  };
+
   useEffect(() => {
     if (initialData) {
       form.reset({
@@ -232,29 +324,38 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
               name="imageUrl"
               render={({ field }) => (
                 <FormItem className="w-full">
-                  <FormLabel className="flex items-center gap-2">
+                   <FormLabel className="flex items-center gap-2">
                      URL de imagen de producto (Opcional)
                       <Tooltip>
                         <TooltipTrigger asChild>
                            <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                         </TooltipTrigger>
                         <TooltipContent>
-                           <p className="max-w-xs">Puedes pegar una URL o subir un archivo.</p>
+                           <p className="max-w-xs">Pega una URL, sube un archivo o genera una imagen con IA.</p>
                         </TooltipContent>
                       </Tooltip>
                   </FormLabel>
-                  {imageUrlValue && (
-                    <div className="mt-2 relative w-48 h-32">
-                        <img src={imageUrlValue} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
-                        <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                            onClick={() => form.setValue("imageUrl", "")}
-                        >
-                            <X className="h-4 w-4" />
-                        </Button>
+                   {(imageUrlValue || isGeneratingImage) && (
+                    <div className="mt-2 relative w-48 h-32 rounded-md border flex items-center justify-center bg-muted">
+                        {isGeneratingImage ? (
+                            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                <Loader2 className="h-8 w-8 animate-spin" />
+                                <span className="text-xs">Generando...</span>
+                            </div>
+                        ) : (
+                           <>
+                             <img src={imageUrlValue} alt="Vista previa" className="rounded-md object-cover w-full h-full" />
+                             <Button
+                                 type="button"
+                                 variant="destructive"
+                                 size="icon"
+                                 className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                                 onClick={() => form.setValue("imageUrl", "")}
+                             >
+                                 <X className="h-4 w-4" />
+                             </Button>
+                           </>
+                        )}
                     </div>
                   )}
                    <div className="flex items-center gap-2">
@@ -266,13 +367,31 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
                         value={field.value ?? ""} 
                         />
                     </FormControl>
+                     <Tooltip>
+                        <TooltipTrigger asChild>
+                           <Button type="button" variant="outline" size="icon" onClick={handleGenerateImage} disabled={isUploading || isGeneratingImage} title="Generar imagen con IA">
+                              {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                           </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Generar con IA</TooltipContent>
+                     </Tooltip>
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
-                    <Button type="button" variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading} title="Subir imagen">
-                       {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                    </Button>
-                    <Button type="button" variant="secondary" size="icon" onClick={handlePasteFromClipboard} title="Pegar URL">
-                        <Clipboard className="h-4 w-4" />
-                    </Button>
+                     <Tooltip>
+                       <TooltipTrigger asChild>
+                           <Button type="button" variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading || isGeneratingImage} title="Subir imagen">
+                              {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                           </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Subir archivo</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                           <Button type="button" variant="secondary" size="icon" onClick={handlePasteFromClipboard} title="Pegar URL del portapapeles">
+                              <Clipboard className="h-4 w-4" />
+                           </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Pegar URL</TooltipContent>
+                    </Tooltip>
                   </div>
                   {isUploading && (
                     <div className="mt-2 space-y-1">
@@ -301,6 +420,10 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
                         disabled={tags.length >= 10 || isLoading}
                         />
                     </FormControl>
+                     <Button type="button" variant="outline" onClick={handleSuggestTags} disabled={isSuggestingTags}>
+                         {isSuggestingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                        Sugerir Etiquetas
+                    </Button>
                   </div>
                    <FormMessage>{form.formState.errors.tags?.message || (form.formState.errors.tags as any)?.root?.message}</FormMessage>
                   <div className="mt-2 flex flex-wrap gap-1.5 w-full"> 
@@ -368,8 +491,8 @@ export function ItemForm({ initialData, onFormSubmit, isLoading = false }: ItemF
               />
             </div>
 
-             <Button type="submit" disabled={isLoading || isUploading} className="w-full sm:w-auto"> 
-              {isLoading || isUploading ? (
+             <Button type="submit" disabled={isLoading || isUploading || isGeneratingImage || isSuggestingTags} className="w-full sm:w-auto"> 
+              {isLoading || isUploading || isGeneratingImage || isSuggestingTags ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {initialData?.id ? "Guardando..." : "Añadiendo..."}

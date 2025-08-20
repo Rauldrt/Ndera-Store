@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const SuggestTagsInputSchema = z.object({
   itemDescription: z
@@ -75,4 +75,3 @@ const suggestTagsFlow = ai.defineFlow(
     };
   }
 );
-

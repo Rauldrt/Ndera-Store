@@ -9,73 +9,75 @@ body {
 
 @layer base {
   :root {
-    --background: 240 5% 96%; /* Nord6 - Lighter Gray */
-    --foreground: 220 13% 18%; /* Nord0 - Darker Blue/Gray */
-    --card: 240 5% 100%; /* White */
-    --card-foreground: 220 13% 18%;
-    --popover: 240 5% 100%;
-    --popover-foreground: 220 13% 18%;
-    --primary: 195 35% 65%; /* Nord9 - Frosty Blue */
-    --primary-foreground: 220 13% 18%;
-    --secondary: 220 14% 91%; /* Nord5 - Light Gray */
-    --secondary-foreground: 220 13% 18%;
-    --muted: 220 14% 91%;
-    --muted-foreground: 220 9% 45%;
-    --accent: 180 14% 65%; /* Nord8 - Cool Mint */
-    --accent-foreground: 220 13% 18%;
-    --destructive: 0 72% 51%; /* Nord11 - Red */
+    --background: 0 0% 100%; /* Neutral White */
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 206 84% 52%; /* Calming Blue: #3498db */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4.8% 95.9%; /* Light Gray */
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 142 76% 51%; /* Vibrant Green: #2ecc71 */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 14% 85%; /* Nord4 - Gray */
-    --input: 220 14% 85%;
-    --ring: 195 35% 65%;
-    --chart-1: 195 35% 65%;
-    --chart-2: 180 14% 65%;
-    --chart-3: 334 47% 69%; /* Nord15 - Purple */
-    --chart-4: 35 84% 71%;  /* Nord13 - Yellow */
-    --chart-5: 25 78% 63%;  /* Nord12 - Orange */
-    --radius: 0.85rem; 
-    --sidebar-background: 220 13% 23%; /* Nord1 - Darker */
-    --sidebar-foreground: 240 5% 96%; /* Nord6 - Lighter Gray */
-    --sidebar-primary: 240 5% 96%; 
-    --sidebar-primary-foreground: 220 13% 23%; 
-    --sidebar-accent: 220 14% 28%; /* Nord2 */
-    --sidebar-accent-foreground: 240 5% 96%; 
-    --sidebar-border: 220 14% 28%;
-    --sidebar-ring: 240 5% 96%;
-  }
-  .dark {
-    --background: 220 13% 18%; /* Nord0 */
-    --foreground: 240 5% 96%; /* Nord6 */
-    --card: 220 14% 23%; /* Nord1 */
-    --card-foreground: 240 5% 96%;
-    --popover: 220 14% 23%;
-    --popover-foreground: 240 5% 96%;
-    --primary: 195 35% 65%; /* Nord9 */
-    --primary-foreground: 220 13% 18%;
-    --secondary: 220 14% 28%; /* Nord2 */
-    --secondary-foreground: 240 5% 96%;
-    --muted: 220 14% 28%;
-    --muted-foreground: 220 10% 65%; /* Nord4 */
-    --accent: 180 14% 65%; /* Nord8 */
-    --accent-foreground: 220 13% 18%;
-    --destructive: 0 72% 51%; /* Nord11 - Red */
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 14% 28%; /* Nord2 */
-    --input: 220 14% 28%;
-    --ring: 195 35% 65%;
-    --chart-1: 195 35% 65%;
-    --chart-2: 180 14% 65%;
-    --chart-3: 334 47% 69%;
-    --chart-4: 35 84% 71%;
-    --chart-5: 25 78% 63%;
-    --sidebar-background: 220 13% 18%;
-    --sidebar-foreground: 240 5% 96%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 206 84% 52%;
+    --chart-1: 206 84% 52%;
+    --chart-2: 142 76% 51%;
+    --chart-3: 271 91% 65%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 5 89% 61%;
+    --radius: 0.5rem;
+    --sidebar-background: 220 13% 18%; /* Nord0 */
+    --sidebar-foreground: 240 5% 96%; /* Nord6 */
     --sidebar-primary: 240 5% 96%;
     --sidebar-primary-foreground: 220 13% 18%;
     --sidebar-accent: 220 14% 23%;
     --sidebar-accent-foreground: 240 5% 96%;
     --sidebar-border: 220 14% 23%;
     --sidebar-ring: 240 5% 96%;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 206 84% 52%; /* Calming Blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 142 76% 51%; /* Vibrant Green */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 206 84% 52%;
+    --chart-1: 206 84% 52%;
+    --chart-2: 142 76% 51%;
+    --chart-3: 271 91% 65%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 5 89% 61%;
+    --radius: 0.5rem;
+    --sidebar-background: 240 10% 3.9%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 0 0% 98%;
+    --sidebar-primary-foreground: 240 10% 3.9%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 206 84% 52%;
   }
 }
 
