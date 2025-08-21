@@ -66,6 +66,30 @@ export default function Home() {
     }
   }, [user, loading, router]);
 
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      // This logic runs when the user hits the back button.
+      const shouldExit = window.confirm("¿Estás seguro de que quieres salir de la aplicación?");
+      if (shouldExit) {
+        // Allow the user to go back.
+        window.history.back();
+      } else {
+        // Prevent leaving by pushing the current state back to the history.
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+    
+    // We add a new entry to the history stack.
+    // When the user clicks "back", it will trigger our `popstate` listener
+    // instead of actually navigating away.
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
 
   const { data: catalogs, isLoading: isLoadingCatalogs, error: catalogsError } = useQuery<Catalog[]>({
     queryKey: ['catalogs', user?.uid], // Depend on user ID to refetch on login/logout
